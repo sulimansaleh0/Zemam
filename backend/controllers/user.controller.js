@@ -2,6 +2,7 @@ const User = require("../models/user.model")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
+const googleClient = require("../config/googleAuth")
 
 // helpers
 const generateToken = async (user) => {
@@ -80,6 +81,43 @@ exports.logout = (req, res) => {
         });
 
         success(res, 200)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.googleLogin = async (req, res) => {
+    const { credential } = req.body
+    if (!credential) return error(res, 400, "Google credential is required")
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        const {
+            sub: googleId,
+            email,
+            name
+        } = payload;
+
+        if (!email) {
+            return error(res, 400, "Google account email is required");
+        }
+
+        let user = await User.findOne({ googleId })
+        if (!user) {
+            user = await User.create({
+                name,
+                email,
+                googleId,
+                provider: "google"
+            });
+        }
+        const token = await generateToken(user);
+        storeToken(res, token);
+        return success(res, 200);
     } catch (err) {
         console.log(err)
         serverError(res)
