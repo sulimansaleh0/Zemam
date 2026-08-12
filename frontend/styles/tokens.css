@@ -88,4 +88,21 @@
   --sidebar-width:     260px;
   --sidebar-collapsed: 64px;
   --header-height:     64px;
+
+  /* ─── Font Weights ───────────────────────── */
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+
+  /* ─── Status — Vehicle ───────────────────── */
+  --status-active:      var(--success);
+  --status-maintenance: var(--warning);
+  --status-inactive:    var(--muted);
+
+  /* ─── Status — Task ──────────────────────── */
+  --status-pending:     var(--warning);
+  --status-in-progress: var(--primary);
+  --status-completed:   var(--success);
+  --status-cancelled:   var(--danger);
 }

@@ -7,27 +7,43 @@
    ============================================ */
 @theme inline {
   /* ─── Colors ─────────────────────────────── */
-  --color-primary:   var(--primary);
-  --color-success:   var(--success);
-  --color-warning:   var(--warning);
-  --color-danger:    var(--danger);
-  --color-info:      var(--info);
+  --color-primary:  var(--primary);
+  --color-success:  var(--success);
+  --color-warning:  var(--warning);
+  --color-danger:   var(--danger);
+  --color-info:     var(--info);
 
-  --color-bg:        var(--bg);
-  --color-surface:   var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
+  --color-bg:       var(--bg);
+  --color-surface:  var(--surface);
+  --color-surface2: var(--surface-2);   /* surface-2 → surface2 لتوافق Tailwind */
+  --color-surface3: var(--surface-3);
 
   --color-text:      var(--text);
   --color-secondary: var(--text-secondary);
   --color-muted:     var(--muted);
   --color-disabled:  var(--disabled);
-
   --color-border:    var(--border);
+
+  /* ─── Status — Vehicle ───────────────────── */
+  --color-active:      var(--status-active);
+  --color-maintenance: var(--status-maintenance);
+  --color-inactive:    var(--status-inactive);
+
+  /* ─── Status — Task ──────────────────────── */
+  --color-pending:     var(--status-pending);
+  --color-in-progress: var(--status-in-progress);
+  --color-completed:   var(--status-completed);
+  --color-cancelled:   var(--status-cancelled);
 
   /* ─── Font ───────────────────────────────── */
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+
+  /* ─── Font Weight ────────────────────────── */
+  --font-weight-normal:   var(--font-normal);
+  --font-weight-medium:   var(--font-medium);
+  --font-weight-semibold: var(--font-semibold);
+  --font-weight-bold:     var(--font-bold);
 
   /* ─── Radius ─────────────────────────────── */
   --radius-sm:   var(--radius-sm);
