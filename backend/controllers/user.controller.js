@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
+const { sendPasswordResetEmail } = require("../services/email")
 
 // helpers
 const generateToken = async (user) => {
@@ -118,6 +119,20 @@ exports.googleLogin = async (req, res) => {
         const token = await generateToken(user);
         storeToken(res, token);
         return success(res, 200);
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.verifyEmail = async (req, res) => {
+    const { email } = req.body
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return error(res, 401, "Email Not Found!")
+        const token = await jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
+        success(res, 200, { token })
+        sendPasswordResetEmail({ email: "waqeh12@gmail.com" })
     } catch (err) {
         console.log(err)
         serverError(res)
