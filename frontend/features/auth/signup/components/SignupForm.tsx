@@ -84,8 +84,17 @@ export function SignupForm() {
       });
       router.push('/login');
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : 'حدث خطأ غير متوقع';
-      setError('root', { message });
+      if (error instanceof ApiError) {
+        setError('root', { message: error.message });
+        if (error.errors) {
+          Object.entries(error.errors).forEach(([field, msg]) => {
+            const message = Array.isArray(msg) ? msg.join(' - ') : msg;
+            setError(field as keyof SignupFormValues, { message });
+          });
+        }
+      } else {
+        setError('root', { message: 'حدث خطأ غير متوقع في الاتصال' });
+      }
     }
   }
 
