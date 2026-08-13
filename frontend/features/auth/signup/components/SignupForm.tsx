@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useImmer } from 'use-immer';
 import { authApi } from '@/features/auth/api/auth.api';
 import { AuthCard } from '@/features/auth/components/AuthCard';
 import { AuthHeader } from '@/features/auth/components/AuthHeader';
@@ -36,7 +35,8 @@ export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const [addressDraft, updateAddressDraft] = useImmer({
+  // استخدام useState عادية بدلاً من useImmer
+  const [addressDraft, setAddressDraft] = useState({
     country: 'المملكة العربية السعودية',
     city: 'الرياض',
     streetDetails: '',
@@ -70,9 +70,7 @@ export function SignupForm() {
   const watchedPassword = watch('password');
 
   const handleAddressChange = (field: keyof typeof addressDraft, value: string) => {
-    updateAddressDraft((draft) => {
-      draft[field] = value;
-    });
+    setAddressDraft((prev) => ({ ...prev, [field]: value }));
     setValue(`address.${field}`, value, { shouldValidate: true });
   };
 

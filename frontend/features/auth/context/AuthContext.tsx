@@ -3,18 +3,18 @@
 import {
   createContext,
   useContext,
+  useState,
   useEffect,
   useCallback,
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { useImmer } from 'use-immer';
 import { authApi } from '../api/auth.api';
 import type { AuthUser } from '../types/auth.types';
 import { ApiError } from '@/shared/lib/apiClient';
 
 // ============================================================
-//  Auth Context — Powered by useImmer & Cookie Sessions
+//  Auth Context — Powered by Standard React useState & Cookies
 // ============================================================
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
@@ -33,7 +33,7 @@ interface AuthContextValue {
   isLoading: boolean;
   checkSession: () => Promise<void>;
   setAuthUser: (user: AuthUser) => void;
-  updateUser: (recipe: (draft: AuthUser) => void) => void;
+  updateUser: (updater: (prevUser: AuthUser) => AuthUser) => void;
   logout: () => Promise<void>;
 }
 
@@ -46,55 +46,49 @@ const INITIAL_STATE: AuthState = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, updateState] = useImmer<AuthState>(INITIAL_STATE);
+  const [state, setState] = useState<AuthState>(INITIAL_STATE);
   const router = useRouter();
 
   const checkSession = useCallback(async () => {
-    updateState((draft) => {
-      draft.status = 'loading';
-      draft.error = null;
-    });
+    setState((prev) => ({ ...prev, status: 'loading', error: null }));
 
     try {
       const user = await authApi.getMe();
-      updateState((draft) => {
-        draft.user = user;
-        draft.status = 'authenticated';
+      setState({
+        user,
+        status: 'authenticated',
+        error: null,
       });
     } catch (error) {
-      updateState((draft) => {
-        draft.user = null;
-        draft.status = 'unauthenticated';
-        draft.error = error instanceof ApiError ? error.message : null;
+      setState({
+        user: null,
+        status: 'unauthenticated',
+        error: error instanceof ApiError ? error.message : null,
       });
     }
-  }, [updateState]);
+  }, []);
 
   useEffect(() => {
     void checkSession();
   }, [checkSession]);
 
-  const setAuthUser = useCallback(
-    (user: AuthUser) => {
-      updateState((draft) => {
-        draft.user = user;
-        draft.status = 'authenticated';
-        draft.error = null;
-      });
-    },
-    [updateState],
-  );
+  const setAuthUser = useCallback((user: AuthUser) => {
+    setState({
+      user,
+      status: 'authenticated',
+      error: null,
+    });
+  }, []);
 
-  const updateUser = useCallback(
-    (recipe: (draft: AuthUser) => void) => {
-      updateState((draft) => {
-        if (draft.user) {
-          recipe(draft.user);
-        }
-      });
-    },
-    [updateState],
-  );
+  const updateUser = useCallback((updater: (prevUser: AuthUser) => AuthUser) => {
+    setState((prev) => {
+      if (!prev.user) return prev;
+      return {
+        ...prev,
+        user: updater(prev.user),
+      };
+    });
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -102,14 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignored
     } finally {
-      updateState((draft) => {
-        draft.user = null;
-        draft.status = 'unauthenticated';
-        draft.error = null;
+      setState({
+        user: null,
+        status: 'unauthenticated',
+        error: null,
       });
       router.push('/login');
     }
-  }, [updateState, router]);
+  }, [router]);
 
   const value: AuthContextValue = {
     state,
