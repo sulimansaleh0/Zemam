@@ -1,5 +1,5 @@
 // ============================================================
-//  API Client — Universal Backend Error Parser (Supports NestJS, Express, Laravel, FastAPI, Django, Spring)
+//  API Client — Universal Backend Error Parser & Safe Response Handler
 // ============================================================
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -21,26 +21,24 @@ export class ApiError extends Error {
   }
 }
 
-// دالة عالمية لاستخراج نص الرسالة من أي هيكلية أخطاء خادم (NestJS, Express, Django, Laravel, Spring)
 function parseErrorMessage(body: unknown): string | undefined {
-  if (!body || typeof body !== 'object') return undefined;
+  if (!body) return undefined;
+  if (typeof body === 'string') return body;
+  if (typeof body !== 'object') return undefined;
 
   const data = body as Record<string, unknown>;
 
-  // 1. message كـ string أو Array (مثل NestJS ValidationPipe)
   if (typeof data.message === 'string') return data.message;
   if (Array.isArray(data.message)) {
     return data.message.map((m) => (typeof m === 'string' ? m : JSON.stringify(m))).join(' - ');
   }
 
-  // 2. error كـ string أو Object
   if (typeof data.error === 'string') return data.error;
   if (data.error && typeof data.error === 'object') {
     const errObj = data.error as Record<string, unknown>;
     if (typeof errObj.message === 'string') return errObj.message;
   }
 
-  // 3. detail كـ string أو Array (مثل FastAPI / Django)
   if (typeof data.detail === 'string') return data.detail;
   if (Array.isArray(data.detail)) {
     return data.detail
@@ -51,7 +49,6 @@ function parseErrorMessage(body: unknown): string | undefined {
   return undefined;
 }
 
-// استخراج أخطاء الحقول المحددة (Field-level errors)
 function parseFieldErrors(body: unknown): Record<string, string[] | string> | undefined {
   if (!body || typeof body !== 'object') return undefined;
   const data = body as Record<string, unknown>;
@@ -62,15 +59,27 @@ function parseFieldErrors(body: unknown): Record<string, string[] | string> | un
   return undefined;
 }
 
+// دالة لمعالجة القراءة الآمنة من الـ Response دون التعلق بـ JSON SyntaxError عند الجسم الفارغ
+async function parseResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text || !text.trim()) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
+  const status = response.status;
+
   if (response.ok) {
-    if (response.status === 204) return undefined as T;
-    return response.json() as Promise<T>;
+    if (status === 204) return {} as T;
+    const body = await parseResponseBody(response);
+    return body as T;
   }
 
-  const status = response.status;
-  const body = await response.json().catch(() => ({}));
-
+  const body = await parseResponseBody(response);
   const backendMessage = parseErrorMessage(body);
   const fieldErrors = parseFieldErrors(body);
 
