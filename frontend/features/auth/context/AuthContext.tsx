@@ -9,12 +9,10 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi } from '../api/auth.api';
-import type { AuthUser } from '../types/auth.types';
-import { ApiError } from '@/shared/lib/apiClient';
+import { sessionService, type AuthUser } from './services/session.service';
 
 // ============================================================
-//  Auth Context — Powered by Standard React useState & Cookies
+//  Auth Context — Uses authService (no raw ApiError here)
 // ============================================================
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
@@ -52,19 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSession = useCallback(async () => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
 
-    try {
-      const user = await authApi.getMe();
-      setState({
-        user,
-        status: 'authenticated',
-        error: null,
-      });
-    } catch (error) {
-      setState({
-        user: null,
-        status: 'unauthenticated',
-        error: error instanceof ApiError ? error.message : null,
-      });
+    const result = await sessionService.getSession();
+
+    if (result.success) {
+      setState({ user: result.data, status: 'authenticated', error: null });
+    } else {
+      setState({ user: null, status: 'unauthenticated', error: result.message });
     }
   }, []);
 
@@ -91,18 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } catch {
-      // Ignored
-    } finally {
-      setState({
-        user: null,
-        status: 'unauthenticated',
-        error: null,
-      });
-      router.push('/login');
-    }
+    await sessionService.logout();
+    setState({ user: null, status: 'unauthenticated', error: null });
+    router.push('/login');
   }, [router]);
 
   const value: AuthContextValue = {

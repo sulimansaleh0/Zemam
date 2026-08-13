@@ -1,29 +1,9 @@
-// ============================================================
-//  Auth Feature — Barrel Export
-//  تصدير جميع المكونات والـ schemas والأنواع لكل feature فرعية
-// ============================================================
+export { AuthProvider, useAuth } from './context/AuthContext';
+export type { AuthStatus, AuthState } from './context/AuthContext';
 
-// Context & Auth Hook
-export { AuthProvider, useAuth, type AuthStatus, type AuthState } from './context/AuthContext';
+export type { AuthUser } from './context/services/session.service';
+export type { ServiceResult } from '@/shared/types/api.types';
 
-// API & Types المشتركة
-export { authApi } from './api/auth.api';
-export type {
-  AddressDetails,
-  LoginPayload,
-  SignupPayload,
-  ResetPasswordPayload,
-  VerifyCodePayload,
-  NewPasswordPayload,
-  AuthUser,
-  LoginResponse,
-  SignupResponse,
-  ResetPasswordResponse,
-  VerifyCodeResponse,
-  NewPasswordResponse,
-} from './types/auth.types';
-
-// Shared Components
 export { AuthCard } from './components/AuthCard';
 export { AuthHeader } from './components/AuthHeader';
 export { PasswordStrength } from './components/PasswordStrength';
