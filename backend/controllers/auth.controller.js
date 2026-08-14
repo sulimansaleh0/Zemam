@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
-const { sendPasswordResetEmail } = require("../services/email")
+const { sendOtp } = require("../services/otp")
+const Otp = require("../models/otp.model")
 
 // helpers
 const generateToken = async (user) => {
@@ -130,9 +131,84 @@ exports.verifyEmail = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) return error(res, 401, "Email Not Found!")
+
         const token = await jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
         success(res, 200, { token })
-        sendPasswordResetEmail({ email: "waqeh12@gmail.com" })
+
+        sendOtp(email)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.verifyOtp = async (req, res) => {
+    const { token, otp } = req.body
+    try {
+        if (!token) return error(res, 401, "Token Required")
+
+        const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+        if (!userData) return error(res, 401, "Invalid Token")
+
+        const otpData = await Otp.findOne({
+            sentTo: userData.email
+        })
+
+        if (!otpData) {
+            return error(res, 400, "OTP not found or expired")
+        }
+
+        // check expired
+        if (otpData.expiresAt < new Date())
+            return error(res, 400, "OTP is expired")
+
+        // check attempts
+        if (otpData.attempts >= 5)
+            return error(res, 400, "Too many attempts. Please request a new OTP")
+
+        // compare otp
+        const isMatched = await bcrypt.compare(otp, otpData.hashedOtp)
+        if (!isMatched) {
+            otpData.attempts += 1
+            await otpData.save()
+            return error(res, 400, "Invalid OTP")
+        }
+
+        success(res, 200)
+
+        otpData.verified = true
+        await otpData.save()
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.resetPassword = async (req, res) => {
+    const { token, password } = req.body
+    try {
+        const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+        if (!userData) return error(res, 401, "Invalid Token")
+
+        const otpData = await Otp.findOne({
+            sentTo: userData.email,
+            verified: true
+        })
+        if (!otpData) return error(res, 401, "Token is Invalid")
+
+        if (otpData.expiresAt < new Date())
+            return error(res, 400, "reset password Token is Expired")
+
+        const user = await User.findOne({ email: userData.email })
+        if (!user) return error(res, 400, "User not found")
+
+        const newPassword = await bcrypt.hash(password, 9)
+        user.password = newPassword
+        await user.save()
+
+        success(res, 200)
+
+        await Otp.findByIdAndDelete(otpData._id)
     } catch (err) {
         console.log(err)
         serverError(res)

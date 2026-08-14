@@ -13,11 +13,11 @@ app.use(cors({
 app.use(cookieParser());
 
 connectDB().then(() => {
-    app.listen(3000, () => {
-        console.log("Server Running at port: 3000")
+    app.listen(3001, () => {
+        console.log("Server Running at port: 3001")
     })
 });
 
-const userRoutes = require("./routes/user.route")
+const authRoutes = require("./routes/auth.route")
 
-app.use("/api/users", userRoutes)
+app.use("/api/auth", authRoutes)
