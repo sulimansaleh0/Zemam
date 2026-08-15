@@ -1,5 +1,8 @@
 const router = require("express").Router()
 
+// Validators
+const { body } = require("express-validator")
+
 // Middlewares
 const validate = require("../middlewares/validator")
 
