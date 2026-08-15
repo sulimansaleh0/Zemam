@@ -19,5 +19,7 @@ connectDB().then(() => {
 });
 
 const authRoutes = require("./routes/auth.route")
+const userRoutes = require("./routes/user.route")
 
 app.use("/api/auth", authRoutes)
+app.use("/api/user", userRoutes)
