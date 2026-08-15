@@ -10,7 +10,7 @@ const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  const accessToken = request.cookies.get('access_token')?.value;
+  const accessToken = request.cookies.get('token')?.value || request.cookies.get('access_token')?.value;
   const resetCookieToken = request.cookies.get('reset_token')?.value || request.cookies.get('reset_session')?.value;
   const urlToken = searchParams.get('token');
 

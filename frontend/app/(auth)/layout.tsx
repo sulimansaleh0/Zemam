@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { AuthShell } from '@/features/auth/components/AuthShell';
 
 export const metadata: Metadata = {
   title: {
@@ -10,15 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="auth-layout">
-      <div className="auth-layout__bg" aria-hidden="true">
-        <div className="auth-layout__blob auth-layout__blob--1" />
-        <div className="auth-layout__blob auth-layout__blob--2" />
-        <div className="auth-layout__grid" />
-      </div>
-
-      <main className="auth-layout__main">{children}</main>
-    </div>
-  );
+  return <AuthShell>{children}</AuthShell>;
 }

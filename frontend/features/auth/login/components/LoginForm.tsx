@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AuthCard } from '@/features/auth/components/AuthCard';
+import { Mail, LockKeyhole, ArrowLeft } from 'lucide-react';
 import { AuthHeader } from '@/features/auth/components/AuthHeader';
 import { Button } from '@/shared/ui/Button';
 import { FormField } from '@/shared/ui/FormField';
@@ -17,52 +17,71 @@ export function LoginForm() {
   } = useLogin();
 
   return (
-    <AuthCard>
-      <AuthHeader title="مرحباً بعودتك" subtitle="سجّل دخولك للمتابعة إلى لوحة تحكم زمام" />
+    <>
+      <div className="zamam-rise">
+        <AuthHeader
+          title="سجّل دخولك إلى زمام"
+          subtitle="تابع أسطولك واتخذ قراراتك بثقة، من مكان واحد."
+        />
+      </div>
 
-      <div className="auth-form">
-        <GoogleButton label="تسجيل الدخول بواسطة Google" />
-        <div className="auth-form__divider">أو عبر البريد الإلكتروني</div>
+      <div className="auth-form" style={{ marginTop: '2rem' }}>
+        <div className="zamam-rise zamam-delay-1">
+          <GoogleButton label="المتابعة باستخدام Google" />
+        </div>
+        <div className="auth-form__divider zamam-rise zamam-delay-1">أو باستخدام البريد الإلكتروني</div>
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           {resetSuccess   && <div className="auth-form__success-banner" role="status">✓ تم تغيير كلمة المرور، سجّل دخولك الآن</div>}
           {sessionExpired && <div className="auth-form__error-banner"   role="alert">⚠ انتهت الجلسة، يرجى إعادة تسجيل الدخول</div>}
           {errors.root    && <div className="auth-form__error-banner"   role="alert">{errors.root.message}</div>}
 
-          <FormField
-            id="login-email" label="البريد الإلكتروني" type="email"
-            placeholder="example@company.com" autoComplete="email" required
-            error={errors.email?.message} {...register('email')}
-          />
-
-          <FormField
-            id="login-password" label="كلمة المرور"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="أدخل كلمة المرور" autoComplete="current-password" required
-            leftAction={
-              <button type="button" className="form-field__toggle-password"
-                onClick={togglePassword}
-                aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}>
-                <EyeIcon open={showPassword} />
-              </button>
-            }
-            error={errors.password?.message} {...register('password')}
-          />
-
-          <div className="auth-form__forgot">
-            <Link href="/forgot-password" className="auth-form__link">نسيت كلمة المرور؟</Link>
+          <div className="zamam-rise zamam-delay-2">
+            <FormField
+              id="login-email" label="البريد الإلكتروني" type="email"
+              placeholder="name@company.com" autoComplete="email" required
+              rightIcon={<Mail size={17} />}
+              error={errors.email?.message} {...register('email')}
+            />
           </div>
 
-          <Button type="submit" fullWidth isLoading={isSubmitting} size="lg">
-            {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-          </Button>
+          <div className="zamam-rise zamam-delay-2">
+            <FormField
+              id="login-password" label="كلمة المرور"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="أدخل كلمة المرور" autoComplete="current-password" required
+              rightIcon={<LockKeyhole size={17} />}
+              leftAction={
+                <button type="button" className="form-field__toggle-password"
+                  onClick={togglePassword}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}>
+                  <EyeIcon open={showPassword} />
+                </button>
+              }
+              error={errors.password?.message} {...register('password')}
+            />
+          </div>
 
-          <p className="auth-form__footer">
+          <div className="zamam-rise zamam-delay-3 auth-form__forgot">
+            <label className="auth-form__remember">
+              <input type="checkbox" /> تذكرني
+            </label>
+            <Link href="/forgot-password" className="auth-form__link zamam-focus">نسيت كلمة المرور؟</Link>
+          </div>
+
+          <div className="zamam-rise zamam-delay-4">
+            <Button type="submit" fullWidth isLoading={isSubmitting} size="lg"
+              icon={!isSubmitting ? <ArrowLeft size={16} /> : undefined}>
+              {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+            </Button>
+          </div>
+
+          <p className="zamam-rise zamam-delay-4 auth-form__footer">
             ليس لديك حساب؟{' '}
-            <Link href="/signup" className="auth-form__link">إنشاء حساب جديد</Link>
+            <Link href="/signup">أنشئ حساباً جديداً</Link>
           </p>
         </form>
       </div>
-    </AuthCard>
+    </>
   );
 }
