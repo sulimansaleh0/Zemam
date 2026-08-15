@@ -1,4 +1,5 @@
 const router = require("express").Router()
+const { body } = require("express-validator");
 
 // Validators
 const { body } = require("express-validator")
