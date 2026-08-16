@@ -10,14 +10,14 @@ exports.loginSchema = [
     body("password")
         .trim()
         .notEmpty().withMessage("Password is required")
-        .isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
 ];
 
 exports.signupSchema = [
     body("name")
         .trim()
         .notEmpty().withMessage("Name is Required")
-        .isLength({ min: 6 }).withMessage("Name must be 6 charactes at least"),
+        .isLength({ min: 6 }).withMessage("Name must be 8 charactes at least"),
 
     body("email")
         .trim()
@@ -28,7 +28,7 @@ exports.signupSchema = [
     body("password")
         .trim()
         .notEmpty().withMessage("Password is required")
-        .isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
+        .isLength({ min: 8 }).withMessage("Password must be at least 6 characters")
 ]
 
 exports.updateProfileSchema = [
@@ -46,5 +46,5 @@ exports.updateProfileSchema = [
     body("password")
         .trim()
         .optional()
-        .isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
 ]
