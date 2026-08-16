@@ -14,6 +14,7 @@ export function LoginForm() {
     register, handleSubmit, errors, isSubmitting,
     showPassword, togglePassword,
     resetSuccess, sessionExpired,
+    handleGoogleLogin, isGoogleLoading,
   } = useLogin();
 
   return (
@@ -27,7 +28,11 @@ export function LoginForm() {
 
       <div className="auth-form" style={{ marginTop: '2rem' }}>
         <div className="zamam-rise zamam-delay-1">
-          <GoogleButton label="المتابعة باستخدام Google" />
+          <GoogleButton 
+            label="المتابعة باستخدام Google" 
+            onSuccess={handleGoogleLogin}
+            isLoading={isGoogleLoading}
+          />
         </div>
         <div className="auth-form__divider zamam-rise zamam-delay-1">أو باستخدام البريد الإلكتروني</div>
 

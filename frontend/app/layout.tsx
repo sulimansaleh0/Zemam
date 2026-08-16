@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ToastProvider } from '@/shared/ui/Toast';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
@@ -30,6 +31,12 @@ export default function RootLayout({
       dir="rtl"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>

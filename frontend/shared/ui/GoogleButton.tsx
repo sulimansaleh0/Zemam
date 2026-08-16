@@ -1,12 +1,20 @@
 'use client';
 
-import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 interface GoogleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   label?: string;
   fullWidth?: boolean;
   isLoading?: boolean;
+  onSuccess?: (credential: string) => void;
+  onError?: (error: any) => void;
+}
+
+declare global {
+  interface Window {
+    google: any;
+  }
 }
 
 function GoogleGIcon() {
@@ -38,37 +46,49 @@ const GoogleButton = forwardRef<HTMLButtonElement, GoogleButtonProps>(
       label = 'تسجيل الدخول بواسطة Google',
       fullWidth = true,
       isLoading = false,
-      onClick,
+      onSuccess,
+      onError,
       className,
+      onClick,
       ...buttonProps
     },
     ref,
   ) => {
-    const handleGoogleAuth = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (onClick) {
-        onClick(e);
-        return;
+    const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+    useEffect(() => {
+      // Initialize Google Sign-In button
+      if (window.google && buttonRef.current) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+            callback: (response: any) => {
+              if (response.credential) {
+                onSuccess?.(response.credential);
+              }
+            },
+          });
+
+          window.google.accounts.id.renderButton(buttonRef.current, {
+            type: 'standard',
+            size: 'large',
+            text: 'signin_with',
+            logo_alignment: 'left',
+            width: '100%',
+          });
+        } catch (error) {
+          console.error('Google Sign-In initialization error:', error);
+          onError?.(error);
+        }
       }
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      window.location.href = `${baseUrl}/auth/google`;
-    };
+    }, [onSuccess, onError]);
 
     return (
-      <button
-        ref={ref}
-        type="button"
-        disabled={isLoading}
-        aria-disabled={isLoading}
-        aria-label={label}
-        onClick={handleGoogleAuth}
-        className={cn('btn-google', fullWidth && 'btn-google--full-width', className)}
+      <div
+        ref={buttonRef}
+        className={cn('google-button-container', fullWidth && 'w-full', className)}
         {...buttonProps}
-      >
-        <span className="btn-google__icon">
-          <GoogleGIcon />
-        </span>
-        <span className="btn-google__label">{label}</span>
-      </button>
+      />
     );
   },
 );

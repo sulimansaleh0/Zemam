@@ -15,6 +15,7 @@ export function SignupForm() {
     register, handleSubmit, errors, isSubmitting,
     watchedPassword,
     showPassword, showConfirm, togglePassword, toggleConfirm,
+    handleGoogleSignup, isGoogleLoading,
   } = useSignup();
 
   return (
@@ -28,7 +29,11 @@ export function SignupForm() {
 
       <div className="auth-form" style={{ marginTop: '1.75rem' }}>
         <div className="zamam-rise zamam-delay-1">
-          <GoogleButton label="إنشاء حساب باستخدام Google" />
+          <GoogleButton 
+            label="إنشاء حساب باستخدام Google" 
+            onSuccess={handleGoogleSignup}
+            isLoading={isGoogleLoading}
+          />
         </div>
         <div className="auth-form__divider zamam-rise zamam-delay-1">أو باستخدام البريد الإلكتروني</div>
 

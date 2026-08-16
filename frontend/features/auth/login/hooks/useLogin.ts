@@ -13,6 +13,7 @@ export function useLogin() {
   const { addToast } = useToast();
   const { checkSession } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const resetSuccess   = searchParams.get('reset')   === 'success';
   const sessionExpired = searchParams.get('session') === 'expired';
@@ -40,6 +41,27 @@ export function useLogin() {
     router.push('/dashboard');
   }
 
+  async function handleGoogleLogin(credential: string) {
+    try {
+      setIsGoogleLoading(true);
+      const result = await loginService.googleLogin(credential);
+
+      if (!result.success) {
+        addToast({ type: 'error', title: 'خطأ', message: result.message || 'فشل تسجيل الدخول عبر Google' });
+        return;
+      }
+
+      await checkSession();
+      addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Google login error:', err);
+      addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء تسجيل الدخول' });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
+
   return {
     register,
     handleSubmit: handleSubmit(onSubmit),
@@ -49,5 +71,7 @@ export function useLogin() {
     togglePassword: () => setShowPassword((p) => !p),
     resetSuccess,
     sessionExpired,
+    handleGoogleLogin,
+    isGoogleLoading,
   };
 }

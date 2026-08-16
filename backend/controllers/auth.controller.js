@@ -64,10 +64,10 @@ exports.signup = async (req, res) => {
         })
 
         // Generate and Store Token
-        const token = await generateToken(user)
-        storeToken(res, token)
+        // const token = await generateToken(user)
+        // storeToken(res, token)
 
-        success(res, 201, { token })
+        success(res, 201)
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -110,16 +110,26 @@ exports.googleLogin = async (req, res) => {
 
         let user = await User.findOne({ googleId })
         if (!user) {
-            user = await User.create({
-                name,
-                email,
-                googleId,
-                provider: "google"
-            });
+            // Check if user exists with same email but different provider
+            user = await User.findOne({ email })
+            if (!user) {
+                // Create new user
+                user = await User.create({
+                    name,
+                    email,
+                    googleId,
+                    provider: "google"
+                });
+            } else {
+                // Update existing user with Google info
+                user.googleId = googleId;
+                user.provider = "google";
+                await user.save();
+            }
         }
         const token = await generateToken(user);
         storeToken(res, token);
-        return success(res, 200);
+        return success(res, 200, { token });
     } catch (err) {
         console.log(err)
         serverError(res)

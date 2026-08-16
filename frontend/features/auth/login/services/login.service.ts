@@ -7,5 +7,5 @@ export const loginService = {
     postRequest<LoginResponse>(API_PATHS.AUTH.LOGIN, payload),
 
   googleLogin: (credential: string) =>
-    postRequest<void>(API_PATHS.AUTH.GOOGLE_LOGIN, { credential }),
+    postRequest<LoginResponse>(API_PATHS.AUTH.GOOGLE_LOGIN, { credential }),
 } as const;

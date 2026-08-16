@@ -3,7 +3,7 @@ export const API_PATHS = {
     LOGIN: 'auth/login',
     SIGNUP: 'auth/signup',
     LOGOUT: 'auth/logout',
-    SESSION: 'auth/me',
+    SESSION: 'user/me',
     GOOGLE_LOGIN: 'auth/google',
     FORGOT_PASSWORD: 'auth/forgot-password',
     VERIFY_CODE: 'auth/verify-code',
