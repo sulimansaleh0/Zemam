@@ -11,10 +11,10 @@ interface UseResetPasswordProps {
 }
 
 export function useResetPassword({ token }: UseResetPasswordProps) {
-  const router       = useRouter();
+  const router = useRouter();
   const { addToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm,  setShowConfirm]  = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // إعادة التوجيه إذا لم يكن هناك token
   useEffect(() => {
@@ -38,7 +38,6 @@ export function useResetPassword({ token }: UseResetPasswordProps) {
     const result = await resetPasswordService.resetPassword(
       token,
       data.newPassword,
-      data.confirmNewPassword,
     );
 
     if (!result.success) {
@@ -59,6 +58,6 @@ export function useResetPassword({ token }: UseResetPasswordProps) {
     showPassword,
     showConfirm,
     togglePassword: () => setShowPassword((p) => !p),
-    toggleConfirm:  () => setShowConfirm((p) => !p),
+    toggleConfirm: () => setShowConfirm((p) => !p),
   };
 }

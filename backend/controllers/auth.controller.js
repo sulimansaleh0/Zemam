@@ -196,6 +196,7 @@ exports.verifyOtp = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
     const { token, password } = req.body
+    console.log(password)
     try {
         const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
         if (!userData) return error(res, 401, "Invalid Token")
