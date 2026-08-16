@@ -1,0 +1,78 @@
+/* ============================================================
+   Dashboard — Zamam Dark Theme
+   ============================================================ */
+
+.zamam-dashboard {
+  --zd-bg: #081323;
+  --zd-surface: #0e1c30;
+  --zd-surface-2: #12243c;
+  --zd-line: rgba(162, 190, 226, .13);
+  --zd-text: #edf4ff;
+  --zd-muted: #8da1bd;
+  --zd-blue: #3d7bff;
+  --zd-teal: #57d0bf;
+  --zd-amber: #eab66b;
+  --zd-red: #ee6b76;
+  font-family: "IBM Plex Sans Arabic", sans-serif;
+  background: var(--zd-bg);
+  min-height: 100dvh;
+  direction: rtl;
+}
+
+.zamam-dashboard *,
+.zamam-dashboard *::before,
+.zamam-dashboard *::after {
+  box-sizing: border-box;
+}
+
+.zamam-dashboard .font-manrope {
+  font-family: "Manrope", sans-serif;
+}
+
+.zamam-dashboard .zd-grid {
+  background-image:
+    linear-gradient(rgba(153, 184, 224, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(153, 184, 224, .035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.zamam-dashboard .zd-panel {
+  border: 1px solid var(--zd-line);
+  background: linear-gradient(145deg, rgba(18, 36, 60, .96), rgba(12, 27, 47, .96));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .12);
+}
+
+.zamam-dashboard .zd-focus:focus-visible {
+  outline: 3px solid rgba(114, 160, 255, .5);
+  outline-offset: 3px;
+}
+
+.zamam-dashboard ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.zamam-dashboard ::-webkit-scrollbar-thumb {
+  background: #263e61;
+  border-radius: 99px;
+}
+
+@keyframes zd-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.zamam-dashboard .zd-rise {
+  animation: zd-rise .55s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.zamam-dashboard .zd-d1 { animation-delay: .06s; }
+.zamam-dashboard .zd-d2 { animation-delay: .12s; }
+.zamam-dashboard .zd-d3 { animation-delay: .18s; }
+.zamam-dashboard .zd-d4 { animation-delay: .24s; }
