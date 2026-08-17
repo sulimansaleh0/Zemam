@@ -35,7 +35,7 @@ export default function DashboardPage() {
   } = useDashboard();
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[#edf4ff]" dir="rtl">
+    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
       <div className="flex min-h-[100dvh]">
         {/* ── Sidebar ── */}
         <Sidebar
@@ -50,7 +50,7 @@ export default function DashboardPage() {
           <button
             aria-label="إغلاق القائمة"
             onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-[#020914]/70 lg:hidden"
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
           />
         )}
 
@@ -67,23 +67,23 @@ export default function DashboardPage() {
             {/* ── Welcome Hero ── */}
             <section className="zd-rise mb-7 flex flex-col justify-between gap-5 md:flex-row md:items-end">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-[11px] text-[#7390bd]">
+                <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--zd-muted)]">
                   <CalendarDays className="h-3.5 w-3.5" /> الأربعاء، ١٥ أغسطس ٢٠٢٦{' '}
-                  <span className="text-[#466185]">•</span> آخر تحديث منذ دقيقة
+                  <span className="opacity-40">•</span> آخر تحديث منذ دقيقة
                 </div>
-                <h1 className="text-[25px] font-bold tracking-[-.035em] text-white sm:text-[30px]">
-                  صباح الخير، {userName.split(' ')[0]} <span className="text-[#6f9bff]">.</span>
+                <h1 className="text-[25px] font-bold tracking-[-.035em] text-[var(--zd-text)] sm:text-[30px]">
+                  صباح الخير، {userName.split(' ')[0]} <span className="text-[var(--zd-blue)]">.</span>
                 </h1>
-                <p className="mt-1.5 text-[12px] text-[#8499b7]">
+                <p className="mt-1.5 text-[12px] text-[var(--zd-muted)]">
                   إليك نظرة سريعة على حالة أسطولك وما يحتاج إلى انتباهك اليوم.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button className="zd-focus flex items-center gap-2 rounded-xl border border-white/[.1] bg-[#12243d] px-4 py-2.5 text-[12px] font-semibold text-[#cfdbeb] hover:border-[#5788ff]">
+                <button className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-4 py-2.5 text-[12px] font-semibold text-[var(--zd-text)] hover:border-[var(--zd-blue)] transition-colors shadow-xs">
                   <SlidersHorizontal className="h-4 w-4" /> تخصيص العرض
                 </button>
-                <button className="zd-focus flex items-center gap-2 rounded-xl bg-[#3d7bff] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[0_9px_22px_rgba(61,123,255,.2)] hover:bg-[#548aff]">
+                <button className="zd-focus flex items-center gap-2 rounded-xl bg-[var(--zd-blue)] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[0_9px_22px_rgba(37,99,235,.2)] hover:opacity-95 transition-opacity">
                   <Truck className="h-4 w-4" /> إضافة مركبة
                 </button>
               </div>
@@ -152,10 +152,10 @@ export default function DashboardPage() {
             </section>
 
             {/* ── Footer ── */}
-            <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/[.07] pt-5 text-[10px] text-[#627996]">
+            <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--zd-line)] pt-5 text-[10px] text-[var(--zd-muted)] transition-colors">
               <span>زمام لإدارة الأساطيل · بيانات العرض توضيحية</span>
               <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#57d0bf]" /> جميع الأنظمة تعمل بشكل طبيعي
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--zd-teal)]" /> جميع الأنظمة تعمل بشكل طبيعي
               </span>
             </footer>
           </div>
