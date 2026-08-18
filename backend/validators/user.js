@@ -17,7 +17,7 @@ exports.signupSchema = [
     body("name")
         .trim()
         .notEmpty().withMessage("Name is Required")
-        .isLength({ min: 8}).withMessage("Name must be 8 charactes at least"),
+        .isLength({ min: 8 }).withMessage("Name must be 8 charactes at least"),
 
     body("email")
         .trim()
@@ -33,7 +33,7 @@ exports.signupSchema = [
     body("confirmPassword")
         .trim()
         .notEmpty().withMessage("confirm Password is required")
-        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+        .isLength({ min: 8 }).withMessage("confirm Password, Password must be at least 8 characters"),
 
     body("companyName")
         .trim()
