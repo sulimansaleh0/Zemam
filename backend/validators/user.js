@@ -28,8 +28,13 @@ exports.signupSchema = [
     body("password")
         .trim()
         .notEmpty().withMessage("Password is required")
-        .isLength({ min: 8 }).withMessage("Password must be at least 6 characters"),
-        
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+
+    body("confirmPassword")
+        .trim()
+        .notEmpty().withMessage("confirm Password is required")
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+
     body("companyName")
         .trim()
         .notEmpty().withMessage("Company Name is required")
