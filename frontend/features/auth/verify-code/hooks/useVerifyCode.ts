@@ -43,7 +43,7 @@ export function useVerifyCode({ email, token }: UseVerifyCodeProps) {
   }, [countdown]);
 
   async function onSubmit({ code }: VerifyCodeFormValues) {
-    const result = await verifyCodeService.verifyCode(token, code, email);
+    const result = await verifyCodeService.verifyCode(token, code);
 
     if (!result.success) {
       setError('root', { message: result.message });

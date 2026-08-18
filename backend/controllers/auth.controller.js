@@ -1,22 +1,36 @@
 const User = require("../models/user.model")
-const jwt = require("jsonwebtoken")
-const bcrypt = require("bcrypt")
-const { success, error, serverError } = require("../utils/responses")
-const googleClient = require("../config/googleAuth")
-const { sendOtp } = require("../services/otp")
 const Otp = require("../models/otp.model")
 const Company = require("../models/company.model")
+const RefreshToken = require("../models/refreshToken.model")
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
+const googleClient = require("../config/googleAuth")
+const { sendOtp } = require("../services/otp")
+const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
     const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
-    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "10d" })
+    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
     return token
 }
 
-const storeToken = (res, token) => {
+const generateRefreshToken = async (userId) => {
+    const token = await jwt.sign({ userId }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
+    return token
+}
+
+const saveRefreshToken = async (tokenDoc) => {
+    const [tokenHash] = await Promise.all([
+        bcrypt.hash(tokenDoc.refreshToken, 7),
+        RefreshToken.deleteMany({ userId: tokenDoc.userId })
+    ])
+    await RefreshToken.create({ tokenHash, userId: tokenDoc.userId })
+}
+
+const storeToken = (res, token, type = "token") => {
     const isProduction = process.env.NODE_ENV === "production";
-    res.cookie("token", token, {
+    res.cookie(type, token, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
@@ -37,10 +51,17 @@ exports.login = async (req, res) => {
         if (!isMatched) return error(res, 400, "Check Email or Password")
 
         // Generate and Store Token
-        const token = await generateToken(user)
-        storeToken(res, token)
+        const [token, refreshToken] = await Promise.all([
+            generateToken(user),
+            generateRefreshToken(user._id)
+        ])
 
-        success(res, 200)
+        storeToken(res, token)
+        storeToken(res, refreshToken, "refreshToken")
+
+        await saveRefreshToken({ userId: user._id, refreshToken })
+
+        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
         return serverError(res)
@@ -48,8 +69,10 @@ exports.login = async (req, res) => {
 }
 
 exports.signup = async (req, res) => {
-    const { email, password, name, companyName } = req.body
+    const { email, password, confirmPassword, name, companyName } = req.body
     try {
+        if (!(password === confirmPassword)) return error(res, 400, "passwords are not match")
+
         // Check Email
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email is already exists")
@@ -140,9 +163,17 @@ exports.googleLogin = async (req, res) => {
                 await user.save();
             }
         }
-        const token = await generateToken(user);
-        storeToken(res, token);
-        return success(res, 200, { token });
+        const [token, refreshToken] = await Promise.all([
+            generateToken(user),
+            generateRefreshToken(user._id)
+        ])
+
+        storeToken(res, token)
+        storeToken(res, refreshToken, "refreshToken")
+
+        await saveRefreshToken({ userId: user._id, refreshToken })
+
+        return success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -233,6 +264,29 @@ exports.resetPassword = async (req, res) => {
         success(res, 200)
 
         await Otp.findByIdAndDelete(otpData._id)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.refreshToken = async (req, res) => {
+    const userId = req.userId || null
+    if (!userId) return error(res, 401, "User not found")
+    try {
+        const user = await User.findById(userId)
+
+        // Generate and Store Token
+        const [token, refreshToken] = await Promise.all([
+            generateToken(user),
+            generateRefreshToken(user._id)
+        ])
+
+        storeToken(res, token)
+        storeToken(res, refreshToken, "refreshToken")
+
+        await saveRefreshToken({ userId: user._id, refreshToken })
+        success(res, 200)
     } catch (err) {
         console.log(err)
         serverError(res)

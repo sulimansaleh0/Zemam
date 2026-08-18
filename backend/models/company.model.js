@@ -45,13 +45,5 @@ const companySchema = new mongoose.Schema({
     }
 }, { timestamps: true })
 
-// companySchema.methods.hasActiveAccess = function () {
-//     if (this.subscriptionStatus === subscriptionStatus.ACTIVE) return true
-//     if (this.subscriptionStatus === subscriptionStatus.TRIALING) {
-//         return this.trialEndsAt >= new Date()
-//     }
-//     return false
-// }
-
 const Company = mongoose.model("company", companySchema)
 module.exports = Company

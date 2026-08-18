@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, LockKeyhole, UserRound, ArrowLeft } from 'lucide-react';
+import { Mail, LockKeyhole, UserRound, Building2, ArrowLeft } from 'lucide-react';
 import { AuthHeader } from '@/features/auth/components/AuthHeader';
 import { PasswordStrength } from '@/features/auth/components/PasswordStrength';
 import { Button } from '@/shared/ui/Button';
@@ -46,6 +46,15 @@ export function SignupForm() {
               placeholder="مثال: خالد العتيبي" autoComplete="name" required
               rightIcon={<UserRound size={17} />}
               error={errors.name?.message} {...register('name')}
+            />
+          </div>
+
+          <div className="zamam-rise zamam-delay-2">
+            <FormField
+              id="s-company" label="اسم الشركة / المؤسسة" type="text"
+              placeholder="مثال: شركة زمام للحلول اللوجستية" autoComplete="organization" required
+              rightIcon={<Building2 size={17} />}
+              error={errors.companyName?.message} {...register('companyName')}
             />
           </div>
 
