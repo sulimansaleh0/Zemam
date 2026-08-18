@@ -43,11 +43,13 @@ function GoogleGIcon() {
 const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
   (
     {
+      label = 'تسجيل الدخول بواسطة Google',
       fullWidth = true,
+      isLoading = false,
       onSuccess,
       onError,
       className,
-      ...buttonProps
+      ...divProps
     },
     ref,
   ) => {
@@ -84,7 +86,7 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
       <div
         ref={buttonRef}
         className={cn('google-button-container', fullWidth && 'w-full', className)}
-        {...buttonProps}
+        {...divProps}
       />
     );
   },
