@@ -20,6 +20,12 @@ connectDB().then(() => {
 
 const authRoutes = require("./routes/auth.route")
 const userRoutes = require("./routes/user.route")
+const fuelRoutes = require("./routes/fuel.route")
+const maintenanceRoutes = require("./routes/maintenance.route")
+const adminRoutes = require("./routes/admin.route")
 
 app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
+app.use("/api/fuel", fuelRoutes)
+app.use("/api/maintenance", maintenanceRoutes)
+app.use("/api/admin", adminRoutes)
