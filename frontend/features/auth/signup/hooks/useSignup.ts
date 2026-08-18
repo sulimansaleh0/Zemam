@@ -25,7 +25,11 @@ export function useSignup() {
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      name: '', email: '', password: '', confirmPassword: '',
+      name: '',
+      companyName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
     },
   });
 
@@ -34,6 +38,7 @@ export function useSignup() {
   async function onSubmit(data: SignupFormValues) {
     const payload: SignupPayload = {
       name: data.name,
+      companyName: data.companyName,
       email: data.email,
       password: data.password,
     };

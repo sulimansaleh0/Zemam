@@ -1,14 +1,14 @@
 'use client';
 
-import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useRef, type HTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 
-interface GoogleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface GoogleButtonProps extends HTMLAttributes<HTMLDivElement> {
   label?: string;
   fullWidth?: boolean;
   isLoading?: boolean;
   onSuccess?: (credential: string) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
 }
 
 declare global {
@@ -40,21 +40,18 @@ function GoogleGIcon() {
   );
 }
 
-const GoogleButton = forwardRef<HTMLButtonElement, GoogleButtonProps>(
+const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
   (
     {
-      label = 'تسجيل الدخول بواسطة Google',
       fullWidth = true,
-      isLoading = false,
       onSuccess,
       onError,
       className,
-      onClick,
       ...buttonProps
     },
     ref,
   ) => {
-    const buttonRef = useRef<HTMLButtonElement | null>(null);
+    const buttonRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
       // Initialize Google Sign-In button
