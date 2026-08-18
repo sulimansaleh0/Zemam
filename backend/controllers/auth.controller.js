@@ -5,10 +5,11 @@ const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
 const Otp = require("../models/otp.model")
+const Company = require("../models/company.model")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email }
+    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
     const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "10d" })
     return token
 }
@@ -39,7 +40,7 @@ exports.login = async (req, res) => {
         const token = await generateToken(user)
         storeToken(res, token)
 
-        success(res, 200, { token })
+        success(res, 200)
     } catch (err) {
         console.log(err)
         return serverError(res)
@@ -47,7 +48,7 @@ exports.login = async (req, res) => {
 }
 
 exports.signup = async (req, res) => {
-    const { email, password, name } = req.body
+    const { email, password, name, companyName } = req.body
     try {
         // Check Email
         const isFound = await User.findOne({ email })
@@ -63,9 +64,13 @@ exports.signup = async (req, res) => {
             name
         })
 
-        // Generate and Store Token
-        // const token = await generateToken(user)
-        // storeToken(res, token)
+        // Create Company
+        const company = await Company.create({
+            name: companyName,
+            ownerId: user._id
+        })
+        user.companyId = company._id
+        await user.save()
 
         success(res, 201)
     } catch (err) {
@@ -120,6 +125,14 @@ exports.googleLogin = async (req, res) => {
                     googleId,
                     provider: "google"
                 });
+
+                // Create Company 
+                const company = await Company.create({
+                    name: companyName,
+                    ownerId: user._id
+                })
+                user.companyId = company._id
+                await user.save()
             } else {
                 // Update existing user with Google info
                 user.googleId = googleId;
