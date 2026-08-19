@@ -6,14 +6,13 @@ const allowedTo = require("../middlewares/allowedTo")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
 
-const { createTeam, createFleetManager, listTeams } = require("../controllers/team.controller")
-const { createFleetManagerSchema } = require("../validators/user")
+const { createTeam, listTeams } = require("../controllers/team.controller")
 
 router.use(verifyToken)
 router.use(allowedTo(userRoles.ADMIN))
 router.use(checkSubscription())
 
-router.post("/teams", createTeam)
-router.get("/teams", listTeams)
+router.post("/", createTeam)
+router.get("/", listTeams)
 
 module.exports = router
