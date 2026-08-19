@@ -5,7 +5,7 @@ const { userRoles } = require("../data/roles");
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        default: "Default"
     },
     email: {
         type: String,
@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: false
     },
     googleId: {
         type: String,
@@ -27,7 +26,7 @@ const userSchema = new mongoose.Schema({
     },
     roles: {
         type: [String],
-        enum: [userRoles.SUPER_ADMIN, userRoles.ADMIN, userRoles.DRIVER],
+        enum: [userRoles.SUPER_ADMIN, userRoles.ADMIN, userRoles.FLEET_MANAGER, userRoles.DRIVER],
         default: [userRoles.ADMIN]
     },
     status: {

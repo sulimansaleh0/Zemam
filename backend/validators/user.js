@@ -58,3 +58,18 @@ exports.updateProfileSchema = [
         .optional()
         .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
 ]
+
+exports.createFleetManagerSchema = [
+    body("teamId")
+        .trim()
+        .notEmpty()
+        .withMessage("Team ID is required")
+        .isMongoId()
+        .withMessage("Invalid Team ID"),
+
+    body("email")
+        .trim()
+        .notEmpty().withMessage("Email is required")
+        .isEmail().withMessage("Invalid email format")
+        .normalizeEmail(),
+]
