@@ -10,7 +10,7 @@ const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
+    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user.teamId || null }
     const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
     return token
 }

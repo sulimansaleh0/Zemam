@@ -3,6 +3,7 @@ const Team = require("../models/team.model")
 const { sendRegisterEmail } = require("../services/email")
 const { userRoles } = require("../data/roles")
 const bcrypt = require("bcrypt")
+const crypto = require("crypto")
 const { success, error, serverError } = require("../utils/responses")
 
 exports.me = async (req, res) => {
@@ -23,13 +24,14 @@ exports.updateProfile = async (req, res) => {
     if (!user) return error(res, 401, "UnAuthorized")
     const { name, email, password } = req.body;
     try {
-        if (password) {
-            password = await bcrypt.hash(password, 9)
+        let newPassword = password
+        if (newPassword) {
+            newPassword = await bcrypt.hash(password, 9)
         }
         await User.findByIdAndUpdate(user._id, {
             name,
             email,
-            password
+            password: newPassword
         })
         success(res, 200)
     } catch (err) {
@@ -39,25 +41,27 @@ exports.updateProfile = async (req, res) => {
 }
 
 exports.createFleetManager = async (req, res) => {
-    const company = req.company
-    if (!company) return error(res, 400, "company id is required")
+    const user = req.user
     const { email, teamId } = req.body
     try {
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email is already in use")
 
-        const team = await Team.findOne({ teamId, companyId: company._id })
+        const team = await Team.findOne({ _id: teamId, companyId: user.companyId })
         if (!team) return error(res, 404, "team not found")
 
-        const user = await User.create({
+        const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
+        const passwordHash = await bcrypt.hash(password, 9)
+        await User.create({
             email,
-            companyId: company._id,
+            password: passwordHash,
+            companyId: user.companyId,
             teamId,
             roles: [userRoles.FLEET_MANAGER]
         })
         await Team.findByIdAndUpdate(teamId, { managerId: user._id })
         success(res, 201)
-        sendRegisterEmail({ email, password: "123456789" })
+        sendRegisterEmail({ email, password })
     } catch (err) {
         console.log(err)
         serverError(res)

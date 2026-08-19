@@ -1,4 +1,5 @@
 const mongoose = require("mongoose")
+const { mainStatus } = require("../data/status")
 
 const vehicleSchema = new mongoose.Schema({
     model: {
@@ -12,6 +13,15 @@ const vehicleSchema = new mongoose.Schema({
     plateNumber: {
         type: Number,
         required: true
+    },
+    isInTask: {
+        type: Boolean,
+        default: false
+    },
+    status: {
+        type: String,
+        enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
+        default: mainStatus.ACTIVE
     },
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
