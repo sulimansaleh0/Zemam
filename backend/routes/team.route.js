@@ -15,6 +15,5 @@ router.use(checkSubscription())
 
 router.post("/teams", createTeam)
 router.get("/teams", listTeams)
-router.post("/create-fleet-manager", createFleetManagerSchema, validate, createFleetManager)
 
 module.exports = router
