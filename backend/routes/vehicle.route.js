@@ -1,6 +1,3 @@
 const router = require("express").Router()
 
-// router.post("/teams")
-// router.get("/teams")
-
 module.exports = router
