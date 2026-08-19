@@ -1,6 +1,7 @@
 const Vehicle = require("../models/vehicle.model")
 const Team = require("../models/team.model")
 const { success, error, serverError } = require("../utils/responses")
+const { mainStatus } = require("../data/status")
 
 exports.createVehicle = async (req, res) => {
     const user = req.user
@@ -33,7 +34,7 @@ exports.listVehicles = async (req, res) => {
     }
 }
 
-exports.listVehicle = async () => {
+exports.listVehicle = async (req, res) => {
     const user = req.user
     const id = req.params.id || null
     if (!id) return error(res, 400, "vehicle id is required")
@@ -58,14 +59,14 @@ exports.changeVehicleStatus = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "vehicle id is required")
     try {
-        await Vehicle.findOneAndUpdate({
+        const vehicle = await Vehicle.findOneAndUpdate({
             _id: id,
-            company: user.companyId,
+            companyId: user.companyId,
             teamId: user.teamId
         }, {
             status
-        })
-        success(res, 200)
+        }, { returnDocument: "after" })
+        success(res, 200, { vehicle })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -74,7 +75,7 @@ exports.changeVehicleStatus = async (req, res) => {
 
 exports.assignDriver = async (req, res) => {
     const fleetManager = req.user
-    
+
     const vehicleId = req.params.id
     if (!vehicleId) return error(res, 400, "vehicle id is required")
 
@@ -88,6 +89,15 @@ exports.assignDriver = async (req, res) => {
         ])
         if (!user) return error(res, 404, "user not found")
         if (!vehicle) return error(res, 404, "vehicle not found")
+
+        if (!user.roles.includes(userRoles.DRIVER))
+            return error(res, 400, "User is not a driver")
+
+        if (user.status !== mainStatus.ACTIVE)
+            return error(res, 400, "Driver is not active")
+
+        if (vehicle.status !== mainStatus.ACTIVE)
+            return error(res, 400, "Vehicle is not active")
 
         vehicle.driverId = driverId
         await vehicle.save()
