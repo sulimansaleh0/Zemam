@@ -57,7 +57,7 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
 
     useEffect(() => {
       // Initialize Google Sign-In button
-      if (window.google && buttonRef.current) {
+      if (window.google && containerRef.current) {
         try {
           window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -68,7 +68,7 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
             },
           });
 
-          window.google.accounts.id.renderButton(buttonRef.current, {
+          window.google.accounts.id.renderButton(containerRef.current, {
             type: 'standard',
             size: 'large',
             text: 'signin_with',
@@ -84,7 +84,11 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
 
     return (
       <div
-        ref={buttonRef}
+        ref={(node) => {
+          containerRef.current = node;
+          if (typeof ref === 'function') ref(node);
+          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }}
         className={cn('google-button-container', fullWidth && 'w-full', className)}
         {...divProps}
       />

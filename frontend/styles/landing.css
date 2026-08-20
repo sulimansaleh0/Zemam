@@ -1,0 +1,80 @@
+/* ============================================================
+   Landing Page — Zamam Landing Theme
+   ============================================================ */
+
+.zamam-landing {
+  --zl-bg: #060E1E;
+  --zl-card-bg: #FFFFFF;
+  --zl-text-dark: #0A0F1C;
+  --zl-text-muted: #4A5568;
+  --zl-blue: #1A56FF;
+  --zl-teal: #10B981;
+  --zl-amber: #F59E0B;
+  --zl-purple: #7C3AED;
+  --zl-orange: #F97316;
+  font-family: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
+  direction: rtl;
+  background-color: #FFFFFF;
+  color: var(--zl-text-dark);
+  overflow-x: hidden;
+}
+
+.zamam-landing *,
+.zamam-landing *::before,
+.zamam-landing *::after {
+  box-sizing: border-box;
+}
+
+/* ─── Hero Glows ────────────────────────────────────────── */
+
+.zl-hero-glow-1 {
+  position: absolute;
+  width: 860px;
+  height: 500px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -8%;
+  background: radial-gradient(70.71% 70.71% at 50% 50%, rgba(26, 86, 255, 0.25) 0%, rgba(26, 86, 255, 0) 65%);
+  pointer-events: none;
+}
+
+.zl-hero-glow-2 {
+  position: absolute;
+  width: 500px;
+  height: 400px;
+  right: -5%;
+  top: 48%;
+  background: radial-gradient(70.71% 70.71% at 50% 50%, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0) 60%);
+  pointer-events: none;
+}
+
+.zl-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+/* ─── Animations ───────────────────────────────────────── */
+
+@keyframes zl-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.zl-rise {
+  animation: zl-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Custom Focus ──────────────────────────────────────── */
+
+.zl-focus:focus-visible {
+  outline: 3px solid rgba(26, 86, 255, 0.5);
+  outline-offset: 2px;
+}

@@ -1,5 +1,8 @@
+'use client';
+
 import { Activity, ArrowLeft, LockKeyhole, ShieldCheck, Truck } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 
 interface AuthShellProps {
   children: ReactNode;
@@ -43,7 +46,7 @@ function OperationalVisual() {
           <div className="zamam-visual__card-number">58</div>
           <div className="zamam-visual__card-label">مركبة في الخدمة</div>
         </div>
-        <div className="zamam-visual__card zamam-visual__card--safety">
+        <div className="zamam-visual__card--safety zamam-visual__card">
           <ShieldCheck size={20} className="zamam-visual__card-icon" />
           <div className="zamam-visual__card-number">99.2%</div>
           <div className="zamam-visual__card-label">سلامة التشغيل هذا الشهر</div>
@@ -75,14 +78,15 @@ export function AuthShell({ children }: AuthShellProps) {
       <div className="zamam-grid">
         {/* ── Form Side ── */}
         <section className="zamam-form-section">
-          <div className="zamam-rise">
+          <div className="zamam-form-section__top zamam-rise">
             <ZamamLogo />
+            <ThemeToggle />
           </div>
           <div className="zamam-form-section__content">
             <div className="zamam-form-section__inner">{children}</div>
           </div>
           <div className="zamam-form-section__footer">
-            © ٢٠٢٤ زمام · جميع الحقوق محفوظة
+            © ٢٠٢٦ زمام · جميع الحقوق محفوظة
           </div>
         </section>
 
