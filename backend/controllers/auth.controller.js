@@ -1,5 +1,6 @@
 const User = require("../models/user.model")
 const Otp = require("../models/otp.model")
+const Company = require("../models/company.model")
 const RefreshToken = require("../models/refreshToken.model")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
@@ -67,8 +68,12 @@ exports.login = async (req, res) => {
 }
 
 exports.signup = async (req, res) => {
-    const { email, password, name } = req.body
+    const { email, password, confirmPassword, name, companyName } = req.body
     try {
+        if (confirmPassword && !(password === confirmPassword)) {
+            return error(res, 400, "passwords are not match")
+        }
+
         // Check Email
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email is already exists")
@@ -82,6 +87,16 @@ exports.signup = async (req, res) => {
             password: hashedPassword,
             name
         })
+
+        // Create Company
+        if (companyName) {
+            const company = await Company.create({
+                name: companyName,
+                ownerId: user._id
+            })
+            user.companyId = company._id
+            await user.save()
+        }
 
         success(res, 201)
     } catch (err) {
@@ -152,6 +167,14 @@ exports.googleLogin = async (req, res) => {
                     googleId,
                     provider: "google"
                 });
+
+                // Create Company 
+                const company = await Company.create({
+                    name: `شركة ${name || 'المستخدم'}`,
+                    ownerId: user._id
+                })
+                user.companyId = company._id
+                await user.save()
             } else {
                 // Update existing user with Google info
                 user.googleId = googleId;
