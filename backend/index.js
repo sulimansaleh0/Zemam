@@ -7,7 +7,10 @@ const { connectDB } = require("./config/db");
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: [
+        "http://localhost:3000",
+        "https://bonnet-untrimmed-rants.ngrok-free.dev"
+    ],
     credentials: true
 }));
 app.use(cookieParser());
