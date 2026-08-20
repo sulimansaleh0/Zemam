@@ -41,6 +41,7 @@ export function useSignup() {
       companyName: data.companyName,
       email: data.email,
       password: data.password,
+      confirmPassword: data.confirmPassword,
     };
 
     const result = await signupService.signup(payload);
