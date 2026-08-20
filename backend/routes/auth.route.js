@@ -23,7 +23,11 @@ router.post(
     body("password")
         .trim()
         .notEmpty().withMessage("Password is required")
-        .isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
+        .matches(/[A-Z]/).withMessage("Password must contain at least one uppercase letter (A-Z)")
+        .matches(/[a-z]/).withMessage("Password must contain at least one lowercase letter (a-z)")
+        .matches(/[0-9]/).withMessage("Password must contain at least one number (0-9)")
+        .matches(/[^A-Za-z0-9]/).withMessage("Password must contain at least one special character (!@#$%^&*...)"),
     validate,
     resetPassword
 )
