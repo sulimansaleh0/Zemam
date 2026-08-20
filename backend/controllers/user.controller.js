@@ -50,7 +50,8 @@ exports.createFleetManager = async (req, res) => {
         const team = await Team.findOne({ _id: teamId, companyId: user.companyId })
         if (!team) return error(res, 404, "team not found")
 
-        const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
+        // const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
+        const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)
         await User.create({
             email,
@@ -61,7 +62,34 @@ exports.createFleetManager = async (req, res) => {
         })
         await Team.findByIdAndUpdate(teamId, { managerId: user._id })
         success(res, 201)
-        sendRegisterEmail({ email, password })
+        // sendRegisterEmail({ email, password })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.createDriver = async (req, res) => {
+    const user = req.user
+    const { email, teamId } = req.body
+    try {
+        const [team, isFound] = await Promise.all([
+            Team.findOne({ _id: teamId, companyId: user.companyId }),
+            User.findOne({ email })
+        ])
+        if (isFound) return error(res, 400, "Email already in use")
+        if (!team) return error(res, 404, "Team not found")
+
+        const password = "123456789"
+        const passwordHash = await bcrypt.hash(password, 9)
+        await User.create({
+            email,
+            password: passwordHash,
+            roles: [userRoles.DRIVER],
+            companyId: user.companyId,
+            teamId
+        })
+        success(res, 201)
     } catch (err) {
         console.log(err)
         serverError(res)
