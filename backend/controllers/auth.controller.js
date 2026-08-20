@@ -10,7 +10,7 @@ const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user.teamId || null }
+    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
     const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
     return token
 }
@@ -102,18 +102,34 @@ exports.signup = async (req, res) => {
     }
 }
 
-exports.logout = (req, res) => {
+exports.logout = async (req, res) => {
     try {
-        res.clearCookie("token", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-        });
+        const refreshToken = req.cookies.refreshToken;
+        if (refreshToken) {
+            try {
+                const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY);
+                if (decoded?.userId) {
+                    await RefreshToken.deleteMany({ userId: decoded.userId });
+                }
+            } catch (e) {
+                // Token may be invalid/expired, proceed with clearing cookies
+            }
+        }
 
-        success(res, 200)
+        const isProduction = process.env.NODE_ENV === "production";
+        const cookieOptions = {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax"
+        };
+
+        res.clearCookie("token", cookieOptions);
+        res.clearCookie("refreshToken", cookieOptions);
+
+        success(res, 200, { msg: "تم تسجيل الخروج بنجاح" });
     } catch (err) {
-        console.log(err)
-        serverError(res)
+        console.log(err);
+        serverError(res);
     }
 }
 
@@ -151,7 +167,7 @@ exports.googleLogin = async (req, res) => {
 
                 // Create Company 
                 const company = await Company.create({
-                    name: companyName,
+                    name: `شركة ${name || 'المستخدم'}`,
                     ownerId: user._id
                 })
                 user.companyId = company._id

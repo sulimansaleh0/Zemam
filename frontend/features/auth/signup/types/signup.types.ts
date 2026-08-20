@@ -2,7 +2,8 @@ export interface SignupPayload {
   name: string;
   email: string;
   password: string;
-  companyName?: string;
+  confirmPassword: string;
+  companyName: string;
 }
 
 export interface SignupResponse {
