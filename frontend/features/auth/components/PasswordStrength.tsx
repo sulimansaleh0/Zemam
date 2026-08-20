@@ -17,7 +17,6 @@ const RULES: StrengthRule[] = [
   { id: 'uppercase', label: 'حرف كبير (A-Z)', test: (pw) => /[A-Z]/.test(pw) },
   { id: 'lowercase', label: 'حرف صغير (a-z)', test: (pw) => /[a-z]/.test(pw) },
   { id: 'number', label: 'رقم واحد (0-9)', test: (pw) => /[0-9]/.test(pw) },
-  { id: 'symbol', label: 'رمز خاص (!@#$%^&*...)', test: (pw) => /[^A-Za-z0-9]/.test(pw) },
 ];
 
 export function PasswordStrength({ password = '' }: PasswordStrengthProps) {
@@ -33,33 +32,15 @@ export function PasswordStrength({ password = '' }: PasswordStrengthProps) {
   if (!password) return null;
 
   const strengthClass =
-    score === 0
-      ? 'empty'
-      : score === 1
-      ? 'weak'
-      : score === 2
-      ? 'fair'
-      : score === 3
-      ? 'fair'
-      : score === 4
-      ? 'strong'
-      : 'very-strong';
+    score === 0 ? 'empty' : score === 1 ? 'weak' : score === 2 ? 'fair' : score === 3 ? 'strong' : 'very-strong';
 
   const strengthText =
-    score === 0
-      ? ''
-      : score <= 2
-      ? 'ضعيفة'
-      : score === 3
-      ? 'مقبولة'
-      : score === 4
-      ? 'قوية'
-      : 'ممتازة 🔒';
+    score === 0 ? '' : score === 1 ? 'ضعيفة جداً' : score === 2 ? 'مقبولة' : score === 3 ? 'قوية' : 'ممتازة 🔒';
 
   return (
     <div className="password-strength" aria-live="polite">
       <div className="password-strength__bars">
-        {[1, 2, 3, 4, 5].map((index) => (
+        {[1, 2, 3, 4].map((index) => (
           <div
             key={index}
             className={`password-strength__bar ${

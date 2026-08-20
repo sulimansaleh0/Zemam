@@ -6,18 +6,11 @@ export interface AuthUser {
   name?: string;
   email: string;
   roles?: string[];
-  companyId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface SessionResponse {
-  user: AuthUser;
 }
 
 export const sessionService = {
   getSession: () =>
-    sendRequest<SessionResponse>(API_PATHS.AUTH.SESSION),
+    sendRequest<AuthUser>(API_PATHS.AUTH.SESSION),
 
   logout: () =>
     postRequest<void>(API_PATHS.AUTH.LOGOUT, {}),
