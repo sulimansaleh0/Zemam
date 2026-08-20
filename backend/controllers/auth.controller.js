@@ -302,7 +302,7 @@ exports.refreshToken = async (req, res) => {
         storeToken(res, refreshToken, "refreshToken")
 
         await saveRefreshToken({ userId: user._id, refreshToken })
-        success(res, 200)
+        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
         serverError(res)

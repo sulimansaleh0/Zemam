@@ -50,7 +50,7 @@ async function handleSilentRefresh(): Promise<boolean> {
  */
 export async function sendRequest<T>(path: string, options: RequestOptions = {}): Promise<ServiceResult<T>> {
   const { timeoutMs = DEFAULT_TIMEOUT_MS, _retry = false, ...fetchOptions } = options;
-  
+
   // AbortController for timeout if no custom signal is provided
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -80,6 +80,7 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
         path.startsWith('auth/reset-password') ||
         path.startsWith('auth/refresh-token');
 
+      // اعتراض رد 401 وتجديد التوكن تلقائياً ثم إعادة تنفيذ الطلب
       if (res.status === 401 && !_retry && !isAuthEndpoint) {
         const refreshed = await handleSilentRefresh();
         if (refreshed) {
