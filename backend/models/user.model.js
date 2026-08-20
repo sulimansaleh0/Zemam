@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { mainStatus } = require("../data/status");
+const { userStatus } = require("../data/status");
 const { userRoles } = require("../data/roles");
 
 const userSchema = new mongoose.Schema({
@@ -32,8 +32,8 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
-        default: mainStatus.ACTIVE
+        enum: [userStatus.ACTIVE, userStatus.INACTIVE],
+        default: userStatus.ACTIVE
     },
 
     companyId: {

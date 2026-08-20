@@ -1,36 +1,21 @@
 const User = require("../models/user.model")
-const Otp = require("../models/otp.model")
-const Company = require("../models/company.model")
-const RefreshToken = require("../models/refreshToken.model")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
+const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
-const { success, error, serverError } = require("../utils/responses")
+const Otp = require("../models/otp.model")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
-    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
+    const data = { roles: user.roles, _id: user._id, email: user.email }
+    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "10d" })
     return token
 }
 
-const generateRefreshToken = async (userId) => {
-    const token = await jwt.sign({ userId }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
-    return token
-}
-
-const saveRefreshToken = async (tokenDoc) => {
-    const [tokenHash] = await Promise.all([
-        bcrypt.hash(tokenDoc.refreshToken, 7),
-        RefreshToken.deleteMany({ userId: tokenDoc.userId })
-    ])
-    await RefreshToken.create({ tokenHash, userId: tokenDoc.userId })
-}
-
-const storeToken = (res, token, type = "token") => {
+const storeToken = (res, token) => {
     const isProduction = process.env.NODE_ENV === "production";
-    res.cookie(type, token, {
+    res.cookie("token", token, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
@@ -51,17 +36,10 @@ exports.login = async (req, res) => {
         if (!isMatched) return error(res, 400, "Check Email or Password")
 
         // Generate and Store Token
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
-
+        const token = await generateToken(user)
         storeToken(res, token)
-        storeToken(res, refreshToken, "refreshToken")
 
-        await saveRefreshToken({ userId: user._id, refreshToken })
-
-        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
+        success(res, 200, { token })
     } catch (err) {
         console.log(err)
         return serverError(res)
@@ -69,10 +47,8 @@ exports.login = async (req, res) => {
 }
 
 exports.signup = async (req, res) => {
-    const { email, password, confirmPassword, name, companyName } = req.body
+    const { email, password, name } = req.body
     try {
-        if (!(password === confirmPassword)) return error(res, 400, "passwords are not match")
-
         // Check Email
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email is already exists")
@@ -87,13 +63,9 @@ exports.signup = async (req, res) => {
             name
         })
 
-        // Create Company
-        const company = await Company.create({
-            name: companyName,
-            ownerId: user._id
-        })
-        user.companyId = company._id
-        await user.save()
+        // Generate and Store Token
+        // const token = await generateToken(user)
+        // storeToken(res, token)
 
         success(res, 201)
     } catch (err) {
@@ -102,34 +74,18 @@ exports.signup = async (req, res) => {
     }
 }
 
-exports.logout = async (req, res) => {
+exports.logout = (req, res) => {
     try {
-        const refreshToken = req.cookies.refreshToken;
-        if (refreshToken) {
-            try {
-                const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY);
-                if (decoded?.userId) {
-                    await RefreshToken.deleteMany({ userId: decoded.userId });
-                }
-            } catch (e) {
-                // Token may be invalid/expired, proceed with clearing cookies
-            }
-        }
-
-        const isProduction = process.env.NODE_ENV === "production";
-        const cookieOptions = {
+        res.clearCookie("token", {
             httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? "none" : "lax"
-        };
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+        });
 
-        res.clearCookie("token", cookieOptions);
-        res.clearCookie("refreshToken", cookieOptions);
-
-        success(res, 200, { msg: "تم تسجيل الخروج بنجاح" });
+        success(res, 200)
     } catch (err) {
-        console.log(err);
-        serverError(res);
+        console.log(err)
+        serverError(res)
     }
 }
 
@@ -164,14 +120,6 @@ exports.googleLogin = async (req, res) => {
                     googleId,
                     provider: "google"
                 });
-
-                // Create Company 
-                const company = await Company.create({
-                    name: `شركة ${name || 'المستخدم'}`,
-                    ownerId: user._id
-                })
-                user.companyId = company._id
-                await user.save()
             } else {
                 // Update existing user with Google info
                 user.googleId = googleId;
@@ -179,17 +127,9 @@ exports.googleLogin = async (req, res) => {
                 await user.save();
             }
         }
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
-
-        storeToken(res, token)
-        storeToken(res, refreshToken, "refreshToken")
-
-        await saveRefreshToken({ userId: user._id, refreshToken })
-
-        return success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
+        const token = await generateToken(user);
+        storeToken(res, token);
+        return success(res, 200, { token });
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -280,29 +220,6 @@ exports.resetPassword = async (req, res) => {
         success(res, 200)
 
         await Otp.findByIdAndDelete(otpData._id)
-    } catch (err) {
-        console.log(err)
-        serverError(res)
-    }
-}
-
-exports.refreshToken = async (req, res) => {
-    const userId = req.userId || null
-    if (!userId) return error(res, 401, "User not found")
-    try {
-        const user = await User.findById(userId)
-
-        // Generate and Store Token
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
-
-        storeToken(res, token)
-        storeToken(res, refreshToken, "refreshToken")
-
-        await saveRefreshToken({ userId: user._id, refreshToken })
-        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
         serverError(res)
