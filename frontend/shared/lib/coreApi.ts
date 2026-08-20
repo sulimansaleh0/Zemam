@@ -1,6 +1,7 @@
 import type { ServiceResult } from '../types/api.types';
+import { API_PATHS } from '../constants/apiPaths';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const DEFAULT_TIMEOUT_MS = 10000; // 10 seconds
 
 function fallbackMessage(status: number): string {
@@ -18,21 +19,48 @@ function fallbackMessage(status: number): string {
 
 export interface RequestOptions extends RequestInit {
   timeoutMs?: number;
+  _retry?: boolean;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function executeRefreshToken(): Promise<boolean> {
+  try {
+    const url = BASE_URL ? `${BASE_URL}/${API_PATHS.AUTH.REFRESH_TOKEN}` : `/${API_PATHS.AUTH.REFRESH_TOKEN}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function handleSilentRefresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = executeRefreshToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 }
 
 /**
  * دالة مركزية لإرسال الطلبات للباك إند ومعالجة صيغة الرد الموحدة
  */
 export async function sendRequest<T>(path: string, options: RequestOptions = {}): Promise<ServiceResult<T>> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
-  
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, _retry = false, ...fetchOptions } = options;
+
   // AbortController for timeout if no custom signal is provided
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   const signal = fetchOptions.signal || controller.signal;
 
   try {
-    const res = await fetch(`${BASE_URL}/${path}`, {
+    const url = BASE_URL ? `${BASE_URL}/${path}` : `/${path}`;
+    const res = await fetch(url, {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       ...fetchOptions,
@@ -45,6 +73,24 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
     const body = text ? JSON.parse(text) : null;
 
     if (!res.ok) {
+      const isAuthEndpoint =
+        path.startsWith('auth/login') ||
+        path.startsWith('auth/signup') ||
+        path.startsWith('auth/logout') ||
+        path.startsWith('auth/google') ||
+        path.startsWith('auth/verify-email') ||
+        path.startsWith('auth/verify-otp') ||
+        path.startsWith('auth/reset-password') ||
+        path.startsWith('auth/refresh-token');
+
+      // اعتراض رد 401 وتجديد التوكن تلقائياً ثم إعادة تنفيذ الطلب
+      if (res.status === 401 && !_retry && !isAuthEndpoint) {
+        const refreshed = await handleSilentRefresh();
+        if (refreshed) {
+          return sendRequest<T>(path, { ...options, _retry: true });
+        }
+      }
+
       const msg = body?.msg ?? fallbackMessage(res.status);
       return { 
         success: false, 

@@ -1,32 +1,45 @@
 const User = require("../models/user.model")
+const Otp = require("../models/otp.model")
+const RefreshToken = require("../models/refreshToken.model")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
-const Otp = require("../models/otp.model")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email }
-    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "10d" })
+    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
+    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
     return token
 }
 
-const storeToken = (res, token) => {
+const generateRefreshToken = async (userId) => {
+    const token = await jwt.sign({ userId }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
+    return token
+}
+
+const saveRefreshToken = async (tokenDoc) => {
+    const [tokenHash] = await Promise.all([
+        bcrypt.hash(tokenDoc.refreshToken, 7),
+        RefreshToken.deleteMany({ userId: tokenDoc.userId })
+    ])
+    await RefreshToken.create({ tokenHash, userId: tokenDoc.userId })
+}
+
+const storeToken = (res, token, type = "token") => {
     const isProduction = process.env.NODE_ENV === "production";
-    res.cookie("token", token, {
+    res.cookie(type, token, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
-        maxAge: 10 * 24 * 60 * 60 * 1000
+        maxAge: type === "refreshToken" ? 20 * 24 * 60 * 60 * 1000 : 15 * 60 * 1000
     });
 };
 
 exports.login = async (req, res) => {
     const { email, password } = req.body
     try {
-
         // Check Email
         const user = await User.findOne({ email })
         if (!user) return error(res, 400, "Check Email or Password")
@@ -36,10 +49,17 @@ exports.login = async (req, res) => {
         if (!isMatched) return error(res, 400, "Check Email or Password")
 
         // Generate and Store Token
-        const token = await generateToken(user)
-        storeToken(res, token)
+        const [token, refreshToken] = await Promise.all([
+            generateToken(user),
+            generateRefreshToken(user._id)
+        ])
 
-        success(res, 200, { token })
+        storeToken(res, token)
+        storeToken(res, refreshToken, "refreshToken")
+
+        await saveRefreshToken({ userId: user._id, refreshToken })
+
+        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
         return serverError(res)
@@ -63,10 +83,6 @@ exports.signup = async (req, res) => {
             name
         })
 
-        // Generate and Store Token
-        // const token = await generateToken(user)
-        // storeToken(res, token)
-
         success(res, 201)
     } catch (err) {
         console.log(err)
@@ -74,15 +90,31 @@ exports.signup = async (req, res) => {
     }
 }
 
-exports.logout = (req, res) => {
+exports.logout = async (req, res) => {
     try {
-        res.clearCookie("token", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-        });
+        const refreshToken = req.cookies.refreshToken;
+        if (refreshToken) {
+            try {
+                const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY);
+                if (decoded?.userId) {
+                    await RefreshToken.deleteMany({ userId: decoded.userId });
+                }
+            } catch (e) {
+                // Token may be invalid/expired, proceed with clearing cookies
+            }
+        }
 
-        success(res, 200)
+        const isProduction = process.env.NODE_ENV === "production";
+        const cookieOptions = {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax"
+        };
+
+        res.clearCookie("token", cookieOptions);
+        res.clearCookie("refreshToken", cookieOptions);
+
+        success(res, 200, { msg: "تم تسجيل الخروج بنجاح" })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -127,9 +159,17 @@ exports.googleLogin = async (req, res) => {
                 await user.save();
             }
         }
-        const token = await generateToken(user);
-        storeToken(res, token);
-        return success(res, 200, { token });
+        const [token, refreshToken] = await Promise.all([
+            generateToken(user),
+            generateRefreshToken(user._id)
+        ])
+
+        storeToken(res, token)
+        storeToken(res, refreshToken, "refreshToken")
+
+        await saveRefreshToken({ userId: user._id, refreshToken })
+
+        return success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -196,7 +236,6 @@ exports.verifyOtp = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
     const { token, password } = req.body
-    console.log(password)
     try {
         const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
         if (!userData) return error(res, 401, "Invalid Token")
@@ -220,6 +259,30 @@ exports.resetPassword = async (req, res) => {
         success(res, 200)
 
         await Otp.findByIdAndDelete(otpData._id)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.refreshToken = async (req, res) => {
+    const userId = req.userId || null
+    if (!userId) return error(res, 401, "User not found")
+    try {
+        const user = await User.findById(userId)
+        if (!user) return error(res, 401, "User not found")
+
+        // Generate and Store Token
+        const [token, refreshToken] = await Promise.all([
+            generateToken(user),
+            generateRefreshToken(user._id)
+        ])
+
+        storeToken(res, token)
+        storeToken(res, refreshToken, "refreshToken")
+
+        await saveRefreshToken({ userId: user._id, refreshToken })
+        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
         serverError(res)
