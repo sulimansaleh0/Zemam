@@ -17,7 +17,7 @@ exports.signupSchema = [
     body("name")
         .trim()
         .notEmpty().withMessage("Name is Required")
-        .isLength({ min: 6 }).withMessage("Name must be 8 charactes at least"),
+        .isLength({ min: 6 }).withMessage("Name must be at least 6 characters"),
 
     body("email")
         .trim()
