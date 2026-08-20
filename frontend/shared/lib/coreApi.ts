@@ -18,13 +18,38 @@ function fallbackMessage(status: number): string {
 
 export interface RequestOptions extends RequestInit {
   timeoutMs?: number;
+  _retry?: boolean;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function executeRefreshToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function handleSilentRefresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = executeRefreshToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 }
 
 /**
  * دالة مركزية لإرسال الطلبات للباك إند ومعالجة صيغة الرد الموحدة
  */
 export async function sendRequest<T>(path: string, options: RequestOptions = {}): Promise<ServiceResult<T>> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, _retry = false, ...fetchOptions } = options;
   
   // AbortController for timeout if no custom signal is provided
   const controller = new AbortController();
@@ -45,6 +70,23 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
     const body = text ? JSON.parse(text) : null;
 
     if (!res.ok) {
+      const isAuthEndpoint =
+        path.startsWith('auth/login') ||
+        path.startsWith('auth/signup') ||
+        path.startsWith('auth/logout') ||
+        path.startsWith('auth/google') ||
+        path.startsWith('auth/verify-email') ||
+        path.startsWith('auth/verify-otp') ||
+        path.startsWith('auth/reset-password') ||
+        path.startsWith('auth/refresh-token');
+
+      if (res.status === 401 && !_retry && !isAuthEndpoint) {
+        const refreshed = await handleSilentRefresh();
+        if (refreshed) {
+          return sendRequest<T>(path, { ...options, _retry: true });
+        }
+      }
+
       const msg = body?.msg ?? fallbackMessage(res.status);
       return { 
         success: false, 
@@ -78,3 +120,4 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
 export function postRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
   return sendRequest<T>(path, { method: 'POST', body: JSON.stringify(body), ...options });
 }
+

@@ -8,5 +8,7 @@ export const API_PATHS = {
     FORGOT_PASSWORD: 'auth/verify-email',
     VERIFY_CODE: 'auth/verify-otp',
     RESET_PASSWORD: 'auth/reset-password',
+    REFRESH_TOKEN: 'auth/refresh-token',
   },
 } as const;
+
