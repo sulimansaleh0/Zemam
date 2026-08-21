@@ -71,12 +71,14 @@ exports.createFleetManager = async (req, res) => {
 
 exports.createDriver = async (req, res) => {
     const user = req.user
-    const { email, teamId } = req.body
+    console.log(user)
+    const { email } = req.body
     try {
         const [team, isFound] = await Promise.all([
-            Team.findOne({ _id: teamId, companyId: user.companyId }),
+            Team.findOne({ _id: user.teamId, companyId: user.companyId }),
             User.findOne({ email })
         ])
+        console.log(team)
         if (isFound) return error(res, 400, "Email already in use")
         if (!team) return error(res, 404, "Team not found")
 
@@ -87,7 +89,7 @@ exports.createDriver = async (req, res) => {
             password: passwordHash,
             roles: [userRoles.DRIVER],
             companyId: user.companyId,
-            teamId
+            teamId: user.teamId
         })
         success(res, 201)
     } catch (err) {

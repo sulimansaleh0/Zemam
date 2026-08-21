@@ -65,3 +65,26 @@ exports.updateProfileSchema = [
         .matches(/[0-9]/).withMessage("Password must contain at least one number (0-9)")
         .matches(/[^A-Za-z0-9]/).withMessage("Password must contain at least one special character (!@#$%^&*...)")
 ]
+
+exports.createFleetManagerSchema = [
+    body("teamId")
+        .trim()
+        .notEmpty()
+        .withMessage("Team ID is required")
+        .isMongoId()
+        .withMessage("Invalid Team ID"),
+
+    body("email")
+        .trim()
+        .notEmpty().withMessage("Email is required")
+        .isEmail().withMessage("Invalid email format")
+        .normalizeEmail(),
+]
+
+exports.createDriverSchema = [
+    body("email")
+        .trim()
+        .notEmpty().withMessage("Email is required")
+        .isEmail().withMessage("Invalid email format")
+        .normalizeEmail(),
+]

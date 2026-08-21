@@ -8,7 +8,7 @@ const allowedTo = require("../middlewares/allowedTo")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createUserSchema } = require("../validators/user")
+const { updateProfileSchema, createFleetManagerSchema, createDriverSchema } = require("../validators/user")
 
 router.use(verifyToken)
 
@@ -19,13 +19,13 @@ router.use(checkSubscription())
 
 router.post("/create-fleet-manager",
     allowedTo(userRoles.ADMIN),
-    createUserSchema,
+    createFleetManagerSchema,
     validate,
     createFleetManager)
 
 router.post("/create-driver",
     allowedTo(userRoles.FLEET_MANAGER),
-    createUserSchema,
+    createDriverSchema,
     validate,
     createDriver)
 

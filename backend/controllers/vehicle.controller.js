@@ -1,8 +1,9 @@
 const Vehicle = require("../models/vehicle.model")
 const Team = require("../models/team.model")
+const User = require("../models/user.model")
 const { success, error, serverError } = require("../utils/responses")
 const { mainStatus } = require("../data/status")
-
+const { userRoles } = require("../data/roles")
 exports.createVehicle = async (req, res) => {
     const user = req.user
     const { model, year, plateNumber } = req.body
@@ -66,7 +67,10 @@ exports.changeVehicleStatus = async (req, res) => {
         }, {
             status
         }, { returnDocument: "after" })
-        success(res, 200, { vehicle })
+
+        if (!vehicle) return error(res, 404, "Vehicle not found")
+
+        success(res, 200)
     } catch (err) {
         console.log(err)
         serverError(res)
