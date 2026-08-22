@@ -10,8 +10,13 @@ module.exports = async (req, res, next) => {
     try {
         const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY)
 
-        const tokenDoc = await RefreshToken.findOne({ userId: decoded.userId })
-        if (!tokenDoc) return error(res, 400, "refresh token is not found or revoked")
+        const tokenDoc = await RefreshToken.findOne({ _id: decoded.tokenId })
+        if (!tokenDoc) return error(res, 400, "refresh token is not found")
+
+        if (tokenDoc.revoked) {
+            await RefreshToken.updateMany({ userId: decoded.userId }, { revoked: true })
+            return error(res, 401, "Token is revoked, please login again")
+        }
 
         const isMatched = await bcrypt.compare(refreshToken, tokenDoc.tokenHash)
         if (!isMatched) return error(res, 401, "invalid Token")

@@ -10,22 +10,18 @@ const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
-    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
-    return token
+    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user?.teamId || null }
+    return jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
 }
 
-const generateRefreshToken = async (userId) => {
-    const token = await jwt.sign({ userId }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
+const createRefreshToken = async (userId) => {
+    await RefreshToken.updateMany({ userId }, { revoked: true })
+    const tokenDoc = await RefreshToken.create({ userId })
+    const token = jwt.sign({ userId, tokenId: tokenDoc._id }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
+    const tokenHash = await bcrypt.hash(token, 7)
+    tokenDoc.tokenHash = tokenHash
+    await tokenDoc.save()
     return token
-}
-
-const saveRefreshToken = async (tokenDoc) => {
-    const [tokenHash] = await Promise.all([
-        bcrypt.hash(tokenDoc.refreshToken, 7),
-        RefreshToken.deleteMany({ userId: tokenDoc.userId })
-    ])
-    await RefreshToken.create({ tokenHash, userId: tokenDoc.userId })
 }
 
 const storeToken = (res, token, type = "token") => {
@@ -51,15 +47,11 @@ exports.login = async (req, res) => {
         if (!isMatched) return error(res, 400, "Check Email or Password")
 
         // Generate and Store Token
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
+        const token = await generateToken(user)
+        const refreshToken = await createRefreshToken(user._id)
 
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
-
-        await saveRefreshToken({ userId: user._id, refreshToken })
 
         success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
@@ -109,7 +101,7 @@ exports.logout = async (req, res) => {
             try {
                 const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY);
                 if (decoded?.userId) {
-                    await RefreshToken.deleteMany({ userId: decoded.userId });
+                    await RefreshToken.findByIdAndUpdate(decoded.tokenId, { revoked: true });
                 }
             } catch (e) {
                 // Token may be invalid/expired, proceed with clearing cookies
@@ -179,15 +171,12 @@ exports.googleLogin = async (req, res) => {
                 await user.save();
             }
         }
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
+
+        const token = await generateToken(user)
+        const refreshToken = await createRefreshToken(user._id)
 
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
-
-        await saveRefreshToken({ userId: user._id, refreshToken })
 
         return success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
     } catch (err) {
@@ -202,8 +191,9 @@ exports.verifyEmail = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return error(res, 401, "Email Not Found!")
 
-        const token = await jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
-        success(res, 200, { token })
+        const token = jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
+        storeToken(res, token, "resetPasswordToken")
+        success(res, 200)
 
         sendOtp(email)
     } catch (err) {
@@ -213,7 +203,8 @@ exports.verifyEmail = async (req, res) => {
 }
 
 exports.verifyOtp = async (req, res) => {
-    const { token, otp } = req.body
+    const { otp } = req.body
+    const token = req.cookies.resetPasswordToken
     try {
         if (!token) return error(res, 401, "Token Required")
 
@@ -255,8 +246,9 @@ exports.verifyOtp = async (req, res) => {
 }
 
 exports.resetPassword = async (req, res) => {
-    const { token, password } = req.body
-    console.log(password)
+    const { password } = req.body
+    const token = req.cookies.resetPasswordToken
+    if (!token) return error(res, 401, "Token Required")
     try {
         const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
         if (!userData) return error(res, 401, "Invalid Token")
@@ -279,7 +271,7 @@ exports.resetPassword = async (req, res) => {
 
         success(res, 200)
 
-        await Otp.findByIdAndDelete(otpData._id)
+        Otp.findByIdAndDelete(otpData._id)
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -291,17 +283,15 @@ exports.refreshToken = async (req, res) => {
     if (!userId) return error(res, 401, "User not found")
     try {
         const user = await User.findById(userId)
+        if (!user) return error(res, 400, "User not found")
 
         // Generate and Store Token
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
+        const token = await generateToken(user)
+        const refreshToken = await createRefreshToken(user._id)
 
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
 
-        await saveRefreshToken({ userId: user._id, refreshToken })
         success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
