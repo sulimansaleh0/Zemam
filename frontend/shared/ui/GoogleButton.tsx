@@ -30,7 +30,7 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
     },
     ref,
   ) => {
-    const containerRef = useRef<HTMLDivElement | null>(null);
+    const buttonRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
       // Initialize Google Sign-In button
