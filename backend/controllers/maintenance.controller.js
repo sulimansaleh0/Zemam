@@ -2,15 +2,15 @@ const Maintenance = require("../models/maintenance.model")
 const { success, error, serverError } = require("../utils/responses")
 
 exports.createMaintenanceRecord = async (req, res) => {
+    const user = req.user
     const { description, cost, images } = req.body
-    const user = req.user || null
-    const company = req.company || null
     try {
         await Maintenance.create({
             description,
             cost,
             images,
-            companyId: company._id,
+            companyId: user.companyId,
+            teamId: user.teamId,
             reportedBy: user._id
         })
         success(res, 200)
@@ -21,10 +21,10 @@ exports.createMaintenanceRecord = async (req, res) => {
 }
 
 exports.listMaintenanceRecords = async (req, res) => {
-    const company = req.company
+    const user = req.user
     const { status } = req.query || null
     try {
-        let filters = { companyId: company._id }
+        let filters = { teamId: user.teamId, companyId: user.companyId }
         if (status)
             filters.status = status
 
@@ -37,12 +37,15 @@ exports.listMaintenanceRecords = async (req, res) => {
 }
 
 exports.verifyMaintenanceRecord = async (req, res) => {
-    const company = req.company
-    const { recordId, status } = req.body
+    const user = req.user
+    const { status } = req.body
+    const recordId = req.params.id || null
+    if (!recordId) return error(res, 400, "Record Id is required")
     try {
         const maintenanceRecord = await Maintenance.findOneAndUpdate({
             _id: recordId,
-            companyId: company._id
+            teamId: user.teamId,
+            companyId: user.companyId
         }, {
             status,
         })

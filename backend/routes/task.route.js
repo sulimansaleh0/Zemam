@@ -3,6 +3,7 @@ const { userRoles } = require("../data/roles")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
+const verifyTeam = require("../middlewares/verifyTeam")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
 
@@ -12,6 +13,7 @@ const { createTaskSchema } = require("../validators/task")
 
 router.use(verifyToken)
 router.use(checkSubscription())
+router.use(verifyTeam)
 
 // driver routes
 router.patch("/:id/accept", allowedTo(userRoles.DRIVER), acceptTask)
