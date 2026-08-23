@@ -8,12 +8,15 @@ const refreshTokenSchema = new mongoose.Schema({
     },
     tokenHash: {
         type: String,
-        required: true
     },
     expiresAt: {
         type: Date,
         default: () => new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
         index: { expires: 0 }
+    },
+    revoked: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true })
 

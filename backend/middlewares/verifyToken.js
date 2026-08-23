@@ -1,14 +1,22 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/user.model")
+const { mainStatus } = require("../data/status")
 const { error } = require("../utils/responses");
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
     const token = req.cookies.token;
     if (!token) return error(res, 401, "Token Required");
 
     try {
-        const user = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        req.user = user;
-        return next();
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        const user = await User.findById(decoded._id)
+        if (!user) return error(res, 404, "User Not Found")
+        if (user.status == mainStatus.ACTIVE) {
+            req.user = user;
+            console.log(user)
+            return next();
+        }
+        return error(res, 401, "User is not active")
     } catch (err) {
         if (err.name === "TokenExpiredError") {
             return error(res, 401, "access token expired");
