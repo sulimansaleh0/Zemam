@@ -7,25 +7,22 @@ const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
+const { mainStatus } = require("../data/status")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null }
-    const token = await jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
-    return token
+    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user?.teamId || null }
+    return jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
 }
 
-const generateRefreshToken = async (userId) => {
-    const token = await jwt.sign({ userId }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
+const createRefreshToken = async (userId) => {
+    await RefreshToken.updateMany({ userId }, { revoked: true })
+    const tokenDoc = await RefreshToken.create({ userId })
+    const token = jwt.sign({ userId, tokenId: tokenDoc._id }, process.env.JWT_SECRET_KEY, { expiresIn: "20d" })
+    const tokenHash = await bcrypt.hash(token, 7)
+    tokenDoc.tokenHash = tokenHash
+    await tokenDoc.save()
     return token
-}
-
-const saveRefreshToken = async (tokenDoc) => {
-    const [tokenHash] = await Promise.all([
-        bcrypt.hash(tokenDoc.refreshToken, 7),
-        RefreshToken.deleteMany({ userId: tokenDoc.userId })
-    ])
-    await RefreshToken.create({ tokenHash, userId: tokenDoc.userId })
 }
 
 const storeToken = (res, token, type = "token") => {
@@ -50,15 +47,11 @@ exports.login = async (req, res) => {
         if (!isMatched) return error(res, 400, "Check Email or Password")
 
         // Generate and Store Token
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
+        const token = await generateToken(user)
+        const refreshToken = await createRefreshToken(user._id)
 
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
-
-        await saveRefreshToken({ userId: user._id, refreshToken })
 
         success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
@@ -112,7 +105,7 @@ exports.logout = async (req, res) => {
             try {
                 const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY);
                 if (decoded?.userId) {
-                    await RefreshToken.deleteMany({ userId: decoded.userId });
+                    await RefreshToken.findByIdAndUpdate(decoded.tokenId, { revoked: true });
                 }
             } catch (e) {
                 // Token may be invalid/expired, proceed with clearing cookies
@@ -182,15 +175,12 @@ exports.googleLogin = async (req, res) => {
                 await user.save();
             }
         }
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
+
+        const token = await generateToken(user)
+        const refreshToken = await createRefreshToken(user._id)
 
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
-
-        await saveRefreshToken({ userId: user._id, refreshToken })
 
         return success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
     } catch (err) {
@@ -203,62 +193,73 @@ exports.verifyEmail = async (req, res) => {
     const { email } = req.body
     try {
         const user = await User.findOne({ email });
-        if (!user) return error(res, 401, "Email Not Found!")
+        if (!user) return error(res, 404, "البريد الإلكتروني غير مسجل لدينا")
 
-        const token = await jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
-        success(res, 200, { token })
+        const token = jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
+        storeToken(res, token, "resetPasswordToken")
 
-        sendOtp(email)
+        await sendOtp(email)
+        return success(res, 200, { token, msg: "تم إرسال رمز التحقق إلى بريدك الإلكتروني" })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 
 exports.verifyOtp = async (req, res) => {
-    const { token, otp } = req.body
+    const { otp } = req.body
+    const token = req.cookies.resetPasswordToken 
     try {
-        if (!token) return error(res, 401, "Token Required")
 
-        const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
-        if (!userData) return error(res, 401, "Invalid Token")
-
-        const otpData = await Otp.findOne({
-            sentTo: userData.email
-        })
-
-        if (!otpData) {
-            return error(res, 400, "OTP not found or expired")
-        }
-
-        // check expired
-        if (otpData.expiresAt < new Date())
-            return error(res, 400, "OTP is expired")
-
-        // check attempts
-        if (otpData.attempts >= 5)
-            return error(res, 400, "Too many attempts. Please request a new OTP")
-
-        // compare otp
-        const isMatched = await bcrypt.compare(otp, otpData.hashedOtp)
-        if (!isMatched) {
-            otpData.attempts += 1
-            await otpData.save()
-            return error(res, 400, "Invalid OTP")
-        }
-
-        success(res, 200)
-
-        otpData.verified = true
-        await otpData.save()
+        if (!token) return error(res, 401, "جلسة التحقق غير صالحة، يرجى طلب رمز جديد")
+            
+            let userData;
+            try {
+                userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+            } catch (jwtErr) {
+                return error(res, 401, "انتهت صلاحية جلسة التحقق، يرجى طلب رمز جديد")
+            }
+            
+            if (!userData || !userData.email) return error(res, 401, "رمز الجلسة غير صالح")
+                
+                const otpData = await Otp.findOne({
+                    sentTo: userData.email
+                })
+                
+                if (!otpData) {
+                    return error(res, 400, "رمز التحقق غير موجود أو انتهت صلاحيته")
+                }
+                
+                // check expired
+                if (otpData.expiresAt < new Date())
+                    return error(res, 400, "انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد")
+                
+                // check attempts
+                if (otpData.attempts >= 5)
+                    return error(res, 400, "تجاوزت الحد الأقصى للمحاولات. يرجى طلب رمز جديد")
+                
+                // compare otp
+                const isMatched = await bcrypt.compare(otp, otpData.hashedOtp)
+                if (!isMatched) {
+                    otpData.attempts += 1
+                    await otpData.save()
+                    return error(res, 400, "رمز التحقق غير صحيح")
+                }
+                
+                otpData.verified = true
+                await otpData.save()
+                
+                return success(res, 200, { token, msg: "تم التحقق من الرمز بنجاح" })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 
 exports.resetPassword = async (req, res) => {
-    const { token, password } = req.body
+    const { password } = req.body
+    const token = req.cookies.resetPasswordToken
+    if (!token) return error(res, 401, "Token Required")
     try {
         const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
         if (!userData) return error(res, 401, "Invalid Token")
@@ -267,24 +268,33 @@ exports.resetPassword = async (req, res) => {
             sentTo: userData.email,
             verified: true
         })
-        if (!otpData) return error(res, 401, "Token is Invalid")
+        if (!otpData) return error(res, 401, "لم يتم التحقق من رمز OTP أو انتهت صلاحية الجلسة")
 
-        if (otpData.expiresAt < new Date())
-            return error(res, 400, "reset password Token is Expired")
+        if (otpData.expiresAt < new Date()) {
+            await Otp.deleteMany({ sentTo: userData.email })
+            return error(res, 400, "انتهت صلاحية الجلسة، يرجى طلب رمز جديد")
+        }
 
         const user = await User.findOne({ email: userData.email })
-        if (!user) return error(res, 400, "User not found")
+        if (!user) return error(res, 404, "المستخدم غير موجود")
 
         const newPassword = await bcrypt.hash(password, 9)
-        user.password = newPassword
-        await user.save()
+        await User.findByIdAndUpdate(user._id, { password: newPassword })
 
-        success(res, 200)
+        await Otp.deleteMany({ sentTo: userData.email })
 
-        await Otp.findByIdAndDelete(otpData._id)
+        // Clear reset token cookie
+        const isProduction = process.env.NODE_ENV === "production";
+        res.clearCookie("resetPasswordToken", {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax"
+        });
+
+        return success(res, 200, { msg: "تم تغيير كلمة المرور بنجاح" })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 
@@ -293,18 +303,15 @@ exports.refreshToken = async (req, res) => {
     if (!userId) return error(res, 401, "User not found")
     try {
         const user = await User.findById(userId)
-        if (!user) return error(res, 401, "User not found")
+        if (!user) return error(res, 400, "User not found")
 
         // Generate and Store Token
-        const [token, refreshToken] = await Promise.all([
-            generateToken(user),
-            generateRefreshToken(user._id)
-        ])
+        const token = await generateToken(user)
+        const refreshToken = await createRefreshToken(user._id)
 
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
 
-        await saveRefreshToken({ userId: user._id, refreshToken })
         success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)

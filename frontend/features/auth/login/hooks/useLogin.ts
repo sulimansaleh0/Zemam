@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginService } from '../services/login.service';
+import { sessionService } from '@/features/auth/context/services/session.service';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
 import { loginSchema, type LoginFormValues } from '../schemas/login.schema';
@@ -52,8 +53,16 @@ export function useLogin() {
       }
 
       await checkSession();
-      addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });
-      router.push('/dashboard');
+      const sessionResult = await sessionService.getSession();
+      const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+
+      if (hasCompany) {
+        addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });
+        router.push('/dashboard');
+      } else {
+        addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
+        router.push('/onboarding');
+      }
     } catch (err) {
       console.error('Google login error:', err);
       addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء تسجيل الدخول' });

@@ -74,14 +74,14 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
 
     if (!res.ok) {
       const isAuthEndpoint =
-        path.startsWith('auth/login') ||
-        path.startsWith('auth/signup') ||
-        path.startsWith('auth/logout') ||
-        path.startsWith('auth/google') ||
-        path.startsWith('auth/verify-email') ||
-        path.startsWith('auth/verify-otp') ||
-        path.startsWith('auth/reset-password') ||
-        path.startsWith('auth/refresh-token');
+        path.includes('auth/login') ||
+        path.includes('auth/signup') ||
+        path.includes('auth/logout') ||
+        path.includes('auth/google') ||
+        path.includes('auth/verify-email') ||
+        path.includes('auth/verify-otp') ||
+        path.includes('auth/reset-password') ||
+        path.includes('auth/refresh-token');
 
       // اعتراض رد 401 وتجديد التوكن تلقائياً ثم إعادة تنفيذ الطلب
       if (res.status === 401 && !_retry && !isAuthEndpoint) {
