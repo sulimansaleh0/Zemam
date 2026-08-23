@@ -11,8 +11,10 @@ export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   const accessToken = request.cookies.get('token')?.value || request.cookies.get('access_token')?.value;
-  const resetCookieToken = request.cookies.get('reset_token')?.value || request.cookies.get('reset_session')?.value;
-  const urlToken = searchParams.get('token');
+  const resetCookieToken =
+    request.cookies.get('resetPasswordToken')?.value ||
+    request.cookies.get('reset_token')?.value ||
+    request.cookies.get('reset_session')?.value;
 
   const isAuthenticated = Boolean(accessToken);
   const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
@@ -30,13 +32,13 @@ export function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/verify-code')) {
     const hasEmailParam = Boolean(searchParams.get('email'));
-    if (!hasEmailParam && !urlToken && !resetCookieToken) {
+    if (!hasEmailParam && !resetCookieToken) {
       return NextResponse.redirect(new URL('/forgot-password', request.url));
     }
   }
 
   if (pathname.startsWith('/reset-password')) {
-    if (!urlToken && !resetCookieToken) {
+    if (!resetCookieToken) {
       return NextResponse.redirect(new URL('/forgot-password', request.url));
     }
   }

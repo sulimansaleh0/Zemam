@@ -9,12 +9,12 @@ import { FormField } from '@/shared/ui/FormField';
 import { EyeIcon } from '@/shared/ui/EyeIcon';
 import { useResetPassword } from '../hooks/useResetPassword';
 
-export function ResetPasswordForm({ token = '' }: { token?: string }) {
+export function ResetPasswordForm() {
   const {
     register, handleSubmit, errors, isSubmitting,
     watchedPassword, showPassword, showConfirm,
     togglePassword, toggleConfirm,
-  } = useResetPassword({ token });
+  } = useResetPassword();
 
   return (
     <>

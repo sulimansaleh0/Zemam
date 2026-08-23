@@ -7,19 +7,14 @@ import { useToast } from '@/shared/ui/Toast';
 import { resetPasswordSchema, type ResetPasswordFormValues } from '../schemas/resetPassword.schema';
 
 interface UseResetPasswordProps {
-  token: string;
+  token?: string;
 }
 
-export function useResetPassword({ token }: UseResetPasswordProps) {
+export function useResetPassword({ token }: UseResetPasswordProps = {}) {
   const router = useRouter();
   const { addToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  // إعادة التوجيه إذا لم يكن هناك token
-  useEffect(() => {
-    if (!token) router.replace('/forgot-password');
-  }, [token, router]);
 
   const {
     register,
@@ -36,7 +31,6 @@ export function useResetPassword({ token }: UseResetPasswordProps) {
 
   async function onSubmit(data: ResetPasswordFormValues) {
     const result = await resetPasswordService.resetPassword(
-      token,
       data.newPassword,
     );
 

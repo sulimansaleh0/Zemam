@@ -1,13 +1,13 @@
 export const API_PATHS = {
   AUTH: {
-    LOGIN: 'auth/login',
-    SIGNUP: 'auth/signup',
-    LOGOUT: 'auth/logout',
-    SESSION: 'user/me',
-    GOOGLE_LOGIN: 'auth/google',
-    FORGOT_PASSWORD: 'auth/verify-email',
-    VERIFY_CODE: 'auth/verify-otp',
-    RESET_PASSWORD: 'auth/reset-password',
-    REFRESH_TOKEN: 'auth/refresh-token',
+    LOGIN: 'api/auth/login',
+    SIGNUP: 'api/auth/signup',
+    LOGOUT: 'api/auth/logout',
+    SESSION: 'api/user/me',
+    GOOGLE_LOGIN: 'api/auth/google',
+    FORGOT_PASSWORD: 'api/auth/verify-email',
+    VERIFY_CODE: 'api/auth/verify-otp',
+    RESET_PASSWORD: 'api/auth/reset-password',
+    REFRESH_TOKEN: 'api/auth/refresh-token',
   },
 } as const;

@@ -3,11 +3,6 @@ import { ResetPasswordForm } from '@/features/auth/reset-password/components/Res
 
 export const metadata: Metadata = { title: 'تعيين كلمة المرور الجديدة' };
 
-interface Props {
-  searchParams: Promise<{ token?: string }>;
-}
-
-export default async function ResetPasswordPage({ searchParams }: Props) {
-  const { token = '' } = await searchParams;
-  return <ResetPasswordForm token={decodeURIComponent(token)} />;
+export default function ResetPasswordPage() {
+  return <ResetPasswordForm />;
 }

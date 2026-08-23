@@ -192,92 +192,112 @@ exports.verifyEmail = async (req, res) => {
     const { email } = req.body
     try {
         const user = await User.findOne({ email });
-        if (!user) return error(res, 401, "Email Not Found!")
+        if (!user) return error(res, 404, "البريد الإلكتروني غير مسجل لدينا")
 
         const token = jwt.sign({ _id: user._id, email }, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
         storeToken(res, token, "resetPasswordToken")
-        success(res, 200)
 
-        sendOtp(email)
+        await sendOtp(email)
+        return success(res, 200, { token, msg: "تم إرسال رمز التحقق إلى بريدك الإلكتروني" })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 
 exports.verifyOtp = async (req, res) => {
     const { otp } = req.body
-    const token = req.cookies.resetPasswordToken
-    try {
-        if (!token) return error(res, 401, "Token Required")
+    const token = req.cookies.resetPasswordToken 
+        if (!token) return error(res, 401, "جلسة التحقق غير صالحة، يرجى طلب رمز جديد")
 
-        const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
-        if (!userData) return error(res, 401, "Invalid Token")
+        let userData;
+        try {
+            userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+        } catch (jwtErr) {
+            return error(res, 401, "انتهت صلاحية جلسة التحقق، يرجى طلب رمز جديد")
+        }
+
+        if (!userData || !userData.email) return error(res, 401, "رمز الجلسة غير صالح")
 
         const otpData = await Otp.findOne({
             sentTo: userData.email
         })
 
         if (!otpData) {
-            return error(res, 400, "OTP not found or expired")
+            return error(res, 400, "رمز التحقق غير موجود أو انتهت صلاحيته")
         }
 
         // check expired
         if (otpData.expiresAt < new Date())
-            return error(res, 400, "OTP is expired")
+            return error(res, 400, "انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد")
 
         // check attempts
         if (otpData.attempts >= 5)
-            return error(res, 400, "Too many attempts. Please request a new OTP")
+            return error(res, 400, "تجاوزت الحد الأقصى للمحاولات. يرجى طلب رمز جديد")
 
         // compare otp
         const isMatched = await bcrypt.compare(otp, otpData.hashedOtp)
         if (!isMatched) {
             otpData.attempts += 1
             await otpData.save()
-            return error(res, 400, "Invalid OTP")
+            return error(res, 400, "رمز التحقق غير صحيح")
         }
-
-        success(res, 200)
 
         otpData.verified = true
         await otpData.save()
+
+        return success(res, 200, { token, msg: "تم التحقق من الرمز بنجاح" })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 
 exports.resetPassword = async (req, res) => {
     const { password } = req.body
-    const token = req.cookies.resetPasswordToken
-    if (!token) return error(res, 401, "Token Required")
+    const token = req.cookies.resetPasswordToken || req.body?.token
+    if (!token) return error(res, 401, "جلسة استعادة كلمة المرور غير صالحة أو منتهية، يرجى إعادة الطلب")
     try {
-        const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
-        if (!userData) return error(res, 401, "Invalid Token")
+        let userData;
+        try {
+            userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+        } catch (jwtErr) {
+            return error(res, 401, "انتهت صلاحية جلسة استعادة كلمة المرور، يرجى إعادة الطلب")
+        }
+
+        if (!userData || !userData.email) return error(res, 401, "رمز الجلسة غير صالح")
 
         const otpData = await Otp.findOne({
             sentTo: userData.email,
             verified: true
         })
-        if (!otpData) return error(res, 401, "Token is Invalid")
+        if (!otpData) return error(res, 401, "لم يتم التحقق من رمز OTP أو انتهت صلاحية الجلسة")
 
-        if (otpData.expiresAt < new Date())
-            return error(res, 400, "reset password Token is Expired")
+        if (otpData.expiresAt < new Date()) {
+            await Otp.deleteMany({ sentTo: userData.email })
+            return error(res, 400, "انتهت صلاحية الجلسة، يرجى طلب رمز جديد")
+        }
 
         const user = await User.findOne({ email: userData.email })
-        if (!user) return error(res, 400, "User not found")
+        if (!user) return error(res, 404, "المستخدم غير موجود")
 
         const newPassword = await bcrypt.hash(password, 9)
-        user.password = newPassword
-        await user.save()
+        await User.findByIdAndUpdate(user._id, { password: newPassword })
 
-        success(res, 200)
+        await Otp.deleteMany({ sentTo: userData.email })
 
-        Otp.findByIdAndDelete(otpData._id)
+        // Clear reset token cookie
+        const isProduction = process.env.NODE_ENV === "production";
+        res.clearCookie("resetPasswordToken", {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax"
+        });
+
+        return success(res, 200, { msg: "تم تغيير كلمة المرور بنجاح" })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 

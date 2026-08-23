@@ -67,7 +67,7 @@ export function useSignup() {
 
       await checkSession();
       addToast({ type: 'success', title: 'تم إنشاء الحساب بنجاح', message: 'تم تسجيل دخولك تلقائياً' });
-      router.push('/login');
+      router.push('/dashboard');
     } catch (err) {
       console.error('Google signup error:', err);
       addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء إنشاء الحساب' });

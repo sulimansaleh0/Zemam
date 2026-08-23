@@ -54,7 +54,7 @@ export function PasswordStrength({ password = '' }: PasswordStrengthProps) {
       ? 'مقبولة'
       : score === 4
       ? 'قوية'
-      : 'ممتازة 🔒';
+      : 'ممتازة ';
 
   return (
     <div className="password-strength" aria-live="polite">

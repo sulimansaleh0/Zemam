@@ -1,12 +1,16 @@
 const resend = require("../config/email")
 
-const sendEmail = ({ to, subject, html }) => {
-    resend.emails.send({
-        from: "Zemam <onboarding@resend.dev>",
-        to,
-        subject,
-        html
-    });
+const sendEmail = async ({ to, subject, html }) => {
+    try {
+        await resend.emails.send({
+            from: "Zemam <onboarding@resend.dev>",
+            to,
+            subject,
+            html
+        });
+    } catch (err) {
+        console.error("⚠️ Resend Email Error (Testing Mode):", err.message || err);
+    }
 }
 
 exports.sendPasswordResetEmail = ({ email, otp }) => {
