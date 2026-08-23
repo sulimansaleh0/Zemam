@@ -7,6 +7,8 @@ const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
+const { mainStatus } = require("../data/status")
+const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
@@ -255,17 +257,11 @@ exports.verifyOtp = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
     const { password } = req.body
-    const token = req.cookies.resetPasswordToken || req.body?.token
-    if (!token) return error(res, 401, "جلسة استعادة كلمة المرور غير صالحة أو منتهية، يرجى إعادة الطلب")
+    const token = req.cookies.resetPasswordToken
+    if (!token) return error(res, 401, "Token Required")
     try {
-        let userData;
-        try {
-            userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
-        } catch (jwtErr) {
-            return error(res, 401, "انتهت صلاحية جلسة استعادة كلمة المرور، يرجى إعادة الطلب")
-        }
-
-        if (!userData || !userData.email) return error(res, 401, "رمز الجلسة غير صالح")
+        const userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+        if (!userData) return error(res, 401, "Invalid Token")
 
         const otpData = await Otp.findOne({
             sentTo: userData.email,

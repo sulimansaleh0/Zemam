@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
-const { error, serverError } = require("../utils/responses");
+const User = require("../models/user.model")
+const { mainStatus } = require("../data/status")
+const { error } = require("../utils/responses");
 
 module.exports = (req, res, next) => {
     const token = req.cookies.token;
