@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signupService } from '../services/signup.service';
+import { sessionService } from '@/features/auth/context/services/session.service';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
 import { signupSchema, type SignupFormValues } from '../schemas/signup.schema';
@@ -66,8 +67,16 @@ export function useSignup() {
       }
 
       await checkSession();
-      addToast({ type: 'success', title: 'تم إنشاء الحساب بنجاح', message: 'تم تسجيل دخولك تلقائياً' });
-      router.push('/dashboard');
+      const sessionResult = await sessionService.getSession();
+      const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+
+      if (hasCompany) {
+        addToast({ type: 'success', title: 'تم إنشاء الحساب بنجاح', message: 'تم تسجيل دخولك بنجاح' });
+        router.push('/dashboard');
+      } else {
+        addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
+        router.push('/onboarding');
+      }
     } catch (err) {
       console.error('Google signup error:', err);
       addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء إنشاء الحساب' });

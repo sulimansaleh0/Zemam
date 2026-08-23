@@ -8,3 +8,4 @@ export { AuthShell } from './components/AuthShell';
 export { AuthCard } from './components/AuthCard';
 export { AuthHeader } from './components/AuthHeader';
 export { PasswordStrength } from './components/PasswordStrength';
+export * from './onboarding';

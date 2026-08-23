@@ -9,5 +9,6 @@ export const API_PATHS = {
     VERIFY_CODE: 'api/auth/verify-otp',
     RESET_PASSWORD: 'api/auth/reset-password',
     REFRESH_TOKEN: 'api/auth/refresh-token',
+    ONBOARDING: 'api/auth/onboarding',
   },
 } as const;

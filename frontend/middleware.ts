@@ -20,7 +20,7 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-  if (isProtectedRoute && !isAuthenticated) {
+  if ((isProtectedRoute || pathname.startsWith('/onboarding')) && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', encodeURIComponent(pathname));
     return NextResponse.redirect(loginUrl);
