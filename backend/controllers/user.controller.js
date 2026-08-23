@@ -5,6 +5,7 @@ const { userRoles } = require("../data/roles")
 const bcrypt = require("bcrypt")
 const crypto = require("crypto")
 const { success, error, serverError } = require("../utils/responses")
+const { mainStatus } = require("../data/status")
 
 exports.me = async (req, res) => {
     const user = req.user
@@ -69,9 +70,24 @@ exports.createFleetManager = async (req, res) => {
     }
 }
 
+exports.deleteFleetManager = async (req, res) => {
+    const user = req.user
+    const fleetManagerId = req.params.id || null
+    if (!fleetManagerId) return error(res, 400, "fleet manager id is required")
+    try {
+        const manager = await User.findOneAndUpdate({ _id: fleetManagerId, companyId: user.companyId }, {
+            statu: mainStatus.INACTIVE
+        })
+        if (!manager) return error(res, 404, "Manager not found")
+        success(res, 200)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
 exports.createDriver = async (req, res) => {
     const user = req.user
-    console.log(user)
     const { email } = req.body
     try {
         const [team, isFound] = await Promise.all([
@@ -92,6 +108,26 @@ exports.createDriver = async (req, res) => {
             teamId: user.teamId
         })
         success(res, 201)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.deleteDriver = async (req, res) => {
+    const user = req.user
+    const driverId = req.params.id
+    if (!driverId) return error(res, 400, "Driver Id is required")
+    try {
+        const driver = await User.findOneAndUpdate({
+            _id: driverId,
+            companyId: user.companyId,
+            teamId: user.teamId
+        }, {
+            status: mainStatus.INACTIVE
+        })
+        if (!driver) return error(res, 404, "Driver not found")
+        success(res, 200)
     } catch (err) {
         console.log(err)
         serverError(res)

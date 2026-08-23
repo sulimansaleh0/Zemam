@@ -1,24 +1,20 @@
 const Fuel = require("../models/fuel.model")
 const { success, error, serverError } = require("../utils/responses")
-const { expenseRecordStatus } = require("../data/status")
 
 exports.createFuelRecord = async (req, res) => {
     const { cost, qty, images } = req.body;
-    const company = req.company || null
-    const user = req.user || null
+    const user = req.user
     try {
-        if (!user || !company) return error(res, 401, "you cant create this fuel record")
-
         const recordImage = images.length > 0 ? images[0] : null
-
-        const newRecord = await Fuel.create({
+        const record = await Fuel.create({
             cost,
             qty,
             image: recordImage,
-            companyId: company._id,
+            companyId: user.companyId,
+            teamId: user.teamId,
             driverId: user._id
         })
-        success(res, 201)
+        success(res, 201, { record })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -26,10 +22,10 @@ exports.createFuelRecord = async (req, res) => {
 }
 
 exports.listFuelRecords = async (req, res) => {
-    const company = req.company
+    const user = req.user
     const { status } = req.query || null
     try {
-        let filters = { companyId: company._id }
+        let filters = { teamId: user.teamId, companyId: user.companyId }
         if (status)
             filters.status = status
 
@@ -42,14 +38,17 @@ exports.listFuelRecords = async (req, res) => {
 }
 
 exports.verifyFuelRecord = async (req, res) => {
-    const company = req.company
-    const { recordId, status } = req.body
+    const user = req.user
+    const { status } = req.body
+    const recordId = req.params.id || null
+    if (!recordId) return error(res, 400, "Record Id is required")
     try {
         const fuelRecord = await Fuel.findOneAndUpdate({
             _id: recordId,
-            companyId: company._id
+            companyId: user.companyId,
+            teamId: user.teamId
         }, {
-            status,
+            status
         })
 
         if (!fuelRecord) return error(res, 400, "Fuel Record Not Found")

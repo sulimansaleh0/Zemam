@@ -4,12 +4,11 @@ const User = require("../models/user.model")
 const { success, error, serverError } = require("../utils/responses")
 const { mainStatus } = require("../data/status")
 const { userRoles } = require("../data/roles")
+
 exports.createVehicle = async (req, res) => {
     const user = req.user
     const { model, year, plateNumber } = req.body
     try {
-        const team = await Team.findOne({ _id: user.teamId, companyId: user.companyId })
-        if (!team) return error(res, 404, "team not found")
         const vehicle = await Vehicle.create({
             model,
             year,
@@ -17,7 +16,7 @@ exports.createVehicle = async (req, res) => {
             teamId: user.teamId,
             companyId: user.companyId
         })
-        success(res, 200)
+        success(res, 200, { vehicle })
     } catch (err) {
         console.log(err)
         serverError(res)

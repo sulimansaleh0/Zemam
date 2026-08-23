@@ -1,7 +1,7 @@
 const router = require("express").Router()
 const { userRoles } = require("../data/roles")
 
-const { me, updateProfile, createFleetManager, createDriver } = require("../controllers/user.controller")
+const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver } = require("../controllers/user.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
@@ -17,16 +17,26 @@ router.patch("/", updateProfileSchema, validate, updateProfile);
 
 router.use(checkSubscription())
 
-router.post("/create-fleet-manager",
+router.post("/fleet-manager",
     allowedTo(userRoles.ADMIN),
     createFleetManagerSchema,
     validate,
     createFleetManager)
 
-router.post("/create-driver",
-    allowedTo(userRoles.FLEET_MANAGER),
+router.delete(
+    "/fleet-manager/:id",
+    allowedTo(userRoles.ADMIN),
+    deleteFleetManager
+)
+
+router.use(allowedTo(userRoles.FLEET_MANAGER))
+router.post("/driver",
     createDriverSchema,
     validate,
     createDriver)
+
+router.delete("/driver",
+    deleteDriver
+)
 
 module.exports = router

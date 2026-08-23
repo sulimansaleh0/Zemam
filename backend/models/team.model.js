@@ -13,6 +13,10 @@ const teamSchema = new mongoose.Schema({
     managerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 })
 

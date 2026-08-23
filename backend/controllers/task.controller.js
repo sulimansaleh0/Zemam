@@ -11,8 +11,8 @@ exports.createTask = async (req, res) => {
     const { description, driverId, vehicleId } = req.body
     try {
         const [driver, vehicle] = await Promise.all([
-            User.findOne({ _id: driverId, companyId: user.companyId, teamId: user.teamId }),
-            Vehicle.findOne({ _id: vehicleId, companyId: user.companyId, teamId: user.teamId })
+            User.findOne({ _id: driverId, companyId: user.companyId, teamId: user.teamId, status: mainStatus.ACTIVE }),
+            Vehicle.findOne({ _id: vehicleId, companyId: user.companyId, teamId: user.teamId, status: mainStatus.ACTIVE })
         ])
         if (!driver) return error(res, 404, "User not found")
         if (!vehicle) return error(res, 404, "Vehicle not found")
@@ -50,7 +50,6 @@ exports.listTask = async (req, res) => {
     const user = req.user
     const id = req.params.id
     if (!id) return error(res, 400, "task id is required")
-
     try {
         const task = await Task.findById({ _id: id, companyId: user.companyId, teamId: user.teamId })
         if (!task) return error(res, 404, "Task not found")
