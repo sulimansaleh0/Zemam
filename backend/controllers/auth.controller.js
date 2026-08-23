@@ -8,7 +8,6 @@ const { success, error, serverError } = require("../utils/responses")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
 const { mainStatus } = require("../data/status")
-const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
@@ -210,45 +209,47 @@ exports.verifyEmail = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
     const { otp } = req.body
     const token = req.cookies.resetPasswordToken 
+    try {
+
         if (!token) return error(res, 401, "جلسة التحقق غير صالحة، يرجى طلب رمز جديد")
-
-        let userData;
-        try {
-            userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
-        } catch (jwtErr) {
-            return error(res, 401, "انتهت صلاحية جلسة التحقق، يرجى طلب رمز جديد")
-        }
-
-        if (!userData || !userData.email) return error(res, 401, "رمز الجلسة غير صالح")
-
-        const otpData = await Otp.findOne({
-            sentTo: userData.email
-        })
-
-        if (!otpData) {
-            return error(res, 400, "رمز التحقق غير موجود أو انتهت صلاحيته")
-        }
-
-        // check expired
-        if (otpData.expiresAt < new Date())
-            return error(res, 400, "انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد")
-
-        // check attempts
-        if (otpData.attempts >= 5)
-            return error(res, 400, "تجاوزت الحد الأقصى للمحاولات. يرجى طلب رمز جديد")
-
-        // compare otp
-        const isMatched = await bcrypt.compare(otp, otpData.hashedOtp)
-        if (!isMatched) {
-            otpData.attempts += 1
-            await otpData.save()
-            return error(res, 400, "رمز التحقق غير صحيح")
-        }
-
-        otpData.verified = true
-        await otpData.save()
-
-        return success(res, 200, { token, msg: "تم التحقق من الرمز بنجاح" })
+            
+            let userData;
+            try {
+                userData = jwt.verify(token, process.env.JWT_SECRET_KEY)
+            } catch (jwtErr) {
+                return error(res, 401, "انتهت صلاحية جلسة التحقق، يرجى طلب رمز جديد")
+            }
+            
+            if (!userData || !userData.email) return error(res, 401, "رمز الجلسة غير صالح")
+                
+                const otpData = await Otp.findOne({
+                    sentTo: userData.email
+                })
+                
+                if (!otpData) {
+                    return error(res, 400, "رمز التحقق غير موجود أو انتهت صلاحيته")
+                }
+                
+                // check expired
+                if (otpData.expiresAt < new Date())
+                    return error(res, 400, "انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد")
+                
+                // check attempts
+                if (otpData.attempts >= 5)
+                    return error(res, 400, "تجاوزت الحد الأقصى للمحاولات. يرجى طلب رمز جديد")
+                
+                // compare otp
+                const isMatched = await bcrypt.compare(otp, otpData.hashedOtp)
+                if (!isMatched) {
+                    otpData.attempts += 1
+                    await otpData.save()
+                    return error(res, 400, "رمز التحقق غير صحيح")
+                }
+                
+                otpData.verified = true
+                await otpData.save()
+                
+                return success(res, 200, { token, msg: "تم التحقق من الرمز بنجاح" })
     } catch (err) {
         console.log(err)
         return serverError(res)
