@@ -6,11 +6,12 @@ const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
+const { mainStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { roles: user.roles, _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user?.teamId || null }
+    const data = { _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user?.teamId || null }
     return jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
 }
 
@@ -39,7 +40,7 @@ exports.login = async (req, res) => {
     try {
 
         // Check Email
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email, status: mainStatus.ACTIVE })
         if (!user) return error(res, 400, "Check Email or Password")
 
         // Check Password
