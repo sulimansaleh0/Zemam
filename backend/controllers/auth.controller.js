@@ -197,6 +197,9 @@ exports.onBoarding = async (req, res) => {
         await User.findByIdAndUpdate(user._id, {
             companyId: company._id
         })
+
+        const token = await generateToken(user)
+        storeToken(res, token)
         success(res, 200)
     } catch (err) {
         console.log(err)
