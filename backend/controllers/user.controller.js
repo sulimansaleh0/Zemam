@@ -70,6 +70,25 @@ exports.createFleetManager = async (req, res) => {
     }
 }
 
+exports.listFleetManagers = async (req, res) => {
+    const user = req.user;
+    const { status } = req.query || null
+    try {
+        let filters = {
+            roles: { $in: [userRoles.FLEET_MANAGER] },
+            companyId: user.companyId
+        }
+        if (status)
+            filters.status = status
+
+        const fleetManagers = await User.find(filters)
+        success(res, 200, { fleetManagers })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
 exports.deleteFleetManager = async (req, res) => {
     const user = req.user
     const fleetManagerId = req.params.id || null
@@ -108,6 +127,25 @@ exports.createDriver = async (req, res) => {
             teamId: user.teamId
         })
         success(res, 201)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.listDrivers = async (req, res) => {
+    const user = req.user;
+    const { status } = req.query
+    try {
+        let filters = {
+            roles: { $in: [userRoles.DRIVER] },
+            teamId: user.teamId,
+            companyId: user.companyId
+        }
+
+
+        const drivers = await User.find(filters)
+        success(res, 200, { drivers })
     } catch (err) {
         console.log(err)
         serverError(res)

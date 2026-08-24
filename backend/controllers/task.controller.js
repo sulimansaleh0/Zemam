@@ -46,6 +46,17 @@ exports.listTasks = async (req, res) => {
     }
 }
 
+exports.listDriverTasks = async (req, res) => {
+    const user = req.user
+    try {
+        const tasks = await Task.find({ driverId: user._id, status: taskStatus.PENDING })
+        success(res, 200, { tasks })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
 exports.listTask = async (req, res) => {
     const user = req.user
     const id = req.params.id
