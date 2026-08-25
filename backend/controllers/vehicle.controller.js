@@ -9,11 +9,16 @@ exports.createVehicle = async (req, res) => {
     const user = req.user
     const { model, year, plateNumber } = req.body
     try {
+        let teamId = user.teamId
+        if (!teamId) {
+            const firstTeam = await Team.findOne({ companyId: user.companyId })
+            if (firstTeam) teamId = firstTeam._id
+        }
         const vehicle = await Vehicle.create({
             model,
             year,
             plateNumber,
-            teamId: user.teamId,
+            teamId,
             companyId: user.companyId
         })
         success(res, 200, { vehicle })
@@ -26,7 +31,10 @@ exports.createVehicle = async (req, res) => {
 exports.listVehicles = async (req, res) => {
     const user = req.user
     try {
-        const vehicles = await Vehicle.find({ teamId: user.teamId, companyId: user.companyId })
+        let filters = { companyId: user.companyId }
+        if (user.teamId) filters.teamId = user.teamId
+
+        const vehicles = await Vehicle.find(filters)
         success(res, 200, { vehicles })
     } catch (err) {
         console.log(err)
@@ -39,11 +47,10 @@ exports.listVehicle = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "vehicle id is required")
     try {
-        const vehicle = await Vehicle.findOne({
-            _id: id,
-            companyId: user.companyId,
-            teamId: user.teamId
-        })
+        let filters = { _id: id, companyId: user.companyId }
+        if (user.teamId) filters.teamId = user.teamId
+
+        const vehicle = await Vehicle.findOne(filters)
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
         success(res, 200, { vehicle })
@@ -59,11 +66,10 @@ exports.changeVehicleStatus = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "vehicle id is required")
     try {
-        const vehicle = await Vehicle.findOneAndUpdate({
-            _id: id,
-            companyId: user.companyId,
-            teamId: user.teamId
-        }, {
+        let filters = { _id: id, companyId: user.companyId }
+        if (user.teamId) filters.teamId = user.teamId
+
+        const vehicle = await Vehicle.findOneAndUpdate(filters, {
             status
         }, { returnDocument: "after" })
 
@@ -86,9 +92,16 @@ exports.assignDriver = async (req, res) => {
     if (!driverId) return error(res, 400, "user id is required")
 
     try {
+        let userFilter = { _id: driverId, companyId: fleetManager.companyId }
+        let vehicleFilter = { _id: vehicleId, companyId: fleetManager.companyId }
+        if (fleetManager.teamId) {
+            userFilter.teamId = fleetManager.teamId
+            vehicleFilter.teamId = fleetManager.teamId
+        }
+
         const [user, vehicle] = await Promise.all([
-            User.findOne({ _id: driverId, companyId: fleetManager.companyId, teamId: fleetManager.teamId }),
-            Vehicle.findOne({ _id: vehicleId, companyId: fleetManager.companyId, teamId: fleetManager.teamId })
+            User.findOne(userFilter),
+            Vehicle.findOne(vehicleFilter)
         ])
         if (!user) return error(res, 404, "user not found")
         if (!vehicle) return error(res, 404, "vehicle not found")

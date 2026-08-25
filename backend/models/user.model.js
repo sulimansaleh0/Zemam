@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { userStatus } = require("../data/status");
+const { mainStatus } = require("../data/status");
 const { userRoles } = require("../data/roles");
 
 const userSchema = new mongoose.Schema({
@@ -26,19 +26,13 @@ const userSchema = new mongoose.Schema({
     },
     roles: {
         type: [String],
-        enum: [
-            userRoles.SUPER_ADMIN,
-            userRoles.ADMIN,
-            userRoles.FLEET_MANAGER,
-            userRoles.DRIVER,
-
-        ],
+        enum: [userRoles.SUPER_ADMIN, userRoles.ADMIN, userRoles.FLEET_MANAGER, userRoles.DRIVER],
         default: [userRoles.ADMIN]
     },
     status: {
         type: String,
-        enum: [userStatus.ACTIVE, userStatus.INACTIVE],
-        default: userStatus.ACTIVE
+        enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
+        default: mainStatus.ACTIVE
     },
 
     companyId: {
@@ -48,6 +42,10 @@ const userSchema = new mongoose.Schema({
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

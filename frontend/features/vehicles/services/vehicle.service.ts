@@ -1,116 +1,64 @@
-import { MOCK_VEHICLES, MOCK_COMPANIES, MOCK_TEAMS, MOCK_DRIVERS } from '../data/mock-vehicles';
-import {
-  VehicleWithRelations,
+import { sendRequest, postRequest, patchRequest } from '@/shared/lib/coreApi';
+import { API_PATHS } from '@/shared/constants/apiPaths';
+import type { ServiceResult } from '@/shared/types/api.types';
+import type {
+  BackendVehicle,
   CreateVehicleInput,
-  UpdateVehicleInput,
-  Company,
-  Team,
-  Driver,
+  AssignDriverInput,
+  ChangeVehicleStatusInput,
 } from '../types/vehicle.types';
 
-// Mock state dataset for vehicles
-let vehiclesDataset: VehicleWithRelations[] = [...MOCK_VEHICLES];
+// ============================================================
+//  Vehicle Service — Pure API Calls Layer (No localStorage/mocks)
+// ============================================================
+
+interface ListVehiclesResponse {
+  vehicles: BackendVehicle[];
+}
+
+interface SingleVehicleResponse {
+  vehicle: BackendVehicle;
+}
 
 export const vehicleService = {
   /**
-   * Fetch all fleet vehicles
+   * جلب قائمة جميع المركبات
    */
-  async getVehicles(): Promise<VehicleWithRelations[]> {
-    return [...vehiclesDataset];
+  getVehicles(): Promise<ServiceResult<ListVehiclesResponse>> {
+    return sendRequest<ListVehiclesResponse>(API_PATHS.VEHICLES.LIST);
   },
 
   /**
-   * Fetch single vehicle by its unique ID
+   * جلب تفاصيل مركبة محددة
    */
-  async getVehicleById(vehicleId: string): Promise<VehicleWithRelations> {
-    const foundVehicle = vehiclesDataset.find((v) => v.id === vehicleId);
-    if (!foundVehicle) throw new Error('المركبة المطلوبة غير موجودة');
-    return foundVehicle;
+  getVehicleById(id: string): Promise<ServiceResult<SingleVehicleResponse>> {
+    return sendRequest<SingleVehicleResponse>(API_PATHS.VEHICLES.DETAIL(id));
   },
 
   /**
-   * Create and register a new vehicle
+   * إنشاء مركبة جديدة
    */
-  async createVehicle(vehicleInput: CreateVehicleInput): Promise<VehicleWithRelations> {
-    const driver = MOCK_DRIVERS.find((d) => d.id === vehicleInput.driverId);
-    const team = MOCK_TEAMS.find((t) => t.id === vehicleInput.teamId);
-    const company = MOCK_COMPANIES.find((c) => c.id === vehicleInput.companyId);
-
-    const newVehicle: VehicleWithRelations = {
-      ...vehicleInput,
-      id: `veh_${Date.now()}`,
-      year: Number(vehicleInput.year),
-      plateNumber: Number(vehicleInput.plateNumber),
-      driverName: driver?.name || 'غير محدد',
-      driverPhone: driver?.phone || '',
-      teamName: team?.name || 'غير محدد',
-      companyName: company?.name || 'غير محدد',
-      status: 'active',
-    };
-
-    vehiclesDataset = [newVehicle, ...vehiclesDataset];
-    return newVehicle;
+  createVehicle(data: CreateVehicleInput): Promise<ServiceResult<SingleVehicleResponse>> {
+    return postRequest<SingleVehicleResponse>(API_PATHS.VEHICLES.CREATE, data);
   },
 
   /**
-   * Update existing vehicle details
+   * تغيير حالة المركبة (نشطة / غير نشطة)
    */
-  async updateVehicle(
-    vehicleId: string,
-    vehicleInput: UpdateVehicleInput
-  ): Promise<VehicleWithRelations> {
-    const vehicleIndex = vehiclesDataset.findIndex((v) => v.id === vehicleId);
-    if (vehicleIndex === -1) throw new Error('المركبة المراد تعديلها غير موجودة');
-
-    const driver = vehicleInput.driverId
-      ? MOCK_DRIVERS.find((d) => d.id === vehicleInput.driverId)
-      : undefined;
-    const team = vehicleInput.teamId
-      ? MOCK_TEAMS.find((t) => t.id === vehicleInput.teamId)
-      : undefined;
-    const company = vehicleInput.companyId
-      ? MOCK_COMPANIES.find((c) => c.id === vehicleInput.companyId)
-      : undefined;
-
-    const currentVehicle = vehiclesDataset[vehicleIndex];
-    const updatedVehicle: VehicleWithRelations = {
-      ...currentVehicle,
-      ...vehicleInput,
-      year: vehicleInput.year !== undefined ? Number(vehicleInput.year) : currentVehicle.year,
-      plateNumber:
-        vehicleInput.plateNumber !== undefined
-          ? Number(vehicleInput.plateNumber)
-          : currentVehicle.plateNumber,
-      driverName: driver ? driver.name : currentVehicle.driverName,
-      driverPhone: driver ? driver.phone : currentVehicle.driverPhone,
-      teamName: team ? team.name : currentVehicle.teamName,
-      companyName: company ? company.name : currentVehicle.companyName,
-    };
-
-    vehiclesDataset[vehicleIndex] = updatedVehicle;
-    return updatedVehicle;
+  changeVehicleStatus(
+    id: string,
+    data: ChangeVehicleStatusInput
+  ): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.VEHICLES.CHANGE_STATUS(id), data);
   },
 
   /**
-   * Delete vehicle by ID
+   * تعيين سائق للمركبة
    */
-  async deleteVehicle(vehicleId: string): Promise<string> {
-    vehiclesDataset = vehiclesDataset.filter((v) => v.id !== vehicleId);
-    return vehicleId;
-  },
-
-  /**
-   * Fetch relation lookup options for vehicles
-   */
-  async getVehicleCompanies(): Promise<Company[]> {
-    return MOCK_COMPANIES;
-  },
-
-  async getVehicleTeams(): Promise<Team[]> {
-    return MOCK_TEAMS;
-  },
-
-  async getVehicleDrivers(): Promise<Driver[]> {
-    return MOCK_DRIVERS;
+  assignDriver(
+    id: string,
+    data: AssignDriverInput
+  ): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.VEHICLES.ASSIGN_DRIVER(id), data);
   },
 };

@@ -1,116 +1,169 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/shared/ui/Toast';
 import { vehicleService } from '../services/vehicle.service';
-import { CreateVehicleInput, UpdateVehicleInput } from '../types/vehicle.types';
+import { useDriversList } from '@/features/drivers';
+import type {
+  BackendVehicle,
+  VehicleWithRelations,
+  CreateVehicleInput,
+  AssignDriverInput,
+  ChangeVehicleStatusInput,
+} from '../types/vehicle.types';
+
+// ============================================================
+//  Query Keys
+// ============================================================
 
 export const VEHICLE_QUERY_KEYS = {
-  allVehicles: ['vehicles'] as const,
-  vehicleDetail: (vehicleId: string) => ['vehicles', vehicleId] as const,
-  vehicleCompanies: ['vehicles', 'companies'] as const,
-  vehicleTeams: ['vehicles', 'teams'] as const,
-  vehicleDrivers: ['vehicles', 'drivers'] as const,
+  all: ['vehicles'] as const,
+  detail: (id: string) => ['vehicles', id] as const,
 };
 
+// ============================================================
+//  Data Hooks (React Query v5)
+// ============================================================
+
 /**
- * Hook to fetch all vehicles
+ * Hook لجلب جميع المركبات مع دمج معلومات السائق من قائمة السائقين
  */
 export function useVehicles() {
+  const driversQuery = useDriversList();
+  const drivers = driversQuery.data ?? [];
+
   return useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.allVehicles,
-    queryFn: vehicleService.getVehicles,
-  });
-}
-
-/**
- * Hook to fetch a single vehicle by ID
- */
-export function useVehicleById(vehicleId: string) {
-  return useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.vehicleDetail(vehicleId),
-    queryFn: () => vehicleService.getVehicleById(vehicleId),
-    enabled: Boolean(vehicleId),
-  });
-}
-
-/**
- * Hook to fetch vehicle form options (companies, teams, drivers)
- */
-export function useVehicleOptions() {
-  const vehicleCompaniesQuery = useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.vehicleCompanies,
-    queryFn: vehicleService.getVehicleCompanies,
-  });
-
-  const vehicleTeamsQuery = useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.vehicleTeams,
-    queryFn: vehicleService.getVehicleTeams,
-  });
-
-  const vehicleDriversQuery = useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.vehicleDrivers,
-    queryFn: vehicleService.getVehicleDrivers,
-  });
-
-  return {
-    companies: vehicleCompaniesQuery.data ?? [],
-    teams: vehicleTeamsQuery.data ?? [],
-    drivers: vehicleDriversQuery.data ?? [],
-    isLoadingOptions:
-      vehicleCompaniesQuery.isLoading ||
-      vehicleTeamsQuery.isLoading ||
-      vehicleDriversQuery.isLoading,
-  };
-}
-
-/**
- * Mutation hook to create a new vehicle
- */
-export function useCreateVehicle() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (vehicleInput: CreateVehicleInput) =>
-      vehicleService.createVehicle(vehicleInput),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.allVehicles });
+    queryKey: VEHICLE_QUERY_KEYS.all,
+    queryFn: async () => {
+      const result = await vehicleService.getVehicles();
+      if (!result.success) throw new Error(result.message);
+      return result.data.vehicles;
     },
-  });
-}
-
-/**
- * Mutation hook to update an existing vehicle
- */
-export function useUpdateVehicle() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      vehicleId,
-      vehicleInput,
-    }: {
-      vehicleId: string;
-      vehicleInput: UpdateVehicleInput;
-    }) => vehicleService.updateVehicle(vehicleId, vehicleInput),
-    onSuccess: (_, { vehicleId }) => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.allVehicles });
-      queryClient.invalidateQueries({
-        queryKey: VEHICLE_QUERY_KEYS.vehicleDetail(vehicleId),
+    select: (vehicles: BackendVehicle[]): VehicleWithRelations[] => {
+      return vehicles.map((v) => {
+        const assignedDriver = drivers.find((d) => d._id === v.driverId);
+        return {
+          ...v,
+          driverName: assignedDriver
+            ? assignedDriver.name !== 'Default'
+              ? assignedDriver.name
+              : assignedDriver.email.split('@')[0]
+            : undefined,
+          driverEmail: assignedDriver?.email,
+        };
       });
     },
   });
 }
 
 /**
- * Mutation hook to delete a vehicle
+ * Hook لجلب السائقين النشطين المتاحين للتعيين
  */
-export function useDeleteVehicle() {
+export function useAvailableDrivers() {
+  const driversQuery = useDriversList();
+  const drivers = driversQuery.data ?? [];
+  return {
+    drivers: drivers.filter((d) => d.status === 'active'),
+    isLoading: driversQuery.isLoading,
+  };
+}
+
+/**
+ * Mutation لإنشاء مركبة جديدة
+ */
+export function useCreateVehicle() {
   const queryClient = useQueryClient();
+  const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: (vehicleId: string) => vehicleService.deleteVehicle(vehicleId),
+    mutationFn: async (data: CreateVehicleInput) => {
+      const result = await vehicleService.createVehicle(data);
+      if (!result.success) throw new Error(result.message);
+      return result.data.vehicle;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.allVehicles });
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      addToast({
+        type: 'success',
+        title: 'تمت الإضافة',
+        message: 'تم تسجيل المركبة الجديدة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشلت العملية',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لتغيير حالة المركبة (نشطة / غير نشطة)
+ */
+export function useChangeVehicleStatus() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'active' | 'inactive' }) => {
+      const result = await vehicleService.changeVehicleStatus(id, { status });
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      const label = status === 'active' ? 'تفعيل' : 'تعطيل';
+      addToast({
+        type: 'info',
+        title: 'تحديث الحالة',
+        message: `تم ${label} المركبة بنجاح`,
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل تحديث الحالة',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لتعيين سائق لمركبة
+ */
+export function useAssignDriver() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      vehicleId,
+      driverId,
+    }: {
+      vehicleId: string;
+      driverId: string;
+    }) => {
+      const result = await vehicleService.assignDriver(vehicleId, { driverId });
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      addToast({
+        type: 'success',
+        title: 'تعيين السائق',
+        message: 'تم تعيين السائق للمركبة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل التعيين',
+        message: error.message,
+      });
     },
   });
 }

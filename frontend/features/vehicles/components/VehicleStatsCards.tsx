@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Truck, CheckCircle2, Wrench, AlertCircle } from 'lucide-react';
-import { VehicleWithRelations } from '../types/vehicle.types';
+import { Truck, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import type { VehicleWithRelations } from '../types/vehicle.types';
 
 interface VehicleStatsCardsProps {
   vehicles: VehicleWithRelations[];
@@ -11,14 +11,14 @@ interface VehicleStatsCardsProps {
 export function VehicleStatsCards({ vehicles }: VehicleStatsCardsProps) {
   const total = vehicles.length;
   const active = vehicles.filter((v) => v.status === 'active').length;
-  const maintenance = vehicles.filter((v) => v.status === 'maintenance').length;
-  const stopped = vehicles.filter((v) => v.status === 'stopped' || v.status === 'unavailable').length;
+  const inTask = vehicles.filter((v) => v.isInTask).length;
+  const inactive = vehicles.filter((v) => v.status === 'inactive').length;
 
   const stats = [
     {
       title: 'إجمالي المركبات',
       value: total,
-      label: 'مركبة مسجلة',
+      label: 'مركبة مسجلة بالأسطول',
       icon: Truck,
       color: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-500/10 dark:bg-blue-500/15',
@@ -26,23 +26,23 @@ export function VehicleStatsCards({ vehicles }: VehicleStatsCardsProps) {
     {
       title: 'مركبات نشطة',
       value: active,
-      label: 'على الطريق والعمليات',
+      label: 'جاهزة للتشغيل',
       icon: CheckCircle2,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
     },
     {
-      title: 'في الصيانة',
-      value: maintenance,
-      label: 'صيانة دورية وإصلاحات',
-      icon: Wrench,
+      title: 'في مهام حالياً',
+      value: inTask,
+      label: 'قيد التوصيل والعمليات',
+      icon: Clock,
       color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-500/10 dark:bg-amber-500/15',
     },
     {
-      title: 'متوقفة / غير متاحة',
-      value: stopped,
-      label: 'خارج الخدمة مؤقتاً',
+      title: 'غير نشطة',
+      value: inactive,
+      label: 'متوقفة عن العمل',
       icon: AlertCircle,
       color: 'text-rose-600 dark:text-rose-400',
       bg: 'bg-rose-500/10 dark:bg-rose-500/15',

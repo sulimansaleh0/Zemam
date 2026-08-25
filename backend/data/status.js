@@ -3,11 +3,6 @@ exports.mainStatus = {
     INACTIVE: "inactive"
 }
 
-exports.userStatus = {
-    ACTIVE: "active",
-    INACTIVE: "inactive"
-}
-
 exports.expenseRecordStatus = {
     PENDING: "pending",
     APPROVED: "approved",

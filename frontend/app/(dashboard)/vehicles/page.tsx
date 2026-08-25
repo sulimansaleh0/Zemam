@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Truck, Plus, RefreshCw } from 'lucide-react';
+import { Truck, Plus, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
 import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import {
   useVehicles,
   VehiclesTable,
   VehicleFormModal,
+  AssignDriverModal,
   DeleteVehicleModal,
   VehicleStatsCards,
   VehicleWithRelations,
@@ -17,31 +18,18 @@ export default function VehiclesPage() {
   const {
     data: vehiclesList = [],
     isLoading: isLoadingVehicles,
+    isError: isVehiclesError,
+    error: vehiclesError,
     refetch: refetchVehicles,
     isRefetching: isRefetchingVehicles,
   } = useVehicles();
 
-  // Modal states for vehicles
-  const [isVehicleFormModalOpen, setIsVehicleFormModalOpen] = useState(false);
-  const [selectedVehicleForEdit, setSelectedVehicleForEdit] =
+  // Modal states
+  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
+  const [selectedVehicleForAssign, setSelectedVehicleForAssign] =
     useState<VehicleWithRelations | null>(null);
-  const [selectedVehicleForDelete, setSelectedVehicleForDelete] =
+  const [selectedVehicleForStatusChange, setSelectedVehicleForStatusChange] =
     useState<VehicleWithRelations | null>(null);
-
-  // Handlers
-  const handleOpenAddVehicleModal = () => {
-    setSelectedVehicleForEdit(null);
-    setIsVehicleFormModalOpen(true);
-  };
-
-  const handleOpenEditVehicleModal = (vehicle: VehicleWithRelations) => {
-    setSelectedVehicleForEdit(vehicle);
-    setIsVehicleFormModalOpen(true);
-  };
-
-  const handleOpenDeleteVehicleModal = (vehicle: VehicleWithRelations) => {
-    setSelectedVehicleForDelete(vehicle);
-  };
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -81,10 +69,15 @@ export default function VehiclesPage() {
                   <span>إدارة الأسطول والعمليات</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                  سجل المركبات والأسطول
+                  سجل المركبات والأسطول{' '}
+                  {!isLoadingVehicles && (
+                    <span className="mr-1 font-manrope text-lg font-semibold text-[var(--primary)]">
+                      {vehiclesList.length}
+                    </span>
+                  )}
                 </h1>
                 <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
-                  عرض وتتبع كامل لمركبات الأسطول، أجهزة التتبع (GPS)، وتعيينات السائقين
+                  عرض وتتبع كامل لمركبات الأسطول، حالتها التشغيلية، وتعيينات السائقين
                 </p>
               </div>
 
@@ -92,8 +85,8 @@ export default function VehiclesPage() {
                 <button
                   type="button"
                   onClick={() => refetchVehicles()}
-                  disabled={isRefetchingVehicles}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer"
+                  disabled={isRefetchingVehicles || isLoadingVehicles}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                   title="تحديث البيانات"
                 >
                   <RefreshCw
@@ -101,61 +94,99 @@ export default function VehiclesPage() {
                   />
                   <span>تحديث</span>
                 </button>
-
                 <button
                   type="button"
-                  onClick={handleOpenAddVehicleModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => setIsAddVehicleModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>إضافة مركبة جديدة</span>
+                  <span>إضافة مركبة</span>
                 </button>
               </div>
             </div>
 
-            {/* ── Summary Metrics ── */}
-            <VehicleStatsCards vehicles={vehiclesList} />
-
-            {/* ── Vehicles Interactive Table ── */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-bold text-[var(--text)]">قائمة مركبات الأسطول</h2>
-                  <p className="text-xs text-[var(--muted)]">إدارة السجلات والتعديل المباشر</p>
+            {/* ── Error State ── */}
+            {isVehiclesError && !isLoadingVehicles && (
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
+                  <AlertCircle className="h-6 w-6" />
                 </div>
+                <div>
+                  <h2 className="text-sm font-bold text-[var(--text)]">
+                    تعذّر تحميل بيانات المركبات
+                  </h2>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    {vehiclesError instanceof Error
+                      ? vehiclesError.message
+                      : 'حدث خطأ أثناء الاتصال بالسيرفر'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => refetchVehicles()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>إعادة المحاولة</span>
+                </button>
               </div>
+            )}
 
-              <VehiclesTable
-                vehiclesData={vehiclesList}
-                isLoadingVehicles={isLoadingVehicles}
-                onAddVehicleClick={handleOpenAddVehicleModal}
-                onEditVehicleClick={handleOpenEditVehicleModal}
-                onDeleteVehicleClick={handleOpenDeleteVehicleModal}
-              />
-            </section>
+            {/* ── Loading Skeleton ── */}
+            {isLoadingVehicles && (
+              <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-[var(--muted)]">
+                <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+                <p className="text-xs">جارٍ تحميل بيانات أسطول المركبات...</p>
+              </div>
+            )}
 
-            {/* ── Footer ── */}
+            {/* ── Main Content ── */}
+            {!isLoadingVehicles && !isVehiclesError && (
+              <>
+                {/* Stats Cards */}
+                <VehicleStatsCards vehicles={vehiclesList} />
+
+                {/* Vehicles Table */}
+                <VehiclesTable
+                  vehiclesData={vehiclesList}
+                  isLoadingVehicles={isLoadingVehicles}
+                  onAddVehicleClick={() => setIsAddVehicleModalOpen(true)}
+                  onAssignDriverClick={(vehicle) => setSelectedVehicleForAssign(vehicle)}
+                  onChangeStatusClick={(vehicle) => setSelectedVehicleForStatusChange(vehicle)}
+                />
+              </>
+            )}
+
+            {/* ── Page Footer ── */}
             <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-5 text-[10px] text-[var(--muted)] transition-colors">
-              <span>نظام زمام لإدارة الأساطيل والذمم المالية</span>
+              <span>زمام لإدارة الأساطيل والعمليات اللوجستية</span>
               <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> اتصال قاعدة البيانات نشط
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                البيانات متصلة مباشرة بالخادم
               </span>
             </footer>
           </div>
         </div>
       </div>
 
-      {/* ── Modals ── */}
+      {/* ── Add Vehicle Modal ── */}
       <VehicleFormModal
-        isOpen={isVehicleFormModalOpen}
-        onClose={() => setIsVehicleFormModalOpen(false)}
-        initialVehicleData={selectedVehicleForEdit}
+        isOpen={isAddVehicleModalOpen}
+        onClose={() => setIsAddVehicleModalOpen(false)}
       />
 
+      {/* ── Assign Driver Modal ── */}
+      <AssignDriverModal
+        isOpen={Boolean(selectedVehicleForAssign)}
+        onClose={() => setSelectedVehicleForAssign(null)}
+        targetVehicle={selectedVehicleForAssign}
+      />
+
+      {/* ── Change Vehicle Status Modal ── */}
       <DeleteVehicleModal
-        isOpen={Boolean(selectedVehicleForDelete)}
-        onClose={() => setSelectedVehicleForDelete(null)}
-        targetVehicle={selectedVehicleForDelete}
+        isOpen={Boolean(selectedVehicleForStatusChange)}
+        onClose={() => setSelectedVehicleForStatusChange(null)}
+        targetVehicle={selectedVehicleForStatusChange}
       />
     </main>
   );

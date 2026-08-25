@@ -13,13 +13,15 @@ const { createVehicleSchema, updateVehicleStatusSchema, assignDriverSchema } = r
 const { createVehicle, listVehicles, listVehicle, changeVehicleStatus, assignDriver } = require("../controllers/vehicle.controller")
 
 router.use(verifyToken)
-router.use(verifyTeam)
-router.use(allowedTo(userRoles.FLEET_MANAGER))
 router.use(checkSubscription())
 
-router.post("/", createVehicleSchema, validate, createVehicle)
 router.get("/", listVehicles)
 router.get("/:id", listVehicle)
+
+router.use(allowedTo(userRoles.FLEET_MANAGER, userRoles.ADMIN))
+router.use(verifyTeam)
+
+router.post("/", createVehicleSchema, validate, createVehicle)
 router.patch("/:id/status", updateVehicleStatusSchema, validate, changeVehicleStatus)
 router.patch("/:id/assign-driver", assignDriverSchema, validate, assignDriver)
 

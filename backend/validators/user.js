@@ -1,4 +1,5 @@
 const { body } = require("express-validator");
+const { mainStatus } = require("../data/status")
 
 exports.loginSchema = [
     body("email")
@@ -41,14 +42,14 @@ exports.signupSchema = [
     body("companyName")
         .trim()
         .notEmpty().withMessage("Company Name is required")
-        .isLength({ min: 6 }).withMessage("Company Name must be 6 characters at least")
-];
+        .isLength({ min: 6 }).withMessage("Company Name must be 6 charactes at least")
+]
 
 exports.updateProfileSchema = [
     body("name")
         .trim()
         .optional()
-        .isLength({ min: 6 }).withMessage("Name must be 6 characters at least"),
+        .isLength({ min: 6 }).withMessage("Name must be 6 charactes at least"),
 
     body("email")
         .trim()
@@ -64,29 +65,6 @@ exports.updateProfileSchema = [
         .matches(/[a-z]/).withMessage("Password must contain at least one lowercase letter (a-z)")
         .matches(/[0-9]/).withMessage("Password must contain at least one number (0-9)")
         .matches(/[^A-Za-z0-9]/).withMessage("Password must contain at least one special character (!@#$%^&*...)")
-]
-
-exports.createFleetManagerSchema = [
-    body("teamId")
-        .trim()
-        .notEmpty()
-        .withMessage("Team ID is required")
-        .isMongoId()
-        .withMessage("Invalid Team ID"),
-
-    body("email")
-        .trim()
-        .notEmpty().withMessage("Email is required")
-        .isEmail().withMessage("Invalid email format")
-        .normalizeEmail(),
-]
-
-exports.createDriverSchema = [
-    body("email")
-        .trim()
-        .notEmpty().withMessage("Email is required")
-        .isEmail().withMessage("Invalid email format")
-        .normalizeEmail(),
 ]
 
 exports.resetPasswordSchema = [
@@ -107,4 +85,39 @@ exports.companyNameSchema = [
         .withMessage("Company Name is required")
         .isLength({ min: 6 })
         .withMessage("Company Name should be more than 5 words")
+]
+
+exports.updateUserStatusSchema = [
+    body("status")
+        .trim()
+        .notEmpty()
+        .withMessage("Status is required")
+        .isIn(Object.values(mainStatus))
+        .withMessage("Invalid status"),
+];
+
+exports.createFleetManagerSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
+    body("teamId")
+        .trim()
+        .notEmpty()
+        .withMessage("Team Id is required")
+        .isMongoId()
+        .withMessage("Invalid Team Id")
+]
+
+exports.createDriverSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
 ]

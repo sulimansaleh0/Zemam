@@ -3,14 +3,14 @@ const { body } = require("express-validator");
 
 // Middlewares
 const verifyToken = require("../middlewares/verifyToken")
-const verifyRefreshToken = require("../middlewares/verifyRefreshToken")
 const validate = require("../middlewares/validator")
+const verifyRefreshToken = require("../middlewares/verifyRefreshToken");
 
 // Controllers
 const { login, signup, logout, googleLogin, verifyEmail, verifyOtp, resetPassword, refreshToken, onBoarding } = require("../controllers/auth.controller")
 
 // Schemas
-const { loginSchema, signupSchema, resetPasswordSchema, companyNameSchema } = require("../validators/user")
+const { loginSchema, signupSchema, resetPasswordSchema, companyNameSchema } = require("../validators/user");
 
 router.post("/login", loginSchema, validate, login)
 router.post("/google", googleLogin)
@@ -27,5 +27,4 @@ router.post(
     resetPassword
 )
 router.post("/refresh-token", verifyRefreshToken, refreshToken)
-
 module.exports = router
