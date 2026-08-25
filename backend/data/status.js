@@ -13,3 +13,10 @@ exports.expenseRecordStatus = {
     APPROVED: "approved",
     DECLINED: "declined"
 }
+
+exports.taskStatus = {
+    PENDING: "pending",
+    INPROGRESS: "inprogress",
+    DECLINED: "declined",
+    FINISHED: "finished"
+}

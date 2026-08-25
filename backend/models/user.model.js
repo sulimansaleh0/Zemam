@@ -5,7 +5,7 @@ const { userRoles } = require("../data/roles");
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        default: "Default"
     },
     email: {
         type: String,
@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: false
     },
     googleId: {
         type: String,

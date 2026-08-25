@@ -1,14 +1,47 @@
 const router = require("express").Router()
+const { userRoles } = require("../data/roles")
 
-const { me, updateProfile } = require("../controllers/user.controller")
+const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers } = require("../controllers/user.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
-const validator = require("../middlewares/validator")
-const { updateProfileSchema } = require("../validators/user")
+const allowedTo = require("../middlewares/allowedTo")
+const checkSubscription = require("../middlewares/CheckSubscription")
+const validate = require("../middlewares/validator")
+
+const { updateProfileSchema, createFleetManagerSchema, createDriverSchema } = require("../validators/user")
 
 router.use(verifyToken)
 
 router.get("/me", me);
-router.patch("/", updateProfileSchema, validator, updateProfile);
+router.patch("/", updateProfileSchema, validate, updateProfile);
+
+router.use(checkSubscription())
+
+router.post("/fleet-manager",
+    allowedTo(userRoles.ADMIN),
+    createFleetManagerSchema,
+    validate,
+    createFleetManager
+)
+
+router.get("/fleet-manager",
+    allowedTo(userRoles.ADMIN),
+    listFleetManagers
+)
+
+router.delete(
+    "/fleet-manager/:id",
+    allowedTo(userRoles.ADMIN),
+    deleteFleetManager
+)
+
+router.use(allowedTo(userRoles.FLEET_MANAGER))
+router.post("/driver",
+    createDriverSchema,
+    validate,
+    createDriver
+)
+router.get("/driver", listDrivers)
+router.delete("/driver", deleteDriver)
 
 module.exports = router
