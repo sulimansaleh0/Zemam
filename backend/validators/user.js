@@ -95,3 +95,29 @@ exports.updateUserStatusSchema = [
         .isIn(Object.values(mainStatus))
         .withMessage("Invalid status"),
 ];
+
+exports.createFleetManagerSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
+    body("teamId")
+        .trim()
+        .notEmpty()
+        .withMessage("Team Id is required")
+        .isMongoId()
+        .withMessage("Invalid Team Id")
+]
+
+exports.createDriverSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
+]

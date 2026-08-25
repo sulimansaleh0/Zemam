@@ -141,14 +141,13 @@ exports.createDriver = async (req, res) => {
 
 exports.listDrivers = async (req, res) => {
     const user = req.user;
-    const { status } = req.query
     try {
         let filters = {
             roles: { $in: [userRoles.DRIVER] },
-            teamId: user.teamId,
             companyId: user.companyId
         }
-
+        if (user.teamId)
+            filters.teamId = user.teamId
 
         const drivers = await User.find(filters)
         success(res, 200, { drivers })

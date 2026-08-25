@@ -35,13 +35,14 @@ router.delete(
     deleteFleetManager
 )
 
+router.get("/driver", listDrivers)
+
 router.use(allowedTo(userRoles.FLEET_MANAGER))
 router.post("/driver",
     createDriverSchema,
     validate,
     createDriver
 )
-router.get("/driver", listDrivers)
 router.patch("/driver/:id/status",
     updateUserStatusSchema,
     validate,
