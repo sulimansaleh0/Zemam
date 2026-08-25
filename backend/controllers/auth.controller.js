@@ -188,22 +188,30 @@ exports.googleLogin = async (req, res) => {
 exports.onBoarding = async (req, res) => {
     const user = req.user
     const { companyName } = req.body
-    if (!companyName) return error(res, 400, "Company Name is required")
+    if (!companyName) return error(res, 400, "اسم الشركة مطلوب")
     try {
         const found = await Company.findOne({ ownerId: user._id })
-        if (found) return error(res, 400, "User already had a company")
+        if (found) return error(res, 400, "المستخدم يمتلك شركة بالفعل")
 
         const company = await Company.create({
             name: companyName,
             ownerId: user._id
         })
-        await User.findByIdAndUpdate(user._id, {
+        const updatedUser = await User.findByIdAndUpdate(user._id, {
             companyId: company._id
+        }, { new: true })
+
+        const token = await generateToken(updatedUser || user)
+        storeToken(res, token)
+
+        return success(res, 200, {
+            msg: "تم إعداد مساحة العمل بنجاح",
+            company,
+            user: updatedUser
         })
-        success(res, 200)
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 

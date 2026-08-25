@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +12,13 @@ import { onboardingSchema, type OnboardingFormValues } from '../schemas/onboardi
 export function useOnboarding() {
   const router = useRouter();
   const { addToast } = useToast();
-  const { user, checkSession } = useAuth();
+  const { user, status, isLoading, checkSession } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && status === 'authenticated' && user?.companyId) {
+      router.replace('/dashboard');
+    }
+  }, [isLoading, status, user?.companyId, router]);
 
   const {
     register,
