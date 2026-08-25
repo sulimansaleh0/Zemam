@@ -147,7 +147,7 @@ exports.googleLogin = async (req, res) => {
         if (!email) {
             return error(res, 400, "Google account email is required");
         }
-
+        let newUser = false
         let user = await User.findOne({ googleId })
         if (!user) {
             // Check if user exists with same email but different provider
@@ -160,14 +160,7 @@ exports.googleLogin = async (req, res) => {
                     googleId,
                     provider: "google"
                 });
-
-                // Create Company 
-                const company = await Company.create({
-                    name: `شركة ${name || 'المستخدم'}`,
-                    ownerId: user._id
-                })
-                user.companyId = company._id
-                await user.save()
+                newUser = true
             } else {
                 // Update existing user with Google info
                 user.googleId = googleId;
@@ -182,7 +175,32 @@ exports.googleLogin = async (req, res) => {
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
 
-        return success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
+        return success(
+            res,
+            200,
+            { expiresAt: new Date(Date.now() + 15 * 60 * 1000), isNewUser: newUser });
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.onBoarding = async (req, res) => {
+    const user = req.user
+    const { companyName } = req.body
+    if (!companyName) return error(res, 400, "Company Name is required")
+    try {
+        const found = await Company.findOne({ ownerId: user._id })
+        if (found) return error(res, 400, "User already had a company")
+
+        const company = await Company.create({
+            name: companyName,
+            ownerId: user._id
+        })
+        await User.findByIdAndUpdate(user._id, {
+            companyId: company._id
+        })
+        success(res, 200)
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -268,7 +286,7 @@ exports.resetPassword = async (req, res) => {
             sentTo: userData.email,
             verified: true
         })
-        if (!otpData) return error(res, 401, "لم يتم التحقق من رمز OTP أو انتهت صلاحية الجلسة")
+        if (!otpData) return error(res, 401, "Otp is Invalid")
 
         if (otpData.expiresAt < new Date()) {
             await Otp.deleteMany({ sentTo: userData.email })

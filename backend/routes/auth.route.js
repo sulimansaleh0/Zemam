@@ -6,7 +6,7 @@ const validate = require("../middlewares/validator")
 const verifyRefreshToken = require("../middlewares/verifyRefreshToken")
 
 // Controllers
-const { login, signup, logout, googleLogin, verifyEmail, verifyOtp, resetPassword, refreshToken } = require("../controllers/auth.controller")
+const { login, signup, logout, googleLogin, verifyEmail, verifyOtp, resetPassword, refreshToken, onBoarding } = require("../controllers/auth.controller")
 
 // Schemas
 const { loginSchema, signupSchema } = require("../validators/user")
@@ -15,6 +15,8 @@ router.post("/login", loginSchema, validate, login)
 router.post("/google", googleLogin)
 router.post("/signup", signupSchema, validate, signup)
 router.post("/logout", logout)
+
+router.post("/onboarding", verifyToken, onBoarding)
 router.post("/verify-email", verifyEmail)
 router.post("/verify-otp", verifyOtp)
 router.post(
