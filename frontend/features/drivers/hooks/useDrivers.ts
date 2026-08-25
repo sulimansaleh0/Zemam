@@ -1,234 +1,270 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
-import { Driver, DriverFormData, DriverStatus, DriverSortOrder } from '../types/driver.types';
-import { DriverService } from '../services/driverService';
+import { driverService } from '../services/driverService';
+import { enrichDriver, exportDriversCSV } from '../utils/driverHelpers';
+import type {
+  Driver,
+  DriverStatus,
+  DriverStatusFilter,
+  DriverSortOrder,
+  CreateDriverInput,
+} from '../types/driver.types';
 
-export function useDrivers() {
+// ============================================================
+//  Query Keys
+// ============================================================
+
+export const DRIVER_KEYS = {
+  all: ['drivers'] as const,
+} as const;
+
+// ============================================================
+//  Data Hooks (React Query)
+// ============================================================
+
+/**
+ * جلب قائمة السائقين مع enrichment.
+ */
+export function useDriversList() {
+  return useQuery({
+    queryKey: DRIVER_KEYS.all,
+    queryFn: async () => {
+      const result = await driverService.getDrivers();
+      if (!result.success) throw new Error(result.message);
+      return result.data.drivers.map(enrichDriver);
+    },
+  });
+}
+
+/**
+ * Mutation لإنشاء سائق جديد.
+ * يُحدّث القائمة ويُطلق toast عند النجاح أو الفشل.
+ */
+export function useCreateDriver() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: CreateDriverInput) => {
+      const result = await driverService.createDriver(data);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      addToast({ type: 'success', title: 'تمت الإضافة', message: 'تمت إضافة السائق بنجاح' });
+    },
+    onError: (error: Error) => {
+      addToast({ type: 'error', title: 'فشلت العملية', message: error.message });
+    },
+  });
+}
+
+/**
+ * Mutation لتغيير حالة سائق (تفعيل / تعطيل).
+ */
+export function useChangeDriverStatus() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: DriverStatus }) => {
+      const result = await driverService.changeDriverStatus(id, { status });
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      const label = status === 'active' ? 'تفعيل' : 'تعطيل';
+      addToast({ type: 'info', title: 'تغيير الحالة', message: `تم ${label} حساب السائق بنجاح` });
+    },
+    onError: (error: Error) => {
+      addToast({ type: 'error', title: 'فشل تغيير الحالة', message: error.message });
+    },
+  });
+}
+
+/**
+ * Mutation لحذف سائق (soft delete).
+ */
+export function useDeleteDriver() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await driverService.deleteDriver(id);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      addToast({ type: 'info', title: 'تم الحذف', message: 'تم حذف سجل السائق' });
+    },
+    onError: (error: Error) => {
+      addToast({ type: 'error', title: 'فشل الحذف', message: error.message });
+    },
+  });
+}
+
+// ============================================================
+//  Modal State — Discriminated Union
+// ============================================================
+
+export type ModalState =
+  | { type: 'closed' }
+  | { type: 'create' }
+  | { type: 'delete'; driver: Driver };
+
+// ============================================================
+//  Page Hook — UI state + orchestration
+// ============================================================
+
+/**
+ * Hook رئيسي لصفحة السائقين.
+ * يجمع بين الـ data hooks والـ UI state في مكان واحد.
+ */
+export function useDriversPage() {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
 
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [selectedId, setSelectedId] = useState<number>(1);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('الكل');
-  const [sortOrder, setSortOrder] = useState<DriverSortOrder>('lastActivity');
-  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  // ── UI State ─────────────────────────────────────────────
+  const [selectedId, setSelectedId]       = useState<string | null>(null);
+  const [searchQuery, setSearchQuery]     = useState('');
+  const [statusFilter, setStatusFilter]   = useState<DriverStatusFilter>('all');
+  const [sortOrder, setSortOrder]         = useState<DriverSortOrder>('newest');
+  const [menuOpen, setMenuOpen]           = useState(false);
+  const [modal, setModal]                 = useState<ModalState>({ type: 'closed' });
 
-  // Modals state
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
+  // ── Data ─────────────────────────────────────────────────
+  const driversQuery       = useDriversList();
+  const createMutation     = useCreateDriver();
+  const changeStatusMutation = useChangeDriverStatus();
+  const deleteMutation     = useDeleteDriver();
 
-  // تحميل البيانات الأولية
+  const drivers = driversQuery.data ?? [];
+
+  // ── Auto-select ──────────────────────────────────────────
+  // اختيار أول سائق تلقائياً عند التحميل أو بعد حذف السائق المحدد
   useEffect(() => {
-    const loaded = DriverService.getDrivers();
-    setDrivers(loaded);
-    if (loaded.length > 0) {
-      setSelectedId(loaded[0].id);
+    if (drivers.length === 0) {
+      setSelectedId(null);
+      return;
     }
-  }, []);
+    const selectedStillExists = drivers.some((d) => d._id === selectedId);
+    if (!selectedId || !selectedStillExists) {
+      setSelectedId(drivers[0]._id);
+    }
+  }, [drivers, selectedId]);
 
-  const userName = user?.name || user?.email?.split('@')[0] || 'محمد العتيبي';
+  // ── Computed ─────────────────────────────────────────────
 
-  // حساب المؤشرات
-  const metrics = useMemo(() => {
-    const total = drivers.length;
-    const active = drivers.filter((d) => d.status === 'نشط').length;
-    const expiringSoon = drivers.filter((d) => {
-      if (!d.expiry) return false;
-      const expDate = new Date(d.expiry).getTime();
-      const now = new Date().getTime();
-      const diffDays = (expDate - now) / (1000 * 60 * 60 * 24);
-      return diffDays >= 0 && diffDays <= 60;
-    }).length;
-    const leaveOrInactive = drivers.filter(
-      (d) => d.status === 'في إجازة' || d.status === 'غير نشط' || d.status === 'في الصيانة'
-    ).length;
-
-    return {
-      total,
-      active,
-      expiringSoon,
-      leaveOrInactive,
-      activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
-    };
-  }, [drivers]);
-
-  // التصفية والبحث
   const filteredDrivers = useMemo(() => {
     let result = drivers.filter((driver) => {
       const q = searchQuery.trim().toLowerCase();
       const matchesQuery =
         !q ||
         driver.name.toLowerCase().includes(q) ||
-        driver.license.toLowerCase().includes(q) ||
-        driver.phone.includes(q) ||
-        driver.vehicle.toLowerCase().includes(q);
+        driver.email.toLowerCase().includes(q);
 
       const matchesStatus =
-        statusFilter === 'الكل' || driver.status === statusFilter;
+        statusFilter === 'all' || driver.status === statusFilter;
 
       return matchesQuery && matchesStatus;
     });
 
-    // الترتيب
     result = [...result].sort((a, b) => {
-      if (sortOrder === 'name') {
-        return a.name.localeCompare(b.name, 'ar');
+      if (sortOrder === 'name') return a.name.localeCompare(b.name, 'ar');
+      if (sortOrder === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
-      if (sortOrder === 'rating') {
-        return parseFloat(b.rating) - parseFloat(a.rating);
-      }
-      if (sortOrder === 'trips') {
-        return parseInt(b.trips || '0') - parseInt(a.trips || '0');
-      }
-      return 0; // Default order
+      // newest (default)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     return result;
   }, [drivers, searchQuery, statusFilter, sortOrder]);
 
-  // السائق المختار حالياً
-  const selectedDriver = useMemo(() => {
-    const found = drivers.find((d) => d.id === selectedId);
-    return found || drivers[0] || null;
-  }, [drivers, selectedId]);
-
-  // فتح نموذج الإضافة
-  const openCreateModal = useCallback(() => {
-    setEditingDriver(null);
-    setIsModalOpen(true);
-  }, []);
-
-  // فتح نموذج التعديل
-  const openEditModal = useCallback((driver?: Driver) => {
-    setEditingDriver(driver || selectedDriver);
-    setIsModalOpen(true);
-  }, [selectedDriver]);
-
-  // إغلاق نموذج الإضافة / التعديل
-  const closeModal = useCallback(() => {
-    setIsModalOpen(false);
-    setEditingDriver(null);
-  }, []);
-
-  // حفظ السائق (إضافة أو تعديل)
-  const handleSaveDriver = useCallback(
-    (formData: DriverFormData) => {
-      if (editingDriver) {
-        const updated = DriverService.updateDriver(editingDriver.id, formData);
-        if (updated) {
-          setDrivers((prev) =>
-            prev.map((d) => (d.id === updated.id ? updated : d))
-          );
-          addToast({
-            type: 'success',
-            title: 'تم التحديث',
-            message: `تم تحديث بيانات السائق "${updated.name}" بنجاح`,
-          });
-        }
-      } else {
-        const created = DriverService.createDriver(formData);
-        setDrivers((prev) => [created, ...prev]);
-        setSelectedId(created.id);
-        addToast({
-          type: 'success',
-          title: 'تمت الإضافة',
-          message: `تمت إضافة السائق "${created.name}" بنجاح`,
-        });
-      }
-      closeModal();
-    },
-    [editingDriver, closeModal, addToast]
+  const selectedDriver = useMemo(
+    () => drivers.find((d) => d._id === selectedId) ?? null,
+    [drivers, selectedId],
   );
 
-  // تأكيد فتح مودال الحذف
-  const promptDelete = useCallback((driver?: Driver) => {
-    const target = driver || selectedDriver;
-    if (target) {
-      setDriverToDelete(target);
-      setIsDeleteModalOpen(true);
-    }
-  }, [selectedDriver]);
+  const metrics = useMemo(() => {
+    const total    = drivers.length;
+    const active   = drivers.filter((d) => d.status === 'active').length;
+    const inactive = drivers.filter((d) => d.status === 'inactive').length;
+    return {
+      total,
+      active,
+      inactive,
+      activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
+    };
+  }, [drivers]);
 
-  // تنفيذ الحذف
-  const confirmDelete = useCallback(() => {
-    if (!driverToDelete) return;
-    const targetName = driverToDelete.name;
-    const success = DriverService.deleteDriver(driverToDelete.id);
-    if (success) {
-      setDrivers((prev) => {
-        const next = prev.filter((d) => d.id !== driverToDelete.id);
-        if (selectedId === driverToDelete.id && next.length > 0) {
-          setSelectedId(next[0].id);
-        }
-        return next;
-      });
-      addToast({
-        type: 'info',
-        title: 'تم الحذف',
-        message: `تم حذف سجل السائق "${targetName}" نهائياً`,
-      });
-    }
-    setIsDeleteModalOpen(false);
-    setDriverToDelete(null);
-  }, [driverToDelete, selectedId, addToast]);
+  const userName = user?.name || user?.email?.split('@')[0] || '';
 
-  // تبديل حالة السائق (تفعيل / تعطيل)
+  // ── Handlers ─────────────────────────────────────────────
+
+  /** إضافة سائق جديد — يُغلق الـ modal عند النجاح فقط */
+  const handleCreate = useCallback(
+    async (data: CreateDriverInput) => {
+      await createMutation.mutateAsync(data);
+      setModal({ type: 'closed' });
+    },
+    [createMutation],
+  );
+
+  /** تبديل حالة السائق بين active وinactive */
   const handleToggleStatus = useCallback(
-    (id?: number, forcedStatus?: DriverStatus) => {
-      const targetId = id || selectedDriver?.id;
-      if (!targetId) return;
-
-      const updated = DriverService.toggleStatus(targetId, forcedStatus);
-      if (updated) {
-        setDrivers((prev) =>
-          prev.map((d) => (d.id === updated.id ? updated : d))
-        );
-        addToast({
-          type: 'info',
-          title: 'تغيير الحالة',
-          message: `تم تعديل حالة "${updated.name}" إلى (${updated.status})`,
-        });
-      }
+    (driver: Driver) => {
+      const newStatus: DriverStatus = driver.status === 'active' ? 'inactive' : 'active';
+      changeStatusMutation.mutate({ id: driver._id, status: newStatus });
     },
-    [selectedDriver, addToast]
+    [changeStatusMutation],
   );
 
-  // تصدير CSV
+  /** تنفيذ الحذف بعد التأكيد */
+  const handleDelete = useCallback(async () => {
+    if (modal.type !== 'delete') return;
+    await deleteMutation.mutateAsync(modal.driver._id);
+    setModal({ type: 'closed' });
+  }, [modal, deleteMutation]);
+
+  /** تصدير CSV */
   const handleExportCSV = useCallback(() => {
     if (drivers.length === 0) {
-      addToast({
-        type: 'warning',
-        message: 'لا توجد بيانات سائقين للتصدير حالياً',
-      });
+      addToast({ type: 'warning', message: 'لا توجد بيانات سائقين للتصدير' });
       return;
     }
-    DriverService.exportToCSV(drivers);
-    addToast({
-      type: 'success',
-      title: 'تم التصدير',
-      message: 'تم تصدير سجلات السائقين بصيغة CSV المتوافقة مع Excel',
-    });
+    exportDriversCSV(drivers);
+    addToast({ type: 'success', title: 'تم التصدير', message: 'تم تصدير بيانات السائقين بصيغة CSV' });
   }, [drivers, addToast]);
 
-  // استيراد بيانات تجريبية / محاكاة
-  const handleImportClick = useCallback(() => {
-    addToast({
-      type: 'info',
-      title: 'استيراد السجلات',
-      message: 'يمكنك اختيار ملف CSV أو Excel لمطابقة واستيراد بيانات السائقين',
-    });
-  }, [addToast]);
+  // ── Return ────────────────────────────────────────────────
 
   return {
+    // Data
     drivers,
     filteredDrivers,
     selectedDriver,
+    metrics,
+
+    // Query state
+    isLoading: driversQuery.isLoading,
+    isError:   driversQuery.isError,
+    error:     driversQuery.error,
+
+    // Mutations pending state
+    isCreating:       createMutation.isPending,
+    isDeleting:       deleteMutation.isPending,
+    isChangingStatus: changeStatusMutation.isPending,
+
+    // UI state
     selectedId,
     setSelectedId,
     searchQuery,
@@ -237,24 +273,19 @@ export function useDrivers() {
     setStatusFilter,
     sortOrder,
     setSortOrder,
-    metrics,
-    userName,
     menuOpen,
     setMenuOpen,
-    isModalOpen,
-    editingDriver,
-    openCreateModal,
-    openEditModal,
-    closeModal,
-    handleSaveDriver,
-    isDeleteModalOpen,
-    driverToDelete,
-    setIsDeleteModalOpen,
-    promptDelete,
-    confirmDelete,
+    modal,
+    setModal,
+
+    // Handlers
+    handleCreate,
     handleToggleStatus,
+    handleDelete,
     handleExportCSV,
-    handleImportClick,
+
+    // Auth
+    userName,
     logout,
   };
 }

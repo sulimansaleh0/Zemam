@@ -124,3 +124,18 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
 export function postRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
   return sendRequest<T>(path, { method: 'POST', body: JSON.stringify(body), ...options });
 }
+
+/**
+ * دالة مساعدة لطلبات PATCH
+ */
+export function patchRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
+  return sendRequest<T>(path, { method: 'PATCH', body: JSON.stringify(body), ...options });
+}
+
+/**
+ * دالة مساعدة لطلبات DELETE
+ */
+export function deleteRequest<T>(path: string, options?: RequestOptions): Promise<ServiceResult<T>> {
+  return sendRequest<T>(path, { method: 'DELETE', ...options });
+}
+

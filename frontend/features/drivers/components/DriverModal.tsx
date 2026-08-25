@@ -1,298 +1,143 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { Driver, DriverFormData, DriverStatus } from '../types/driver.types';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, Mail, UserPlus, X } from 'lucide-react';
+import { createDriverSchema, type CreateDriverFormValues } from '../schemas/driver.schema';
 
 interface DriverModalProps {
-  editing: Driver | null;
   onClose: () => void;
-  onSave: (formData: DriverFormData) => void;
+  onSave: (data: CreateDriverFormValues) => Promise<void>;
+  isLoading: boolean;
 }
 
-export function DriverModal({ editing, onClose, onSave }: DriverModalProps) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [license, setLicense] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [vehicle, setVehicle] = useState('');
-  const [vehicleType, setVehicleType] = useState('');
-  const [status, setStatus] = useState<DriverStatus>('نشط');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<CreateDriverFormValues>({
+    resolver: zodResolver(createDriverSchema),
+    defaultValues: { email: '' },
+  });
 
+  // إغلاق بـ Escape
   useEffect(() => {
-    if (editing) {
-      setName(editing.name);
-      setPhone(editing.phone);
-      setLicense(editing.license);
-      setExpiry(editing.expiry);
-      setVehicle(editing.vehicle !== '—' ? editing.vehicle : '');
-      setVehicleType(
-        editing.vehicleType !== 'غير مخصص' ? editing.vehicleType : ''
-      );
-      setStatus(editing.status);
-    } else {
-      setName('');
-      setPhone('');
-      setLicense('');
-      setExpiry(new Date().toISOString().split('T')[0]);
-      setVehicle('');
-      setVehicleType('');
-      setStatus('نشط');
-    }
-    setErrors({});
-  }, [editing]);
-
-  // إغلاق النافذة عند الضغط على Escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isLoading) onClose();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isLoading, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: { [key: string]: string } = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'يرجى إدخال اسم السائق الكامل';
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      await onSave(data);
+    } catch (error) {
+      // الـ toast يُطلق في الـ mutation — هنا نضع الخطأ على الحقل
+      setError('email', {
+        message: error instanceof Error ? error.message : 'حدث خطأ، حاول مرة أخرى',
+      });
     }
-    if (!phone.trim()) {
-      newErrors.phone = 'يرجى إدخال رقم الجوال';
-    }
-    if (!license.trim()) {
-      newErrors.license = 'يرجى إدخال رقم الرخصة';
-    }
-    if (!expiry) {
-      newErrors.expiry = 'يرجى تحديد تاريخ انتهاء الرخصة';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSave({
-      name,
-      phone,
-      license,
-      expiry,
-      vehicle: vehicle.trim() || '—',
-      vehicleType: vehicleType.trim() || 'غير مخصص',
-      status,
-    });
-  };
+  });
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="driver-modal-title"
+      aria-labelledby="add-driver-title"
     >
-      <div className="w-full max-w-[520px] rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-2xl transition-all">
-        {/* ── Modal Header ── */}
-        <div className="flex items-center justify-between border-b border-[var(--zd-line)] p-5">
-          <div>
-            <h2
-              id="driver-modal-title"
-              className="text-[16px] font-bold text-[var(--zd-text)]"
-            >
-              {editing ? 'تعديل بيانات السائق' : 'إضافة سائق جديد'}
-            </h2>
-            <p className="mt-0.5 text-[10px] text-[var(--zd-muted)]">
-              {editing
-                ? 'تحديث بيانات الرخصة والمركبة المخصصة'
-                : 'أدخل الحقول الأساسية لإنشاء سجل السائق الجديد'}
-            </p>
+      <div className="w-full max-w-[460px] overflow-hidden rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-2xl">
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between border-b border-[var(--zd-line)] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--zd-blue)]/10 text-[var(--zd-blue)]">
+              <UserPlus className="h-4.5 w-4.5" />
+            </div>
+            <div>
+              <h2
+                id="add-driver-title"
+                className="text-[15px] font-bold text-[var(--zd-text)]"
+              >
+                إضافة سائق جديد
+              </h2>
+              <p className="mt-0.5 text-[10px] text-[var(--zd-muted)]">
+                سيتم إنشاء حساب للسائق بكلمة مرور مؤقتة
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            aria-label="إغلاق النموذج"
-            className="zd-focus rounded-lg p-2 text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] transition-colors"
+            disabled={isLoading}
+            aria-label="إغلاق"
+            className="zd-focus rounded-lg p-1.5 text-[var(--zd-muted)] transition-colors hover:bg-[var(--zd-surface-2)] disabled:opacity-50"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* ── Modal Form ── */}
-        <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          {/* الاسم الكامل */}
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-              الاسم الكامل <span className="text-[var(--zd-red)]">*</span>
+        {/* ── Form ── */}
+        <form onSubmit={onSubmit} noValidate>
+          <div className="p-6">
+            {/* Email field */}
+            <label
+              htmlFor="driver-email"
+              className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
+            >
+              البريد الإلكتروني <span className="text-[var(--zd-red)]">*</span>
             </label>
-            <input
-              type="text"
-              placeholder="مثال: خالد محمد السبيعي"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
-              }}
-              className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors ${
-                errors.name
-                  ? 'border-[var(--zd-red)]'
-                  : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-              }`}
-            />
-            {errors.name && (
-              <span className="mt-1 block text-[10px] text-[var(--zd-red)] font-medium">
-                {errors.name}
-              </span>
-            )}
-          </div>
-
-          {/* رقم الجوال ورقم الرخصة */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-                رقم الجوال <span className="text-[var(--zd-red)]">*</span>
-              </label>
+            <div className="relative">
+              <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--zd-muted)]" />
               <input
-                type="text"
+                id="driver-email"
+                type="email"
                 dir="ltr"
-                placeholder="05xxxxxxxx"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
-                }}
-                className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] text-right outline-none transition-colors ${
-                  errors.phone
-                    ? 'border-[var(--zd-red)]'
+                autoFocus
+                autoComplete="email"
+                placeholder="example@company.com"
+                {...register('email')}
+                disabled={isLoading}
+                className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors disabled:opacity-60 ${
+                  errors.email
+                    ? 'border-[var(--zd-red)] focus:border-[var(--zd-red)]'
                     : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
                 }`}
               />
-              {errors.phone && (
-                <span className="mt-1 block text-[10px] text-[var(--zd-red)] font-medium">
-                  {errors.phone}
-                </span>
-              )}
             </div>
+            {errors.email && (
+              <p role="alert" className="mt-1.5 text-[10px] font-medium text-[var(--zd-red)]">
+                {errors.email.message}
+              </p>
+            )}
 
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-                رقم الرخصة <span className="text-[var(--zd-red)]">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="L-1234567"
-                value={license}
-                onChange={(e) => {
-                  setLicense(e.target.value);
-                  if (errors.license)
-                    setErrors((prev) => ({ ...prev, license: '' }));
-                }}
-                className={`zd-focus h-11 w-full rounded-xl border font-manrope bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors ${
-                  errors.license
-                    ? 'border-[var(--zd-red)]'
-                    : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-                }`}
-              />
-              {errors.license && (
-                <span className="mt-1 block text-[10px] text-[var(--zd-red)] font-medium">
-                  {errors.license}
-                </span>
-              )}
+            {/* Info note */}
+            <div className="mt-4 rounded-xl bg-[var(--zd-surface-2)] px-4 py-3 text-[10px] leading-5 text-[var(--zd-muted)]">
+              <b className="text-[var(--zd-text)]">ملاحظة:</b> سيُنشأ الحساب بكلمة المرور الافتراضية{' '}
+              <code className="rounded bg-[var(--zd-line)] px-1 py-0.5 font-mono">123456789</code>.
+              يجب على السائق تغييرها عند أول دخول.
             </div>
           </div>
 
-          {/* تاريخ انتهاء الرخصة والحالة */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-                تاريخ انتهاء الرخصة <span className="text-[var(--zd-red)]">*</span>
-              </label>
-              <input
-                type="date"
-                value={expiry}
-                onChange={(e) => {
-                  setExpiry(e.target.value);
-                  if (errors.expiry)
-                    setErrors((prev) => ({ ...prev, expiry: '' }));
-                }}
-                className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors ${
-                  errors.expiry
-                    ? 'border-[var(--zd-red)]'
-                    : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-                }`}
-              />
-              {errors.expiry && (
-                <span className="mt-1 block text-[10px] text-[var(--zd-red)] font-medium">
-                  {errors.expiry}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-                حالة السائق
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as DriverStatus)}
-                className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none focus:border-[var(--zd-blue)] transition-colors cursor-pointer"
-              >
-                <option value="نشط">نشط</option>
-                <option value="في الصيانة">في الصيانة</option>
-                <option value="في إجازة">في إجازة</option>
-                <option value="غير نشط">غير نشط</option>
-              </select>
-            </div>
-          </div>
-
-          {/* المركبة ونوع المركبة (اختياري) */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-                المركبة المخصصة (اختياري)
-              </label>
-              <input
-                type="text"
-                placeholder="مثال: أ ب ج — ١٢٣٤"
-                value={vehicle}
-                onChange={(e) => setVehicle(e.target.value)}
-                className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none focus:border-[var(--zd-blue)] transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-                نوع المركبة (اختياري)
-              </label>
-              <input
-                type="text"
-                placeholder="مثال: فان توصيل / شاحنة"
-                value={vehicleType}
-                onChange={(e) => setVehicleType(e.target.value)}
-                className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none focus:border-[var(--zd-blue)] transition-colors"
-              />
-            </div>
-          </div>
-
-          {/* ملاحظة تنظيمية */}
-          <p className="rounded-xl bg-[var(--zd-surface-2)] border border-[var(--zd-line)] px-3.5 py-2.5 text-[10px] leading-5 text-[var(--zd-muted)]">
-            ملاحظة: البيانات المدخلة ستكون متاحة فوراً في لوحة التحكم وتخضع لسياسات
-            إدارة أسطول زمام.
-          </p>
-
-          {/* ── Modal Footer Buttons ── */}
-          <div className="flex justify-end gap-2 border-t border-[var(--zd-line)] pt-4">
+          {/* ── Footer ── */}
+          <div className="flex justify-end gap-2 border-t border-[var(--zd-line)] px-6 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="zd-focus rounded-xl border border-[var(--zd-line)] px-4 py-2.5 text-[11px] font-semibold text-[var(--zd-muted)] hover:text-[var(--zd-text)] transition-colors"
+              disabled={isLoading}
+              className="zd-focus rounded-xl border border-[var(--zd-line)] px-4 py-2 text-[11px] font-semibold text-[var(--zd-muted)] transition-colors hover:text-[var(--zd-text)] disabled:opacity-50"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="zd-focus rounded-xl bg-[var(--zd-blue)] px-5 py-2.5 text-[11px] font-semibold text-white shadow-sm hover:opacity-95 transition-opacity"
+              disabled={isLoading}
+              className="zd-focus flex items-center gap-2 rounded-xl bg-[var(--zd-blue)] px-5 py-2 text-[11px] font-semibold text-white shadow-xs transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {editing ? 'حفظ التعديلات' : 'إضافة السائق'}
+              {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isLoading ? 'جارٍ الإضافة...' : 'إضافة السائق'}
             </button>
           </div>
         </form>

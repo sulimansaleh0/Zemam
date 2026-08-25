@@ -1,23 +1,28 @@
 'use client';
 
-import { Driver } from '../types/driver.types';
+import type { Driver } from '../types/driver.types';
+import { getDriverDisplayName } from '../utils/driverHelpers';
 
 interface DriverAvatarProps {
   driver: Driver;
-  size?: string;
-  className?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function DriverAvatar({
-  driver,
-  size = 'h-10 w-10',
-  className = '',
-}: DriverAvatarProps) {
+const SIZE_CLASSES = {
+  sm: 'h-8 w-8 text-[11px]',
+  md: 'h-10 w-10 text-[12px]',
+  lg: 'h-12 w-12 text-[14px]',
+} as const;
+
+export function DriverAvatar({ driver, size = 'md' }: DriverAvatarProps) {
+  const displayName = getDriverDisplayName(driver);
+
   return (
     <span
-      className={`flex ${size} shrink-0 items-center justify-center rounded-[13px] text-[11px] font-bold text-[#07172b] shadow-xs select-none ${className}`}
-      style={{ background: driver.color || '#3d7bff' }}
-      aria-hidden="true"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white ${SIZE_CLASSES[size]}`}
+      style={{ backgroundColor: driver.color }}
+      aria-label={displayName}
+      title={displayName}
     >
       {driver.initials}
     </span>

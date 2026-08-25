@@ -1,45 +1,46 @@
-export type DriverStatus = 'نشط' | 'في الصيانة' | 'في إجازة' | 'غير نشط';
+// ============================================================
+//  Driver Types — aligned with backend User model (driver role)
+// ============================================================
 
-export interface DriverActivityItem {
-  id: string;
-  title: string;
-  date: string;
-  statusOrAmount: string;
-  type: 'task' | 'report' | 'fuel';
-  tagStyle?: string;
-}
-
-export interface Driver {
-  id: number;
-  name: string;
-  initials: string;
-  phone: string;
-  license: string;
-  expiry: string; // YYYY-MM-DD
-  expiryLabel: string;
-  rating: string;
-  trips: string;
-  tasks: string;
+/** شكل بيانات السائق كما يرجعها الباك اند */
+export interface BackendDriver {
+  _id: string;
+  name: string;           // defaults to "Default" إذا لم يُحدَّد
+  email: string;
+  roles: string[];
   status: DriverStatus;
-  vehicle: string;
-  vehicleType: string;
+  companyId: string;
+  teamId: string;
+  isDeleted: boolean;
+  createdAt: string;      // ISO 8601
+  updatedAt: string;      // ISO 8601
+}
+
+/** السائق بعد enrichment في الفرونت اند */
+export interface Driver extends BackendDriver {
+  /** الأحرف الأولى للاسم — محسوبة في الفرونت اند */
+  initials: string;
+  /** لون الأفاتار — محدد بشكل ثابت بناءً على الـ ID */
   color: string;
-  lastSeen: string;
-  joinedDate?: string;
-  score?: number;
-  tasksList?: DriverActivityItem[];
-  reportsList?: DriverActivityItem[];
-  fuelList?: DriverActivityItem[];
 }
 
-export interface DriverFormData {
-  name: string;
-  phone: string;
-  license: string;
-  expiry: string;
-  vehicle?: string;
-  vehicleType?: string;
-  status?: DriverStatus;
+/** حالة السائق — تعكس قيم الباك اند مباشرة */
+export type DriverStatus = 'active' | 'inactive';
+
+/** خيارات فلترة الحالة في الـ UI */
+export type DriverStatusFilter = 'all' | 'active' | 'inactive';
+
+/** خيارات ترتيب القائمة */
+export type DriverSortOrder = 'newest' | 'oldest' | 'name';
+
+// ── API Inputs ──────────────────────────────────────────────
+
+/** البيانات المرسلة لإنشاء سائق */
+export interface CreateDriverInput {
+  email: string;
 }
 
-export type DriverSortOrder = 'lastActivity' | 'rating' | 'trips' | 'name';
+/** البيانات المرسلة لتغيير حالة سائق */
+export interface ChangeDriverStatusInput {
+  status: DriverStatus;
+}

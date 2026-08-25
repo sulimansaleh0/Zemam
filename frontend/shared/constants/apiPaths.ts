@@ -11,4 +11,19 @@ export const API_PATHS = {
     REFRESH_TOKEN: 'api/auth/refresh-token',
     ONBOARDING: 'api/auth/onboarding',
   },
+
+  DRIVERS: {
+    LIST:          'api/user/driver',
+    CREATE:        'api/user/driver',
+    CHANGE_STATUS: (id: string) => `api/user/driver/${id}/status`,
+    DELETE:        (id: string) => `api/user/driver/${id}`,
+  },
+
+  VEHICLES: {
+    LIST:          'api/vehicle',
+    DETAIL:        (id: string) => `api/vehicle/${id}`,
+    CREATE:        'api/vehicle',
+    CHANGE_STATUS: (id: string) => `api/vehicle/${id}/status`,
+    ASSIGN_DRIVER: (id: string) => `api/vehicle/${id}/assign-driver`,
+  },
 } as const;
