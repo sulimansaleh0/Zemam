@@ -1,14 +1,14 @@
 const router = require("express").Router()
 const { userRoles } = require("../data/roles")
 
-const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers } = require("../controllers/user.controller")
+const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers, changeDriverStatus } = require("../controllers/user.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createFleetManagerSchema, createDriverSchema } = require("../validators/user")
+const { updateProfileSchema, createFleetManagerSchema, createDriverSchema, updateUserStatusSchema } = require("../validators/user")
 
 router.use(verifyToken)
 
@@ -42,6 +42,11 @@ router.post("/driver",
     createDriver
 )
 router.get("/driver", listDrivers)
-router.delete("/driver", deleteDriver)
+router.patch("/driver/:id/status",
+    updateUserStatusSchema,
+    validate,
+    changeDriverStatus
+)
+router.delete("/driver/:id", deleteDriver)
 
 module.exports = router

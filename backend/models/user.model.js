@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema({
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

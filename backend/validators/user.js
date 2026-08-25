@@ -1,4 +1,5 @@
 const { body } = require("express-validator");
+const { mainStatus } = require("../data/status")
 
 exports.loginSchema = [
     body("email")
@@ -85,3 +86,12 @@ exports.companyNameSchema = [
         .isLength({ min: 6 })
         .withMessage("Company Name should be more than 5 words")
 ]
+
+exports.updateUserStatusSchema = [
+    body("status")
+        .trim()
+        .notEmpty()
+        .withMessage("Status is required")
+        .isIn(Object.values(mainStatus))
+        .withMessage("Invalid status"),
+];

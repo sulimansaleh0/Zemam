@@ -152,9 +152,31 @@ exports.listDrivers = async (req, res) => {
     }
 }
 
+exports.changeDriverStatus = async (req, res) => {
+    const user = req.user
+    const driverId = req.query.id || null
+    if (!driverId) return error(res, 400, "Driver Id is required")
+    const { status } = req.body
+    if (!status) return error(res, 400, "status is required")
+    try {
+        const driver = await User.findOneAndUpdate({
+            _id: driverId,
+            teamId: usesr.teamId,
+            companyId: user.companyId
+        }, {
+            status
+        })
+        if (!driver) return error(res, 404, "Driver not found")
+        success(res, 200)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
 exports.deleteDriver = async (req, res) => {
     const user = req.user
-    const driverId = req.params.id
+    const driverId = req.params.id || null
     if (!driverId) return error(res, 400, "Driver Id is required")
     try {
         const driver = await User.findOneAndUpdate({
@@ -162,7 +184,7 @@ exports.deleteDriver = async (req, res) => {
             companyId: user.companyId,
             teamId: user.teamId
         }, {
-            status: mainStatus.INACTIVE
+            isDeleted: true
         })
         if (!driver) return error(res, 404, "Driver not found")
         success(res, 200)
