@@ -3,24 +3,35 @@
 import { forwardRef, useEffect, useRef, type HTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 
+interface GoogleCredentialResponse {
+  credential?: string;
+  select_by?: string;
+}
+
 interface GoogleButtonProps extends HTMLAttributes<HTMLDivElement> {
   label?: string;
   fullWidth?: boolean;
   isLoading?: boolean;
   onSuccess?: (credential: string) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
 }
 
 declare global {
   interface Window {
-    google: any;
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: { client_id?: string; callback: (response: GoogleCredentialResponse) => void }) => void;
+          renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+        };
+      };
+    };
   }
 }
 
 const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
   (
     {
-      label = 'تسجيل الدخول بواسطة Google',
       fullWidth = true,
       isLoading = false,
       onSuccess,
@@ -34,11 +45,11 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
 
     useEffect(() => {
       // Initialize Google Sign-In button
-      if (window.google && buttonRef.current) {
+      if (window.google?.accounts?.id && buttonRef.current) {
         try {
           window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-            callback: (response: any) => {
+            callback: (response: GoogleCredentialResponse) => {
               if (response.credential) {
                 onSuccess?.(response.credential);
               }

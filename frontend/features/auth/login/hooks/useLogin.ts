@@ -38,8 +38,16 @@ export function useLogin() {
     }
 
     await checkSession();
-    addToast({ type: 'success', title: 'مرحباً بعودتك!', message: result.message });
-    router.push('/dashboard');
+    const sessionResult = await sessionService.getSession();
+    const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+
+    if (hasCompany) {
+      addToast({ type: 'success', title: 'مرحباً بعودتك!', message: result.message || 'تم تسجيل الدخول بنجاح' });
+      router.push('/dashboard');
+    } else {
+      addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
+      router.push('/onboarding');
+    }
   }
 
   async function handleGoogleLogin(credential: string) {

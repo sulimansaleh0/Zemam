@@ -41,7 +41,8 @@ export function useOnboarding() {
       title: 'تم إعداد الحساب بنجاح',
       message: 'مرحباً بك في منصة زمام! تم تجهيز مساحة عمل شركتك.',
     });
-    router.push('/dashboard');
+    router.refresh();
+    router.replace('/dashboard');
   }
 
   return {
