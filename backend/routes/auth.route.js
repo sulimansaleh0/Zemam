@@ -2,8 +2,9 @@ const router = require("express").Router()
 const { body } = require("express-validator");
 
 // Middlewares
-const validate = require("../middlewares/validator")
+const verifyToken = require("../middlewares/verifyToken")
 const verifyRefreshToken = require("../middlewares/verifyRefreshToken")
+const validate = require("../middlewares/validator")
 
 // Controllers
 const { login, signup, logout, googleLogin, verifyEmail, verifyOtp, resetPassword, refreshToken, onBoarding } = require("../controllers/auth.controller")
