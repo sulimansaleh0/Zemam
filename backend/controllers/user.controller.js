@@ -51,6 +51,9 @@ exports.createFleetManager = async (req, res) => {
         const team = await Team.findOne({ _id: teamId, companyId: user.companyId })
         if (!team) return error(res, 404, "team not found")
 
+        if (team.managerId) {
+            await User.findByIdAndUpdate(team.managerId, { status: mainStatus.INACTIVE, teamId: "" })
+        }
         // const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
         const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)
@@ -98,6 +101,9 @@ exports.deleteFleetManager = async (req, res) => {
             statu: mainStatus.INACTIVE
         })
         if (!manager) return error(res, 404, "Manager not found")
+        await Team.findByIdAndUpdate(manager.teamId, {
+            managerId: ""
+        })
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -154,14 +160,14 @@ exports.listDrivers = async (req, res) => {
 
 exports.changeDriverStatus = async (req, res) => {
     const user = req.user
-    const driverId = req.query.id || null
+    const driverId = req.params.id || null
     if (!driverId) return error(res, 400, "Driver Id is required")
     const { status } = req.body
     if (!status) return error(res, 400, "status is required")
     try {
         const driver = await User.findOneAndUpdate({
             _id: driverId,
-            teamId: usesr.teamId,
+            teamId: user.teamId,
             companyId: user.companyId
         }, {
             status
