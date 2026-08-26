@@ -39,24 +39,24 @@ export function useManagers(status?: string) {
  */
 export function useCreateManager() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: (payload: CreateManagerInput) => managerService.createManager(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      toast({
-        title: 'تم إنشاء الحساب',
-        description: 'تمت إضافة مدير الأسطول وربطه بالفريق بنجاح',
+      addToast({
         type: 'success',
+        title: 'تم إنشاء الحساب',
+        message: 'تمت إضافة مدير الأسطول وربطه بالفريق بنجاح',
       });
     },
     onError: (err: Error) => {
-      toast({
-        title: 'خطأ في الإضافة',
-        description: err.message || 'تعذر إضافة مدير الأسطول، حاول مرة أخرى',
+      addToast({
         type: 'error',
+        title: 'خطأ في الإضافة',
+        message: err.message || 'تعذر إضافة مدير الأسطول، حاول مرة أخرى',
       });
     },
   });
@@ -67,24 +67,24 @@ export function useCreateManager() {
  */
 export function useDeleteManager() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: (managerId: string) => managerService.deleteManager(managerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      toast({
-        title: 'تم التعطيل',
-        description: 'تم تعطيل حساب مدير الأسطول وفك ارتباطه بالفريق',
+      addToast({
         type: 'success',
+        title: 'تم التعطيل',
+        message: 'تم تعطيل حساب مدير الأسطول وفك ارتباطه بالفريق',
       });
     },
     onError: (err: Error) => {
-      toast({
-        title: 'خطأ في التعطيل',
-        description: err.message || 'تعذر تعطيل حساب مدير الأسطول',
+      addToast({
         type: 'error',
+        title: 'خطأ في التعطيل',
+        message: err.message || 'تعذر تعطيل حساب مدير الأسطول',
       });
     },
   });

@@ -42,23 +42,23 @@ export function useTeams() {
  */
 export function useCreateTeam() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: (payload: CreateTeamInput) => teamService.createTeam(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      toast({
-        title: 'تم إنشاء الفريق',
-        description: 'تمت إضافة الفريق الجديد بنجاح',
+      addToast({
         type: 'success',
+        title: 'تم إنشاء الفريق',
+        message: 'تمت إضافة الفريق الجديد بنجاح',
       });
     },
     onError: (err: Error) => {
-      toast({
-        title: 'خطأ في الإنشاء',
-        description: err.message || 'تعذر إنشاء الفريق، حاول مرة أخرى',
+      addToast({
         type: 'error',
+        title: 'خطأ في الإنشاء',
+        message: err.message || 'تعذر إنشاء الفريق، حاول مرة أخرى',
       });
     },
   });
@@ -69,24 +69,24 @@ export function useCreateTeam() {
  */
 export function useUpdateTeam() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: ({ teamId, payload }: { teamId: string; payload: UpdateTeamInput }) =>
       teamService.updateTeam(teamId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      toast({
-        title: 'تم التعديل',
-        description: 'تم تحديث بيانات الفريق بنجاح',
+      addToast({
         type: 'success',
+        title: 'تم التعديل',
+        message: 'تم تحديث بيانات الفريق بنجاح',
       });
     },
     onError: (err: Error) => {
-      toast({
-        title: 'خطأ في التعديل',
-        description: err.message || 'تعذر تعديل بيانات الفريق',
+      addToast({
         type: 'error',
+        title: 'خطأ في التعديل',
+        message: err.message || 'تعذر تعديل بيانات الفريق',
       });
     },
   });
@@ -97,23 +97,23 @@ export function useUpdateTeam() {
  */
 export function useDeleteTeam() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: (teamId: string) => teamService.deleteTeam(teamId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف الفريق بنجاح',
+      addToast({
         type: 'success',
+        title: 'تم الحذف',
+        message: 'تم حذف الفريق بنجاح',
       });
     },
     onError: (err: Error) => {
-      toast({
-        title: 'خطأ في الحذف',
-        description: err.message || 'تعذر حذف الفريق',
+      addToast({
         type: 'error',
+        title: 'خطأ في الحذف',
+        message: err.message || 'تعذر حذف الفريق',
       });
     },
   });
