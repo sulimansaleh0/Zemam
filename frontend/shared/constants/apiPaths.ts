@@ -26,4 +26,11 @@ export const API_PATHS = {
     CHANGE_STATUS: (id: string) => `api/vehicle/${id}/status`,
     ASSIGN_DRIVER: (id: string) => `api/vehicle/${id}/assign-driver`,
   },
+
+  TEAMS: {
+    LIST:    'api/team',
+    CREATE:  'api/team',
+    BY_ID:   (id: string) => `api/team/${id}`,
+    STATICS: 'api/team/statics',
+  },
 } as const;
