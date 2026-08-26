@@ -1,4 +1,4 @@
-import { getRequest, postRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
+import { sendRequest, postRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type {
   Team,
@@ -12,7 +12,7 @@ export const teamService = {
    * Fetch all teams of the company (Admin)
    */
   async getTeams(): Promise<Team[]> {
-    const result = await getRequest<TeamsResponse>(API_PATHS.TEAMS.LIST);
+    const result = await sendRequest<TeamsResponse>(API_PATHS.TEAMS.LIST);
     if (!result.success) {
       throw new Error(result.message || 'فشل في جلب قائمة الفرق');
     }
