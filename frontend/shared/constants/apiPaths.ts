@@ -33,4 +33,10 @@ export const API_PATHS = {
     BY_ID:   (id: string) => `api/team/${id}`,
     STATICS: 'api/team/statics',
   },
+
+  MANAGERS: {
+    LIST:   'api/user/fleet-manager',
+    CREATE: 'api/user/fleet-manager',
+    DELETE: (id: string) => `api/user/fleet-manager/${id}`,
+  },
 } as const;
