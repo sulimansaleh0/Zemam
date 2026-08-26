@@ -8,6 +8,8 @@ import {
   Edit2,
   Trash2,
   UserCheck,
+  UserPlus,
+  UserMinus,
   UserX,
   Truck,
   ArrowDownUp,
@@ -18,10 +20,13 @@ import type { Team, TeamFilterStatus, TeamSortOrder } from '../types/team.types'
 interface TeamsTableProps {
   teams: Team[];
   isLoading: boolean;
+  companyName?: string;
   vehicleCounts?: Record<string, number>;
   onAddClick: () => void;
   onEditClick: (team: Team) => void;
   onDeleteClick: (team: Team) => void;
+  onAssignManagerClick: (team: Team) => void;
+  onRemoveManagerClick?: (managerId: string, teamName: string) => void;
 }
 
 const SORT_CYCLE: TeamSortOrder[] = ['newest', 'oldest', 'name'];
@@ -35,10 +40,13 @@ const SORT_LABELS: Record<TeamSortOrder, string> = {
 export function TeamsTable({
   teams,
   isLoading,
+  companyName,
   vehicleCounts = {},
   onAddClick,
   onEditClick,
   onDeleteClick,
+  onAssignManagerClick,
+  onRemoveManagerClick,
 }: TeamsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TeamFilterStatus>('all');
@@ -97,7 +105,7 @@ export function TeamsTable({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث باسم الفريق أو المدير..."
+            placeholder="بحث باسم الفريق أو المدير المسند..."
             className="w-full pl-3 pr-10 py-2 text-xs sm:text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors"
           />
         </div>
@@ -241,6 +249,12 @@ export function TeamsTable({
                   const vehiclesCount = vehicleCounts[team._id] ?? 0;
                   const manager = team.managerId;
                   const hasManager = Boolean(manager);
+                  const managerId =
+                    typeof manager === 'object' && manager !== null
+                      ? manager._id
+                      : typeof manager === 'string'
+                      ? manager
+                      : null;
                   const managerName =
                     typeof manager === 'object' && manager !== null
                       ? manager.name || manager.email.split('@')[0]
@@ -275,15 +289,49 @@ export function TeamsTable({
                       {/* Manager */}
                       <td className="py-4 px-4 sm:px-6">
                         {hasManager ? (
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-xs border border-emerald-500/20">
-                            <UserCheck className="w-3.5 h-3.5" />
-                            <span>{managerName || managerEmail || 'مدير أسطول'}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-xs border border-emerald-500/20">
+                              <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                              <span
+                                className="truncate max-w-[130px]"
+                                title={managerEmail || undefined}
+                              >
+                                {managerName || managerEmail || 'مدير أسطول'}
+                              </span>
+                            </div>
+
+                            {/* Quick Manager Actions */}
+                            <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => onAssignManagerClick(team)}
+                                title="تغيير مدير الفريق"
+                                className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                              </button>
+
+                              {onRemoveManagerClick && managerId && (
+                                <button
+                                  type="button"
+                                  onClick={() => onRemoveManagerClick(managerId, team.name)}
+                                  title="إلغاء تعيين / تعطيل المدير"
+                                  className="p-1 rounded-md text-[var(--muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ) : (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--muted)] font-medium text-xs border border-[var(--border)]">
-                            <UserX className="w-3.5 h-3.5 opacity-60" />
-                            <span>شاغر (بدون مدير)</span>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onAssignManagerClick(team)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-dashed border-[var(--primary)]/40 bg-[var(--primary-light)]/40 text-[var(--primary)] hover:bg-[var(--primary-light)] font-semibold text-xs transition-colors cursor-pointer"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>تعيين مدير</span>
+                          </button>
                         )}
                       </td>
 
@@ -297,15 +345,28 @@ export function TeamsTable({
 
                       {/* Company info */}
                       <td className="py-4 px-4 sm:px-6">
-                        <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--muted)]">
-                          <Building2 className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate max-w-[120px]">{team.companyId}</span>
+                        <div className="flex items-center gap-1.5 text-xs text-[var(--text)] font-medium">
+                          <Building2 className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
+                          <span className="truncate max-w-[140px]">
+                            {typeof team.companyId === 'object' && team.companyId?.name
+                              ? team.companyId.name
+                              : companyName || 'الشركة الرئيسية'}
+                          </span>
                         </div>
                       </td>
 
                       {/* Actions */}
                       <td className="py-4 px-4 sm:px-6 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onAssignManagerClick(team)}
+                            title={hasManager ? 'تغيير مدير الفريق' : 'تعيين مدير للفريق'}
+                            className="p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => onEditClick(team)}

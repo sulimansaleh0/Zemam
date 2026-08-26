@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Users, Plus, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { Users, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import {
   useTeams,
@@ -12,10 +12,15 @@ import {
   TeamStatsCards,
   type Team,
 } from '@/features/teams';
+import {
+  CreateManagerModal,
+  DeleteManagerModal,
+  type FleetManager,
+} from '@/features/managers';
 import { useVehicles } from '@/features/vehicles';
 
 export default function TeamsPage() {
-  const { userName, menuOpen, setMenuOpen, logout } = useDashboard();
+  const { user, userName, menuOpen, setMenuOpen, logout } = useDashboard();
 
   const {
     data: teamsList = [],
@@ -44,9 +49,29 @@ export default function TeamsPage() {
   const [selectedTeamForEdit, setSelectedTeamForEdit] = useState<Team | null>(null);
   const [selectedTeamForDelete, setSelectedTeamForDelete] = useState<Team | null>(null);
 
+  // Fleet Manager Modal states
+  const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
+  const [selectedTeamForManager, setSelectedTeamForManager] = useState<Team | null>(null);
+  const [selectedManagerForDelete, setSelectedManagerForDelete] = useState<{
+    manager: FleetManager;
+    teamName?: string;
+  } | null>(null);
+
   const handleOpenAdd = () => setIsCreateModalOpen(true);
   const handleOpenEdit = (team: Team) => setSelectedTeamForEdit(team);
   const handleOpenDelete = (team: Team) => setSelectedTeamForDelete(team);
+
+  const handleOpenAssignManager = (team: Team) => {
+    setSelectedTeamForManager(team);
+    setIsAssignManagerModalOpen(true);
+  };
+
+  const handleOpenRemoveManager = (managerId: string, teamName: string) => {
+    setSelectedManagerForDelete({
+      manager: { _id: managerId, email: 'مدير الفريق', status: 'active' },
+      teamName,
+    });
+  };
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -89,7 +114,7 @@ export default function TeamsPage() {
                   إدارة الفرق التشغيلية
                 </h1>
                 <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
-                  إنشاء وإدارة الفرق التشغيلية وتوزيع المركبات ومتابعة التعيينات
+                  إنشاء وإدارة الفرق التشغيلية وتعيين مدراء الأساطيل وتوزيع المركبات
                 </p>
               </div>
 
@@ -145,17 +170,20 @@ export default function TeamsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-[var(--text)]">قائمة الفرق</h2>
-                  <p className="text-xs text-[var(--muted)]">استعراض وتعديل وإدارة الفرق التشغيلية</p>
+                  <p className="text-xs text-[var(--muted)]">استعراض وتعديل وإدارة الفرق وتعيين المدراء</p>
                 </div>
               </div>
 
               <TeamsTable
                 teams={teamsList}
                 isLoading={isLoadingTeams}
+                companyName={user?.name || undefined}
                 vehicleCounts={vehicleCounts}
                 onAddClick={handleOpenAdd}
                 onEditClick={handleOpenEdit}
                 onDeleteClick={handleOpenDelete}
+                onAssignManagerClick={handleOpenAssignManager}
+                onRemoveManagerClick={handleOpenRemoveManager}
               />
             </section>
 
@@ -189,6 +217,25 @@ export default function TeamsPage() {
         assignedVehiclesCount={
           selectedTeamForDelete ? vehicleCounts[selectedTeamForDelete._id] ?? 0 : 0
         }
+      />
+
+      {/* ── Manager Assignment Modal ── */}
+      <CreateManagerModal
+        isOpen={isAssignManagerModalOpen}
+        onClose={() => {
+          setIsAssignManagerModalOpen(false);
+          setSelectedTeamForManager(null);
+        }}
+        teams={teamsList}
+        initialTeamId={selectedTeamForManager?._id}
+      />
+
+      {/* ── Manager Removal Modal ── */}
+      <DeleteManagerModal
+        isOpen={Boolean(selectedManagerForDelete)}
+        onClose={() => setSelectedManagerForDelete(null)}
+        manager={selectedManagerForDelete?.manager || null}
+        teamName={selectedManagerForDelete?.teamName}
       />
     </main>
   );
