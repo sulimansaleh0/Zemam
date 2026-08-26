@@ -14,6 +14,7 @@ import {
   Settings2,
   Truck,
   Users,
+  UserCheck,
   UsersRound,
   Wrench,
   X,
@@ -31,6 +32,7 @@ interface SidebarProps {
 const navItems = [
   { label: 'لوحة التحكم', icon: Home, href: '/dashboard', active: true },
   { label: 'الفرق', icon: Users, href: '/teams' },
+  { label: 'مدراء الأساطيل', icon: UserCheck, href: '/managers' },
   { label: 'المركبات', icon: Truck, href: '/vehicles' },
   { label: 'السائقون', icon: UsersRound, href: '/drivers' },
   { label: 'الصيانة', icon: Wrench, href: '/maintenance' },

@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 //  Next.js Middleware — Protected Routes & URL Token Reset Guards
 // ============================================================
 
-const PROTECTED_ROUTES = ['/dashboard', '/vehicles', '/drivers', '/teams', '/settings', '/profile'];
+const PROTECTED_ROUTES = ['/dashboard', '/vehicles', '/drivers', '/teams', '/managers', '/settings', '/profile'];
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
 
 export function middleware(request: NextRequest) {
