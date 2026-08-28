@@ -6,43 +6,45 @@ const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager,
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
 const checkSubscription = require("../middlewares/CheckSubscription")
+const getTeam = require("../middlewares/getTeam")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createFleetManagerSchema, createDriverSchema, updateUserStatusSchema } = require("../validators/user")
+const { updateProfileSchema, createUserSchema, updateUserStatusSchema } = require("../validators/user")
 
 router.use(verifyToken)
 
 router.get("/me", me);
 router.patch("/", updateProfileSchema, validate, updateProfile);
 
+router.use(allowedTo(userRoles.ADMIN))
 router.use(checkSubscription())
 
 router.post("/fleet-manager",
-    allowedTo(userRoles.ADMIN),
-    createFleetManagerSchema,
+    createUserSchema,
     validate,
+    getTeam,
     createFleetManager
 )
 
 router.get("/fleet-manager",
-    allowedTo(userRoles.ADMIN),
     listFleetManagers
 )
 
 router.delete(
     "/fleet-manager/:id",
-    allowedTo(userRoles.ADMIN),
+    getTeam,
     deleteFleetManager
 )
 
-router.get("/driver", listDrivers)
+router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
+router.use(getTeam)
 
-router.use(allowedTo(userRoles.FLEET_MANAGER))
 router.post("/driver",
-    createDriverSchema,
+    createUserSchema,
     validate,
     createDriver
 )
+router.get("/driver", listDrivers)
 router.patch("/driver/:id/status",
     updateUserStatusSchema,
     validate,

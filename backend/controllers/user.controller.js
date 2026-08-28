@@ -3,9 +3,9 @@ const Team = require("../models/team.model")
 const { sendRegisterEmail } = require("../services/email")
 const { userRoles } = require("../data/roles")
 const bcrypt = require("bcrypt")
-const crypto = require("crypto")
 const { success, error, serverError } = require("../utils/responses")
 const { mainStatus } = require("../data/status")
+const Vehicle = require("../models/vehicle.model")
 
 exports.me = async (req, res) => {
     const user = req.user
@@ -43,17 +43,12 @@ exports.updateProfile = async (req, res) => {
 
 exports.createFleetManager = async (req, res) => {
     const user = req.user
-    const { email, teamId } = req.body
+    const teamId = req.teamId || null
+    const { email } = req.body
     try {
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email is already in use")
 
-        const team = await Team.findOne({ _id: teamId, companyId: user.companyId })
-        if (!team) return error(res, 404, "team not found")
-
-        if (team.managerId) {
-            await User.findByIdAndUpdate(team.managerId, { status: mainStatus.INACTIVE, teamId: "" })
-        }
         // const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
         const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)
@@ -62,9 +57,12 @@ exports.createFleetManager = async (req, res) => {
             password: passwordHash,
             companyId: user.companyId,
             teamId,
-            roles: [userRoles.FLEET_MANAGER]
+            role: userRoles.FLEET_MANAGER
         })
-        await Team.findByIdAndUpdate(teamId, { managerId: user._id })
+
+        if (teamId)
+            await Team.findByIdAndUpdate(teamId, { managerId: user._id })
+
         success(res, 201)
         // sendRegisterEmail({ email, password })
     } catch (err) {
@@ -78,8 +76,9 @@ exports.listFleetManagers = async (req, res) => {
     const { status } = req.query || null
     try {
         let filters = {
-            roles: { $in: [userRoles.FLEET_MANAGER] },
-            companyId: user.companyId
+            role: { $in: [userRoles.FLEET_MANAGER] },
+            companyId: user.companyId,
+            isDeleted: false
         }
         if (status)
             filters.status = status
@@ -98,12 +97,14 @@ exports.deleteFleetManager = async (req, res) => {
     if (!fleetManagerId) return error(res, 400, "fleet manager id is required")
     try {
         const manager = await User.findOneAndUpdate({ _id: fleetManagerId, companyId: user.companyId }, {
-            statu: mainStatus.INACTIVE
+            isDeleted: true
         })
         if (!manager) return error(res, 404, "Manager not found")
-        await Team.findByIdAndUpdate(manager.teamId, {
-            managerId: ""
-        })
+        // if had a team
+        if (manager.teamId)
+            await Team.findByIdAndUpdate(manager.teamId, {
+                managerId: null
+            })
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -113,25 +114,30 @@ exports.deleteFleetManager = async (req, res) => {
 
 exports.createDriver = async (req, res) => {
     const user = req.user
-    const { email } = req.body
+    const teamId = req.teamId || null
+    const { email, vehicleId } = req.body
     try {
-        const [team, isFound] = await Promise.all([
-            Team.findOne({ _id: user.teamId, companyId: user.companyId }),
-            User.findOne({ email })
-        ])
-        console.log(team)
+        const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email already in use")
-        if (!team) return error(res, 404, "Team not found")
 
         const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)
         await User.create({
             email,
             password: passwordHash,
-            roles: [userRoles.DRIVER],
+            roles: userRoles.DRIVER,
             companyId: user.companyId,
-            teamId: user.teamId
+            teamId
         })
+
+        if (teamId && vehicleId) {
+            const vehicle = await Vehicle.findOneAndUpdate(
+                { _id: vehicleId, teamId, companyId: user.companyId },
+                { driverId: user._id }
+            )
+            if (!vehicle) return error(res, 404, "Vehicle not found")
+        }
+
         success(res, 201)
     } catch (err) {
         console.log(err)
@@ -141,13 +147,18 @@ exports.createDriver = async (req, res) => {
 
 exports.listDrivers = async (req, res) => {
     const user = req.user;
+    const { teamId } = req.query || null
     try {
         let filters = {
             roles: { $in: [userRoles.DRIVER] },
             companyId: user.companyId
         }
+
         if (user.teamId)
             filters.teamId = user.teamId
+        else if (teamId) {
+            filters.teamId = teamId
+        }
 
         const drivers = await User.find(filters)
         success(res, 200, { drivers })

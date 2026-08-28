@@ -24,10 +24,10 @@ const userSchema = new mongoose.Schema({
         enum: ["local", "google"],
         default: "local"
     },
-    roles: {
-        type: [String],
+    role: {
+        type: String,
         enum: [userRoles.SUPER_ADMIN, userRoles.ADMIN, userRoles.FLEET_MANAGER, userRoles.DRIVER],
-        default: [userRoles.ADMIN]
+        default: userRoles.ADMIN
     },
     status: {
         type: String,
