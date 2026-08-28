@@ -12,11 +12,3 @@ exports.createTeamSchema = [
         .isMongoId()
         .withMessage("Invalid Mongo Id"),
 ]
-
-exports.assignManagerSchema = [
-    body("managerId")
-        .notEmpty()
-        .withMessage("Manager Id is required")
-        .isMongoId()
-        .withMessage("Invalid Mongo Id")
-]

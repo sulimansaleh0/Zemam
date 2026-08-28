@@ -80,31 +80,6 @@ exports.deleteTeam = async (req, res) => {
     }
 }
 
-exports.assignManager = async (req, res) => {
-    const user = req.user
-    const teamId = req.params.id || null
-    if (!teamId) return error(res, 400, "Team Id is required")
-    const { managerId } = req.body
-    try {
-        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
-        if (!team) return error(res, 404, "Team not found")
-        if (team.managerId) return error(res, 400, "Team already has a manager")
-
-        const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false })
-        if (!manager) return error(res, 404, "Manager not found")
-        if (manager.teamId) return error(res, 400, "Manager already in a team")
-
-        await Promise.all([
-            User.findByIdAndUpdate(managerId, { teamId: team._id }),
-            Team.findByIdAndUpdate(team._id, { managerId })
-        ])
-        success(res, 200)
-    } catch (err) {
-        console.log(err)
-        serverError(res)
-    }
-}
-
 exports.teamStatics = async (req, res) => {
     const user = req.user
     const teamId = req.teamId

@@ -96,6 +96,14 @@ exports.updateUserStatusSchema = [
         .withMessage("Invalid status"),
 ];
 
+exports.assignManagerSchema = [
+    body("teamId")
+        .notEmpty()
+        .withMessage("Team Id is required")
+        .isMongoId()
+        .withMessage("Invalid Team Id")
+]
+
 // exports.createFleetManagerSchema = [
 //     body("email")
 //         .trim()

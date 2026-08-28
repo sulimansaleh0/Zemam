@@ -1,10 +1,8 @@
 const User = require("../models/user.model")
 const Team = require("../models/team.model")
-const { sendRegisterEmail } = require("../services/email")
 const { userRoles } = require("../data/roles")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
-const { mainStatus } = require("../data/status")
 const Vehicle = require("../models/vehicle.model")
 
 exports.me = async (req, res) => {
@@ -25,8 +23,8 @@ exports.updateProfile = async (req, res) => {
     if (!user) return error(res, 401, "UnAuthorized")
     const { name, email, password } = req.body;
     try {
-        let newPassword = password
-        if (newPassword) {
+        let newPassword
+        if (password) {
             newPassword = await bcrypt.hash(password, 9)
         }
         await User.findByIdAndUpdate(user._id, {
@@ -105,6 +103,51 @@ exports.deleteFleetManager = async (req, res) => {
             await Team.findByIdAndUpdate(manager.teamId, {
                 managerId: null
             })
+        success(res, 200)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.assignManager = async (req, res) => {
+    const user = req.user
+    const managerId = req.params.id || null
+    if (!managerId) return error(res, 400, "Manager Id is required")
+    const { teamId } = req.body
+    try {
+        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+        if (!team) return error(res, 404, "Team not found")
+        if (team.managerId) return error(res, 400, "Team already has a manager")
+
+        const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false })
+        if (!manager) return error(res, 404, "Manager not found")
+        if (manager.teamId) return error(res, 400, "Manager already in a team")
+
+        await Promise.all([
+            User.findByIdAndUpdate(managerId, { teamId: team._id }),
+            Team.findByIdAndUpdate(team._id, { managerId })
+        ])
+        success(res, 200)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.disableFleetManager = async (req, res) => {
+    const user = req.user
+    const managerId = req.params.id || null
+    if (!managerId) return error(res, 400, "Manager Is is required")
+    try {
+        const manager = await User.findOne({ _id: managerId, companyId: user.companyId })
+        if (!manager) return error(res, 404, "Manager not found")
+        if (!manager.teamId) return error(res, 400, "Manager has no team")
+
+        await Team.findByIdAndUpdate(manager.teamId, { managerId: null })
+
+        manager.teamId = null
+        await manager.save()
         success(res, 200)
     } catch (err) {
         console.log(err)
