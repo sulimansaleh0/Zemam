@@ -1,7 +1,7 @@
 const router = require("express").Router()
 const { userRoles } = require("../data/roles")
 
-const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers, changeDriverStatus, disableFleetManager, assignManager } = require("../controllers/user.controller")
+const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers, changeUserStatus, disableFleetManager, assignManager, disableDriver, assignDriver } = require("../controllers/user.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
@@ -15,6 +15,15 @@ router.use(verifyToken)
 
 router.get("/me", me);
 router.patch("/", updateProfileSchema, validate, updateProfile);
+
+// Update Status
+router.patch("/:id/status",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    updateUserStatusSchema,
+    validate,
+    getTeam,
+    changeUserStatus
+)
 
 router.use(allowedTo(userRoles.ADMIN))
 router.use(checkSubscription())
@@ -64,11 +73,14 @@ router.post("/driver",
 // Get Drivers
 router.get("/driver", listDrivers)
 
-// Update Driver Status
-router.patch("/driver/:id/status",
-    updateUserStatusSchema,
-    validate,
-    changeDriverStatus
+// Assign Driver to a Car
+router.post("/driver/:id/assign",
+    assignDriver
+)
+
+// Delete Driver from a Car
+router.post("/driver/:id/disable",
+    disableDriver
 )
 
 // Delete Driver

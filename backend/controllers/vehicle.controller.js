@@ -100,37 +100,3 @@ exports.changeVehicleStatus = async (req, res) => {
     }
 }
 
-exports.assignDriver = async (req, res) => {
-    const fleetManager = req.user
-
-    const vehicleId = req.params.id
-    if (!vehicleId) return error(res, 400, "vehicle id is required")
-
-    const { driverId } = req.body
-    if (!driverId) return error(res, 400, "user id is required")
-
-    try {
-        const [user, vehicle] = await Promise.all([
-            User.findOne({ _id: driverId, companyId: fleetManager.companyId, teamId: fleetManager.teamId }),
-            Vehicle.findOne({ _id: vehicleId, companyId: fleetManager.companyId, teamId: fleetManager.teamId })
-        ])
-        if (!user) return error(res, 404, "user not found")
-        if (!vehicle) return error(res, 404, "vehicle not found")
-
-        if (!user.roles.includes(userRoles.DRIVER))
-            return error(res, 400, "User is not a driver")
-
-        if (user.status !== mainStatus.ACTIVE)
-            return error(res, 400, "Driver is not active")
-
-        if (vehicle.status !== mainStatus.ACTIVE)
-            return error(res, 400, "Vehicle is not active")
-
-        vehicle.driverId = driverId
-        await vehicle.save()
-        success(res, 200)
-    } catch (err) {
-        console.log(err)
-        serverError(res)
-    }
-}
