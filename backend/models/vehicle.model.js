@@ -35,6 +35,10 @@ const vehicleSchema = new mongoose.Schema({
     driverId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user"
+    },
+    isDeleted: {
+        type: String,
+        default: false
     }
 })
 

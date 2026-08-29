@@ -6,7 +6,7 @@ module.exports = async (req, res, next) => {
     const { teamId } = req.body || {}
     try {
         if (user.teamId || teamId) {
-            let filters = { companyId: user.companyId }
+            let filters = { companyId: user.companyId, isDeleted: false }
             if (user.teamId)
                 filters._id = user.teamId
             else if (teamId)
@@ -16,7 +16,6 @@ module.exports = async (req, res, next) => {
             if (!team) return error(res, 404, "Team not found")
 
             req.teamId = team._id
-            return next()
         }
         next()
     } catch (err) {
