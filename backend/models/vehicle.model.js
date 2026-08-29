@@ -26,7 +26,6 @@ const vehicleSchema = new mongoose.Schema({
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",
-        required: true
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
