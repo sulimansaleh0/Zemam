@@ -7,6 +7,7 @@ import {
   DriverDeleteModal,
   DriverMetrics,
   DriverModal,
+  AssignVehicleModal,
   DriversList,
   useDriversPage,
 } from '@/features/drivers';
@@ -26,6 +27,8 @@ export default function DriversPage() {
     isCreating,
     isDeleting,
     isChangingStatus,
+    isAssigningVehicle,
+    isUnassigningVehicle,
     // UI state
     selectedId,
     setSelectedId,
@@ -43,6 +46,8 @@ export default function DriversPage() {
     handleCreate,
     handleToggleStatus,
     handleDelete,
+    handleAssignVehicle,
+    handleUnassignVehicle,
     handleExportCSV,
     // Auth
     userName,
@@ -176,7 +181,10 @@ export default function DriversPage() {
                     driver={selectedDriver}
                     onToggleStatus={handleToggleStatus}
                     onDelete={(driver) => setModal({ type: 'delete', driver })}
+                    onAssignVehicle={(driver) => setModal({ type: 'assign-vehicle', driver })}
+                    onUnassignVehicle={handleUnassignVehicle}
                     isChangingStatus={isChangingStatus}
+                    isUnassigningVehicle={isUnassigningVehicle}
                   />
                 </div>
               </>
@@ -210,6 +218,16 @@ export default function DriversPage() {
           onClose={() => setModal({ type: 'closed' })}
           onConfirm={handleDelete}
           isLoading={isDeleting}
+        />
+      )}
+
+      {/* ── Assign Vehicle Modal ── */}
+      {modal.type === 'assign-vehicle' && (
+        <AssignVehicleModal
+          driver={modal.driver}
+          onClose={() => setModal({ type: 'closed' })}
+          onAssign={handleAssignVehicle}
+          isLoading={isAssigningVehicle}
         />
       )}
     </main>

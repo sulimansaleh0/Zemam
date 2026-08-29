@@ -1,4 +1,4 @@
-import { sendRequest, postRequest, deleteRequest } from '@/shared/lib/coreApi';
+import { sendRequest, postRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type {
   FleetManager,
@@ -41,7 +41,37 @@ export const managerService = {
   async deleteManager(id: string): Promise<void> {
     const result = await deleteRequest<void>(API_PATHS.MANAGERS.DELETE(id));
     if (!result.success) {
-      throw new Error(result.message || 'فشل في تعطيل حساب مدير الأسطول');
+      throw new Error(result.message || 'فشل في حذف حساب مدير الأسطول');
+    }
+  },
+
+  /**
+   * Assign manager to a team
+   */
+  async assignManager(managerId: string, teamId: string): Promise<void> {
+    const result = await postRequest<void>(API_PATHS.MANAGERS.ASSIGN(managerId), { teamId });
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في تعيين مدير الأسطول للفريق');
+    }
+  },
+
+  /**
+   * Remove manager from their team (disable team assignment)
+   */
+  async disableManager(managerId: string): Promise<void> {
+    const result = await postRequest<void>(API_PATHS.MANAGERS.DISABLE(managerId), {});
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في فك ارتباط مدير الأسطول عن الفريق');
+    }
+  },
+
+  /**
+   * Change manager status (active/inactive)
+   */
+  async changeManagerStatus(managerId: string, status: 'active' | 'inactive'): Promise<void> {
+    const result = await patchRequest<void>(API_PATHS.MANAGERS.CHANGE_STATUS(managerId), { status });
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في تغيير حالة مدير الأسطول');
     }
   },
 };

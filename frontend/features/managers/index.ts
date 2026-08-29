@@ -6,3 +6,4 @@ export * from './components/ManagerStatsCards';
 export * from './components/ManagersTable';
 export * from './components/CreateManagerModal';
 export * from './components/DeleteManagerModal';
+export * from './components/AssignManagerTeamModal';

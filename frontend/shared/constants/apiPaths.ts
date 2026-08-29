@@ -15,8 +15,10 @@ export const API_PATHS = {
   DRIVERS: {
     LIST:          'api/user/driver',
     CREATE:        'api/user/driver',
-    CHANGE_STATUS: (id: string) => `api/user/driver/${id}/status`,
+    CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
     DELETE:        (id: string) => `api/user/driver/${id}`,
+    ASSIGN:        (driverId: string) => `api/user/driver/${driverId}/assign`,
+    DISABLE:       (driverId: string) => `api/user/driver/${driverId}/disable`,
   },
 
   VEHICLES: {
@@ -24,7 +26,6 @@ export const API_PATHS = {
     DETAIL:        (id: string) => `api/vehicle/${id}`,
     CREATE:        'api/vehicle',
     CHANGE_STATUS: (id: string) => `api/vehicle/${id}/status`,
-    ASSIGN_DRIVER: (id: string) => `api/vehicle/${id}/assign-driver`,
   },
 
   TEAMS: {
@@ -35,8 +36,15 @@ export const API_PATHS = {
   },
 
   MANAGERS: {
-    LIST:   'api/user/fleet-manager',
-    CREATE: 'api/user/fleet-manager',
-    DELETE: (id: string) => `api/user/fleet-manager/${id}`,
+    LIST:          'api/user/fleet-manager',
+    CREATE:        'api/user/fleet-manager',
+    DELETE:        (id: string) => `api/user/fleet-manager/${id}`,
+    ASSIGN:        (id: string) => `api/user/fleet-manager/${id}/assign`,
+    DISABLE:       (id: string) => `api/user/fleet-manager/${id}/disable`,
+    CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
+  },
+
+  USER: {
+    CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
   },
 } as const;

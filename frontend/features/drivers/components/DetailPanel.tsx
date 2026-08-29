@@ -12,6 +12,8 @@ import {
   UserRound,
   UserX,
   Wrench,
+  Car,
+  Unlink,
 } from 'lucide-react';
 import type { Driver } from '../types/driver.types';
 import { getDriverDisplayName, formatRelativeDate } from '../utils/driverHelpers';
@@ -24,7 +26,10 @@ interface DetailPanelProps {
   driver: Driver | null;
   onToggleStatus: (driver: Driver) => void;
   onDelete: (driver: Driver) => void;
+  onAssignVehicle?: (driver: Driver) => void;
+  onUnassignVehicle?: (driver: Driver) => void;
   isChangingStatus?: boolean;
+  isUnassigningVehicle?: boolean;
 }
 
 type ActivityTab = 'المهام' | 'البلاغات' | 'الوقود';
@@ -39,7 +44,10 @@ export function DetailPanel({
   driver,
   onToggleStatus,
   onDelete,
+  onAssignVehicle,
+  onUnassignVehicle,
   isChangingStatus = false,
+  isUnassigningVehicle = false,
 }: DetailPanelProps) {
   const [tab, setTab]           = useState<ActivityTab>('المهام');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,7 +97,7 @@ export function DetailPanel({
               onClick={() => setMenuOpen((prev) => !prev)}
               aria-label="خيارات إضافية"
               aria-expanded={menuOpen}
-              className="zd-focus rounded-lg p-1.5 text-[var(--zd-muted)] transition-colors hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]"
+              className="zd-focus rounded-lg p-1.5 text-[var(--zd-muted)] transition-colors hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)] cursor-pointer"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -106,7 +114,7 @@ export function DetailPanel({
                 <div className="absolute left-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-lg">
                   <button
                     onClick={() => { onDelete(driver); setMenuOpen(false); }}
-                    className="zd-focus flex w-full items-center gap-2 px-3 py-2.5 text-[11px] font-medium text-[var(--zd-red)] transition-colors hover:bg-[var(--zd-red)]/10"
+                    className="zd-focus flex w-full items-center gap-2 px-3 py-2.5 text-[11px] font-medium text-[var(--zd-red)] transition-colors hover:bg-[var(--zd-red)]/10 cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     حذف السائق
@@ -133,6 +141,67 @@ export function DetailPanel({
             <b className="mt-0.5 block text-[11px] font-semibold text-[var(--zd-text)]">
               {formatRelativeDate(driver.createdAt)}
             </b>
+          </div>
+        </div>
+
+        {/* ── Assigned Vehicle Card ── */}
+        <div className="mt-3 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/40 p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--zd-teal)]/10 text-[var(--zd-teal)] shrink-0">
+                <Car className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <small className="block text-[9px] text-[var(--zd-muted)]">المركبة المعينة</small>
+                {driver.assignedVehicle ? (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <b className="truncate text-[11px] font-semibold text-[var(--zd-text)]">
+                      {driver.assignedVehicle.model} ({driver.assignedVehicle.year})
+                    </b>
+                    <span className="font-mono text-[10px] bg-[var(--zd-surface)] px-1.5 py-0.2 rounded border border-[var(--zd-line)] text-[var(--zd-text)]">
+                      لوحة: {driver.assignedVehicle.plateNumber}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-[var(--zd-muted)] italic">
+                    لا توجد مركبة معينة حالياً
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Actions for Vehicle */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {driver.assignedVehicle ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onAssignVehicle?.(driver)}
+                    className="zd-focus px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[var(--zd-blue)]/10 text-[var(--zd-blue)] hover:bg-[var(--zd-blue)]/20 transition-colors cursor-pointer"
+                  >
+                    تغيير
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUnassignVehicle?.(driver)}
+                    disabled={isUnassigningVehicle}
+                    title="فك ارتباط المركبة"
+                    className="zd-focus p-1 text-[10px] font-semibold rounded-lg border border-[var(--zd-red)]/30 text-[var(--zd-red)] hover:bg-[var(--zd-red)]/10 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Unlink className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onAssignVehicle?.(driver)}
+                  className="zd-focus flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[var(--zd-teal)]/15 text-[var(--zd-teal)] hover:bg-[var(--zd-teal)]/25 transition-colors cursor-pointer"
+                >
+                  <Car className="h-3 w-3" />
+                  <span>تعيين مركبة</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

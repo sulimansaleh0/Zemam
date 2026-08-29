@@ -348,9 +348,7 @@ export function TeamsTable({
                         <div className="flex items-center gap-1.5 text-xs text-[var(--text)] font-medium">
                           <Building2 className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
                           <span className="truncate max-w-[140px]">
-                            {typeof team.companyId === 'object' && team.companyId?.name
-                              ? team.companyId.name
-                              : companyName || 'الشركة الرئيسية'}
+                            {companyName || 'الشركة الرئيسية'}
                           </span>
                         </div>
                       </td>

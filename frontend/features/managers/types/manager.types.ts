@@ -17,7 +17,15 @@ export interface FleetManagersResponse {
 
 export interface CreateManagerInput {
   email: string;
+  teamId?: string;
+}
+
+export interface AssignManagerInput {
   teamId: string;
+}
+
+export interface ChangeManagerStatusInput {
+  status: 'active' | 'inactive';
 }
 
 export type ManagerFilterStatus = 'all' | 'active' | 'inactive';

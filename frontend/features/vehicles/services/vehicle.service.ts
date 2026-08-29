@@ -56,9 +56,16 @@ export const vehicleService = {
    * تعيين سائق للمركبة
    */
   assignDriver(
-    id: string,
+    vehicleId: string,
     data: AssignDriverInput
   ): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.VEHICLES.ASSIGN_DRIVER(id), data);
+    return postRequest<null>(API_PATHS.DRIVERS.ASSIGN(data.driverId), { vehicleId });
+  },
+
+  /**
+   * فك ارتباط السائق عن المركبة
+   */
+  unassignDriver(driverId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.DRIVERS.DISABLE(driverId), {});
   },
 };

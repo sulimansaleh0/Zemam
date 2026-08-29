@@ -5,9 +5,12 @@ import { UserCheck, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import {
   useManagers,
+  useChangeManagerStatus,
+  useDisableManager,
   ManagersTable,
   CreateManagerModal,
   DeleteManagerModal,
+  AssignManagerTeamModal,
   ManagerStatsCards,
   type FleetManager,
 } from '@/features/managers';
@@ -27,12 +30,18 @@ export default function ManagersPage() {
 
   const { data: teamsList = [] } = useTeams();
 
+  const changeStatusMutation = useChangeManagerStatus();
+  const disableTeamMutation = useDisableManager();
+
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedManagerForDelete, setSelectedManagerForDelete] = useState<{
     manager: FleetManager;
     teamName?: string;
   } | null>(null);
+  const [selectedManagerForAssign, setSelectedManagerForAssign] = useState<FleetManager | null>(
+    null
+  );
   const [selectedTeamIdForCreate, setSelectedTeamIdForCreate] = useState<string | undefined>(
     undefined
   );
@@ -44,6 +53,18 @@ export default function ManagersPage() {
 
   const handleOpenDelete = (manager: FleetManager, teamName?: string) => {
     setSelectedManagerForDelete({ manager, teamName });
+  };
+
+  const handleToggleStatus = (manager: FleetManager) => {
+    const currentActive = (manager.status || 'active').toLowerCase() === 'active';
+    changeStatusMutation.mutate({
+      managerId: manager._id,
+      status: currentActive ? 'inactive' : 'active',
+    });
+  };
+
+  const handleDisableTeam = (manager: FleetManager) => {
+    disableTeamMutation.mutate(manager._id);
   };
 
   return (
@@ -153,6 +174,9 @@ export default function ManagersPage() {
                 isLoading={isLoadingManagers}
                 onAddClick={() => handleOpenAdd()}
                 onDeleteClick={handleOpenDelete}
+                onAssignTeamClick={(manager) => setSelectedManagerForAssign(manager)}
+                onDisableTeamClick={handleDisableTeam}
+                onToggleStatusClick={handleToggleStatus}
               />
             </section>
 
@@ -183,6 +207,13 @@ export default function ManagersPage() {
         onClose={() => setSelectedManagerForDelete(null)}
         manager={selectedManagerForDelete?.manager || null}
         teamName={selectedManagerForDelete?.teamName}
+      />
+
+      <AssignManagerTeamModal
+        isOpen={Boolean(selectedManagerForAssign)}
+        onClose={() => setSelectedManagerForAssign(null)}
+        manager={selectedManagerForAssign}
+        teams={teamsList}
       />
     </main>
   );

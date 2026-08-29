@@ -41,4 +41,18 @@ export const driverService = {
   deleteDriver(id: string): Promise<ServiceResult<null>> {
     return deleteRequest<null>(API_PATHS.DRIVERS.DELETE(id));
   },
+
+  /**
+   * تعيين مركبة لسائق.
+   */
+  assignVehicle(driverId: string, vehicleId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.DRIVERS.ASSIGN(driverId), { vehicleId });
+  },
+
+  /**
+   * فك ارتباط السائق من مركبته الحالية.
+   */
+  unassignVehicle(driverId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.DRIVERS.DISABLE(driverId), {});
+  },
 };

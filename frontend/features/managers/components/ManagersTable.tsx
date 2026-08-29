@@ -12,6 +12,10 @@ import {
   Building2,
   Calendar,
   ArrowDownUp,
+  UserCheck,
+  UserX,
+  Link2,
+  Unlink,
 } from 'lucide-react';
 import type { FleetManager, ManagerFilterStatus, ManagerSortOrder } from '../types/manager.types';
 import type { Team } from '@/features/teams/types/team.types';
@@ -22,6 +26,9 @@ interface ManagersTableProps {
   isLoading: boolean;
   onAddClick: () => void;
   onDeleteClick: (manager: FleetManager, teamName?: string) => void;
+  onAssignTeamClick?: (manager: FleetManager) => void;
+  onDisableTeamClick?: (manager: FleetManager) => void;
+  onToggleStatusClick?: (manager: FleetManager) => void;
 }
 
 const SORT_CYCLE: ManagerSortOrder[] = ['newest', 'oldest', 'name'];
@@ -38,6 +45,9 @@ export function ManagersTable({
   isLoading,
   onAddClick,
   onDeleteClick,
+  onAssignTeamClick,
+  onDisableTeamClick,
+  onToggleStatusClick,
 }: ManagersTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ManagerFilterStatus>('all');
@@ -282,14 +292,38 @@ export function ManagersTable({
                       {/* Assigned Team */}
                       <td className="py-4 px-4 sm:px-6">
                         {teamName ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xs border border-indigo-500/20">
-                            <Building2 className="w-3.5 h-3.5 shrink-0" />
-                            <span>{teamName}</span>
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xs border border-indigo-500/20">
+                              <Building2 className="w-3.5 h-3.5 shrink-0" />
+                              <span>{teamName}</span>
+                            </span>
+                            {onDisableTeamClick && (
+                              <button
+                                type="button"
+                                onClick={() => onDisableTeamClick(manager)}
+                                title="فك ارتباط المدير عن هذا الفريق"
+                                className="p-1 rounded-lg text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                              >
+                                <Unlink className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-xs text-[var(--muted)] italic">
-                            غير مرتبط بفريق
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-[var(--muted)] italic">
+                              غير مرتبط بفريق
+                            </span>
+                            {onAssignTeamClick && (
+                              <button
+                                type="button"
+                                onClick={() => onAssignTeamClick(manager)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
+                              >
+                                <Link2 className="w-3 h-3" />
+                                <span>تعيين</span>
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -327,16 +361,35 @@ export function ManagersTable({
                       {/* Actions */}
                       <td className="py-4 px-4 sm:px-6 text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          {isActive && (
+                          {/* Toggle status */}
+                          {onToggleStatusClick && (
                             <button
                               type="button"
-                              onClick={() => onDeleteClick(manager, teamName || undefined)}
-                              title="تعطيل حساب المدير"
-                              className="p-2 rounded-lg border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                              onClick={() => onToggleStatusClick(manager)}
+                              title={isActive ? 'تعطيل الحساب' : 'تفعيل الحساب'}
+                              className={`p-2 rounded-lg border transition-colors cursor-pointer ${
+                                isActive
+                                  ? 'border-amber-500/20 text-amber-500 hover:bg-amber-500/10'
+                                  : 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10'
+                              }`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {isActive ? (
+                                <UserX className="w-4 h-4" />
+                              ) : (
+                                <UserCheck className="w-4 h-4" />
+                              )}
                             </button>
                           )}
+
+                          {/* Delete manager */}
+                          <button
+                            type="button"
+                            onClick={() => onDeleteClick(manager, teamName || undefined)}
+                            title="حذف حساب المدير"
+                            className="p-2 rounded-lg border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -350,3 +403,4 @@ export function ManagersTable({
     </div>
   );
 }
+

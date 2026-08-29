@@ -152,6 +152,7 @@ export function useAssignDriver() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
       addToast({
         type: 'success',
         title: 'تعيين السائق',
@@ -162,6 +163,38 @@ export function useAssignDriver() {
       addToast({
         type: 'error',
         title: 'فشل التعيين',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لفك ارتباط سائق عن مركبة
+ */
+export function useUnassignDriver() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (driverId: string) => {
+      const result = await vehicleService.unassignDriver(driverId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      addToast({
+        type: 'info',
+        title: 'فك الارتباط',
+        message: 'تم فك ارتباط السائق عن المركبة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل فك الارتباط',
         message: error.message,
       });
     },
