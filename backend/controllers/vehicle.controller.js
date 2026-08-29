@@ -128,3 +128,17 @@ exports.changeVehicleStatus = async (req, res) => {
     }
 }
 
+exports.deleteVehicle = async (req, res) => {
+    const user = req.user
+    const teamId = req.teamId
+    const vehicleId = req.params.id
+    if (!vehicleId) return error(res, 400, "Vehicle Id is required")
+    try {
+        const vehicle = await Vehicle.findOneAndUpdate({ _id: vehicleId, companyId: user.companyId, teamId }, { driverId: null, teamId: null, isDeleted: true })
+        if (!vehicle) return error(res, 404, "Vehicle not found")
+        success(res)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}

@@ -10,7 +10,7 @@ const validate = require("../middlewares/validator")
 
 const { createVehicleSchema, updateVehicleStatusSchema } = require("../validators/vehicle")
 
-const { createVehicle, listVehicles, listVehicle, changeVehicleStatus, setVehicleToTeam, removerVehicleFromTeam } = require("../controllers/vehicle.controller")
+const { createVehicle, listVehicles, listVehicle, changeVehicleStatus, setVehicleToTeam, removerVehicleFromTeam, deleteVehicle } = require("../controllers/vehicle.controller")
 
 router.use(verifyToken)
 router.use(getTeam)
@@ -32,5 +32,6 @@ router.post("/", createVehicleSchema, validate, createVehicle)
 router.get("/", listVehicles)
 router.get("/:id", listVehicle)
 router.patch("/:id/status", updateVehicleStatusSchema, validate, changeVehicleStatus)
+router.delete("/:id", deleteVehicle)
 
 module.exports = router

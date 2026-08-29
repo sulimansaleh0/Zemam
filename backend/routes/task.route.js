@@ -3,7 +3,7 @@ const { userRoles } = require("../data/roles")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
-const verifyTeam = require("../middlewares/verifyTeam")
+const getTeam = require("../middlewares/getTeam")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
 
@@ -13,15 +13,16 @@ const { createTaskSchema } = require("../validators/task")
 
 router.use(verifyToken)
 router.use(checkSubscription())
-router.use(verifyTeam)
 
 // driver routes
 router.patch("/:id/accept", allowedTo(userRoles.DRIVER), acceptTask)
 router.patch("/:id/finish", allowedTo(userRoles.DRIVER), finishTask)
 router.get("/driver", allowedTo(userRoles.DRIVER), listDriverTasks)
 
+router.use(getTeam)
+
 // fleet manager routes
-router.use(allowedTo(userRoles.FLEET_MANAGER))
+router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
 router.post("/", createTaskSchema, validate, createTask)
 router.get("/", listTasks)
 router.get("/:id", listTask)
