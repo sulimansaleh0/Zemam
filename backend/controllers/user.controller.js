@@ -271,7 +271,7 @@ exports.assignDriver = async (req, res) => {
         if (driver.status !== mainStatus.ACTIVE)
             return error(res, 400, "Driver is not active")
 
-        const hasVehicle = await Vehicle.findOne({ driverId, companyId })
+        const hasVehicle = await Vehicle.findOne({ driverId, companyId: user.companyId })
         if (hasVehicle) return error(res, 400, "Driver already has a car")
 
         vehicle.driverId = driverId

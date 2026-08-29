@@ -7,16 +7,16 @@ module.exports = async (req, res, next) => {
     try {
         if (user.teamId || teamId) {
             let filters = { companyId: user.companyId }
-            if (teamId)
+            if (user.teamId)
                 filters._id = user.teamId
-            else if (user.teamId)
+            else if (teamId)
                 filters._id = teamId
 
             const team = await Team.findOne(filters);
             if (!team) return error(res, 404, "Team not found")
 
             req.teamId = team._id
-            next()
+            return next()
         }
         next()
     } catch (err) {

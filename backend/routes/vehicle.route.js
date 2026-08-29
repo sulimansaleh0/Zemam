@@ -13,8 +13,7 @@ const { createVehicleSchema, updateVehicleStatusSchema } = require("../validator
 const { createVehicle, listVehicles, listVehicle, changeVehicleStatus } = require("../controllers/vehicle.controller")
 
 router.use(verifyToken)
-router.use(verifyTeam)
-router.use(allowedTo(userRoles.FLEET_MANAGER))
+router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
 router.use(checkSubscription())
 
 router.post("/", createVehicleSchema, validate, createVehicle)
