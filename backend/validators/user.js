@@ -96,7 +96,39 @@ exports.updateUserStatusSchema = [
         .withMessage("Invalid status"),
 ];
 
-exports.createFleetManagerSchema = [
+exports.assignManagerSchema = [
+    body("teamId")
+        .notEmpty()
+        .withMessage("Team Id is required")
+        .isMongoId()
+        .withMessage("Invalid Team Id")
+]
+
+// exports.createFleetManagerSchema = [
+//     body("email")
+//         .trim()
+//         .normalizeEmail()
+//         .notEmpty()
+//         .withMessage("Email Is required")
+//         .isEmail()
+//         .withMessage("Not valid email"),
+//     body("teamId")
+//         .trim()
+//         .isMongoId()
+//         .withMessage("Invalid Team Id")
+// ]
+
+// exports.createDriverSchema = [
+//     body("email")
+//         .trim()
+//         .normalizeEmail()
+//         .notEmpty()
+//         .withMessage("Email Is required")
+//         .isEmail()
+//         .withMessage("Not valid email"),
+// ]
+
+exports.createUserSchema = [
     body("email")
         .trim()
         .normalizeEmail()
@@ -106,18 +138,7 @@ exports.createFleetManagerSchema = [
         .withMessage("Not valid email"),
     body("teamId")
         .trim()
-        .notEmpty()
-        .withMessage("Team Id is required")
+        .optional()
         .isMongoId()
         .withMessage("Invalid Team Id")
-]
-
-exports.createDriverSchema = [
-    body("email")
-        .trim()
-        .normalizeEmail()
-        .notEmpty()
-        .withMessage("Email Is required")
-        .isEmail()
-        .withMessage("Not valid email"),
 ]

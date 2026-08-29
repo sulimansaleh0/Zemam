@@ -1,53 +1,89 @@
 const router = require("express").Router()
 const { userRoles } = require("../data/roles")
 
-const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers, changeDriverStatus } = require("../controllers/user.controller")
+const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers, changeUserStatus, disableFleetManager, assignManager, disableDriver, assignDriver } = require("../controllers/user.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
 const checkSubscription = require("../middlewares/CheckSubscription")
+const getTeam = require("../middlewares/getTeam")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createFleetManagerSchema, createDriverSchema, updateUserStatusSchema } = require("../validators/user")
+const { updateProfileSchema, createUserSchema, updateUserStatusSchema, assignManagerSchema } = require("../validators/user")
 
 router.use(verifyToken)
 
 router.get("/me", me);
 router.patch("/", updateProfileSchema, validate, updateProfile);
 
+// Update Status
+router.patch("/:id/status",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    updateUserStatusSchema,
+    validate,
+    getTeam,
+    changeUserStatus
+)
+
+router.use(allowedTo(userRoles.ADMIN))
 router.use(checkSubscription())
 
+// create Fleet Manager
 router.post("/fleet-manager",
-    allowedTo(userRoles.ADMIN),
-    createFleetManagerSchema,
+    createUserSchema,
     validate,
+    getTeam,
     createFleetManager
 )
 
+// List Managers
 router.get("/fleet-manager",
-    allowedTo(userRoles.ADMIN),
     listFleetManagers
 )
 
+// Assign Manager to a Team
+router.post("/fleet-manager/:id/assign",
+    assignManagerSchema,
+    validate,
+    assignManager
+)
+
+// Delete Manager from a Team
+router.post("/fleet-manager/:id/disable",
+    disableFleetManager
+)
+
+// delete Manager
 router.delete(
     "/fleet-manager/:id",
-    allowedTo(userRoles.ADMIN),
+    getTeam,
     deleteFleetManager
 )
 
-router.get("/driver", listDrivers)
+router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
+router.use(getTeam)
 
-router.use(allowedTo(userRoles.FLEET_MANAGER))
+// Create Driver
 router.post("/driver",
-    createDriverSchema,
+    createUserSchema,
     validate,
     createDriver
 )
-router.patch("/driver/:id/status",
-    updateUserStatusSchema,
-    validate,
-    changeDriverStatus
+
+// Get Drivers
+router.get("/driver", listDrivers)
+
+// Assign Driver to a Car
+router.post("/driver/:id/assign",
+    assignDriver
 )
+
+// Delete Driver from a Car
+router.post("/driver/:id/disable",
+    disableDriver
+)
+
+// Delete Driver
 router.delete("/driver/:id", deleteDriver)
 
 module.exports = router
