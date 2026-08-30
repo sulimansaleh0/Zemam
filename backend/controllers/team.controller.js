@@ -23,10 +23,13 @@ exports.createTeam = async (req, res) => {
         })
         if (managerId)
             await User.findByIdAndUpdate(managerId, { teamId: team._id })
-        if (Array.isArray(driversIds) && driversIds.length > 0)
-            await User.updateMany({ _id: { $in: driversIds }, companyId: user.companyId }, { teamId: team._id })
-        if (Array.isArray(vehiclesIds) && vehiclesIds.length > 0)
-            await Vehicle.updateMany({ _id: { $in: vehiclesIds }, companyId: user.companyId }, { teamId: team._id })
+        
+        if (driversIds && Array.isArray(driversIds) && driversIds.length > 0) {
+            await User.updateMany({ _id: { $in: driversIds } }, { teamId: team._id })
+        }
+        if (vehiclesIds && Array.isArray(vehiclesIds) && vehiclesIds.length > 0) {
+            await Vehicle.updateMany({ _id: { $in: vehiclesIds } }, { teamId: team._id })
+        }
         success(res, 201, { team })
     } catch (err) {
         console.log(err)
@@ -39,6 +42,20 @@ exports.listTeams = async (req, res) => {
     try {
         const teams = await Team.find({ companyId: user.companyId, isDeleted: false })
         success(res, 200, { teams })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.listTeam = async (req, res) => {
+    const user = req.user
+    const teamId = req.params.id || req.teamId
+    if (!teamId) return error(res, 400, "team Id is required")
+    try {
+        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+        if (!team) return error(res, 404, "Team not found")
+        success(res, 200, { team })
     } catch (err) {
         console.log(err)
         serverError(res)

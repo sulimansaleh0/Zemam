@@ -30,6 +30,17 @@ export function useManagers(status?: string) {
   });
 }
 
+/**
+ * Hook to fetch available fleet managers (unassigned / no team)
+ */
+export function useAvailableManagers() {
+  return useQuery({
+    queryKey: [...MANAGER_QUERY_KEYS.all, 'available'],
+    queryFn: () => managerService.getAvailableManagers(),
+    staleTime: 1000 * 30, // 30 seconds
+  });
+}
+
 // ============================================================
 //  Mutation Hooks
 // ============================================================

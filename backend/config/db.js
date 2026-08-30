@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
 
-// حل مشكلة querySrv ECONNREFUSED بتحديد خوادم DNS عامة (Google & Cloudflare)
+// حل مشكلة querySrv ECONNREFUSED بتحديد خوادم DNS عامة
 dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 exports.connectDB = async () => {

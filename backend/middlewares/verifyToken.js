@@ -15,7 +15,7 @@ module.exports = async (req, res, next) => {
             req.user = user;
             return next();
         }
-        return error(res, 401, "User is not active")
+        return error(res, 401, "You are not active")
     } catch (err) {
         if (err.name === "TokenExpiredError") {
             return error(res, 401, "access token expired");

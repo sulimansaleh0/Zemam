@@ -22,6 +22,20 @@ export const managerService = {
   },
 
   /**
+   * Fetch available fleet managers (without a team)
+   */
+  async getAvailableManagers(): Promise<FleetManager[]> {
+    const result = await sendRequest<FleetManagersResponse>(
+      `${API_PATHS.MANAGERS.LIST}?withoutTeam=true`
+    );
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في جلب قائمة المدراء المتاحين');
+    }
+    const managers = result.data?.fleetManagers ?? [];
+    return managers.filter((m) => !m.teamId);
+  },
+
+  /**
    * Create a new Fleet Manager and assign to team
    */
   async createManager(payload: CreateManagerInput): Promise<FleetManager | null> {

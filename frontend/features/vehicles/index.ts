@@ -23,6 +23,10 @@ export {
   useCreateVehicle,
   useChangeVehicleStatus,
   useAssignDriver,
+  useUnassignDriver,
+  useAssignVehicleToTeam,
+  useRemoveVehicleFromTeam,
+  useDeleteVehicle,
 } from './hooks/useVehicles';
 
 // ── Components ─────────────────────────────────────────────
@@ -30,5 +34,7 @@ export { VehiclesTable }       from './components/VehiclesTable';
 export { VehicleFormModal }    from './components/VehicleFormModal';
 export { AssignDriverModal }   from './components/AssignDriverModal';
 export { DeleteVehicleModal }  from './components/DeleteVehicleModal';
+export { AssignVehicleToTeamModal } from './components/AssignVehicleToTeamModal';
+export { ConfirmDeleteVehicleModal } from './components/ConfirmDeleteVehicleModal';
 export { VehicleStatsCards }   from './components/VehicleStatsCards';
 export { VehicleStatusBadge }  from './components/VehicleStatusBadge';

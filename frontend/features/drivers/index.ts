@@ -37,6 +37,8 @@ export {
   useDeleteDriver,
   useAssignVehicleToDriver,
   useUnassignVehicleFromDriver,
+  useAssignDriverToTeam,
+  useRemoveDriverFromTeam,
   useDriversPage,
 } from './hooks/useDrivers';
 export type { ModalState } from './hooks/useDrivers';
@@ -54,3 +56,4 @@ export { DetailPanel }         from './components/DetailPanel';
 export { DriverModal }         from './components/DriverModal';
 export { DriverDeleteModal }   from './components/DriverDeleteModal';
 export { AssignVehicleModal }  from './components/AssignVehicleModal';
+export { AssignDriverToTeamModal } from './components/AssignDriverToTeamModal';

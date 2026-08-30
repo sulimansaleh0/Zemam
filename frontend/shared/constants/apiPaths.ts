@@ -17,15 +17,20 @@ export const API_PATHS = {
     CREATE:        'api/user/driver',
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
     DELETE:        (id: string) => `api/user/driver/${id}`,
-    ASSIGN:        (driverId: string) => `api/user/driver/${driverId}/assign`,
-    DISABLE:       (driverId: string) => `api/user/driver/${driverId}/disable`,
+    ASSIGN:        (driverId: string) => `api/user/driver/${driverId}/assign-to-vehicle`,
+    DISABLE:       (driverId: string) => `api/user/driver/${driverId}/remove-from-vehicle`,
+    ASSIGN_TEAM:   (driverId: string) => `api/user/driver/${driverId}/assign-to-team`,
+    REMOVE_TEAM:   (driverId: string) => `api/user/driver/${driverId}/remove-from-team`,
   },
 
   VEHICLES: {
     LIST:          'api/vehicle',
     DETAIL:        (id: string) => `api/vehicle/${id}`,
     CREATE:        'api/vehicle',
+    DELETE:        (id: string) => `api/vehicle/${id}`,
     CHANGE_STATUS: (id: string) => `api/vehicle/${id}/status`,
+    ASSIGN_TEAM:   (vehicleId: string) => `api/vehicle/${vehicleId}/assign-to-team`,
+    REMOVE_TEAM:   (vehicleId: string) => `api/vehicle/${vehicleId}/remove-from-team`,
   },
 
   TEAMS: {
@@ -39,9 +44,18 @@ export const API_PATHS = {
     LIST:          'api/user/fleet-manager',
     CREATE:        'api/user/fleet-manager',
     DELETE:        (id: string) => `api/user/fleet-manager/${id}`,
-    ASSIGN:        (id: string) => `api/user/fleet-manager/${id}/assign`,
-    DISABLE:       (id: string) => `api/user/fleet-manager/${id}/disable`,
+    ASSIGN:        (id: string) => `api/user/fleet-manager/${id}/team`,
+    DISABLE:       (id: string) => `api/user/fleet-manager/${id}/remove-from-team`,
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
+  },
+
+  TASKS: {
+    LIST:        'api/task',
+    CREATE:      'api/task',
+    DETAIL:      (id: string) => `api/task/${id}`,
+    DRIVER_LIST: 'api/task/driver',
+    ACCEPT:      (id: string) => `api/task/${id}/accept`,
+    FINISH:      (id: string) => `api/task/${id}/finish`,
   },
 
   USER: {

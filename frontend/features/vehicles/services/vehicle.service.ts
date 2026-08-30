@@ -1,4 +1,4 @@
-import { sendRequest, postRequest, patchRequest } from '@/shared/lib/coreApi';
+import { sendRequest, postRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type { ServiceResult } from '@/shared/types/api.types';
 import type {
@@ -26,6 +26,13 @@ export const vehicleService = {
    */
   getVehicles(): Promise<ServiceResult<ListVehiclesResponse>> {
     return sendRequest<ListVehiclesResponse>(API_PATHS.VEHICLES.LIST);
+  },
+
+  /**
+   * جلب المركبات المتاحة (بدون فريق / في المخزون العام)
+   */
+  getAvailableVehicles(): Promise<ServiceResult<ListVehiclesResponse>> {
+    return sendRequest<ListVehiclesResponse>(`${API_PATHS.VEHICLES.LIST}?withoutTeam=true`);
   },
 
   /**
@@ -67,5 +74,26 @@ export const vehicleService = {
    */
   unassignDriver(driverId: string): Promise<ServiceResult<null>> {
     return postRequest<null>(API_PATHS.DRIVERS.DISABLE(driverId), {});
+  },
+
+  /**
+   * تعيين مركبة لفريق تشغيلي
+   */
+  assignTeam(vehicleId: string, teamId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.VEHICLES.ASSIGN_TEAM(vehicleId), { teamId });
+  },
+
+  /**
+   * فك ارتباط مركبة عن فريقها التشغيلي
+   */
+  removeTeam(vehicleId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.VEHICLES.REMOVE_TEAM(vehicleId), {});
+  },
+
+  /**
+   * حذف مركبة (Soft Delete)
+   */
+  deleteVehicle(vehicleId: string): Promise<ServiceResult<null>> {
+    return deleteRequest<null>(API_PATHS.VEHICLES.DELETE(vehicleId));
   },
 };

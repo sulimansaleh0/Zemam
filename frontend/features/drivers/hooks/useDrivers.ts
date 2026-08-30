@@ -213,6 +213,71 @@ export function useUnassignVehicleFromDriver() {
   });
 }
 
+/**
+ * Mutation لتعيين سائق لفريق تشغيلي
+ */
+export function useAssignDriverToTeam() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ driverId, teamId }: { driverId: string; teamId: string }) => {
+      const result = await driverService.assignTeam(driverId, teamId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      addToast({
+        type: 'success',
+        title: 'تعيين الفريق',
+        message: 'تم تعيين السائق للفريق بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل التعيين',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لفك ارتباط سائق عن فريقه التشغيلي
+ */
+export function useRemoveDriverFromTeam() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (driverId: string) => {
+      const result = await driverService.removeTeam(driverId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: VEHICLE_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      addToast({
+        type: 'info',
+        title: 'فك ارتباط الفريق',
+        message: 'تم فك ارتباط السائق عن الفريق بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل فك الارتباط',
+        message: error.message,
+      });
+    },
+  });
+}
+
 // ============================================================
 //  Modal State — Discriminated Union
 // ============================================================
@@ -221,7 +286,8 @@ export type ModalState =
   | { type: 'closed' }
   | { type: 'create' }
   | { type: 'delete'; driver: Driver }
-  | { type: 'assign-vehicle'; driver: Driver };
+  | { type: 'assign-vehicle'; driver: Driver }
+  | { type: 'assign-team'; driver: Driver };
 
 // ============================================================
 //  Page Hook — UI state + orchestration
@@ -250,6 +316,8 @@ export function useDriversPage() {
   const deleteMutation          = useDeleteDriver();
   const assignVehicleMutation   = useAssignVehicleToDriver();
   const unassignVehicleMutation = useUnassignVehicleFromDriver();
+  const assignTeamMutation      = useAssignDriverToTeam();
+  const removeTeamMutation      = useRemoveDriverFromTeam();
 
   const drivers = driversQuery.data ?? [];
 
@@ -361,6 +429,19 @@ export function useDriversPage() {
     [unassignVehicleMutation],
   );
 
+  /** فتح نافذة تعيين السائق لفريق */
+  const handleAssignTeam = useCallback((driver: Driver) => {
+    setModal({ type: 'assign-team', driver });
+  }, []);
+
+  /** فك ارتباط السائق عن فريقه */
+  const handleUnassignTeam = useCallback(
+    async (driver: Driver) => {
+      await removeTeamMutation.mutateAsync(driver._id);
+    },
+    [removeTeamMutation],
+  );
+
   /** تصدير CSV */
   const handleExportCSV = useCallback(() => {
     if (drivers.length === 0) {
@@ -391,6 +472,8 @@ export function useDriversPage() {
     isChangingStatus:         changeStatusMutation.isPending,
     isAssigningVehicle:       assignVehicleMutation.isPending,
     isUnassigningVehicle:     unassignVehicleMutation.isPending,
+    isAssigningTeam:          assignTeamMutation.isPending,
+    isRemovingTeam:           removeTeamMutation.isPending,
 
     // UI state
     selectedId,
@@ -412,6 +495,8 @@ export function useDriversPage() {
     handleDelete,
     handleAssignVehicle,
     handleUnassignVehicle,
+    handleAssignTeam,
+    handleUnassignTeam,
     handleExportCSV,
 
     // Auth

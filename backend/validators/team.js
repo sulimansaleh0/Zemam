@@ -8,15 +8,7 @@ exports.createTeamSchema = [
         .isLength({ min: 6 })
         .withMessage("Name should be at least 6 charachters"),
     body("managerId")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional()
         .isMongoId()
         .withMessage("Invalid Mongo Id"),
-    body("driversIds")
-        .optional()
-        .isArray()
-        .withMessage("driversIds must be an array"),
-    body("vehiclesIds")
-        .optional()
-        .isArray()
-        .withMessage("vehiclesIds must be an array"),
 ]

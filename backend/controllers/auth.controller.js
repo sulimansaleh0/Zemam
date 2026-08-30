@@ -40,7 +40,7 @@ exports.login = async (req, res) => {
     try {
 
         // Check Email
-        const user = await User.findOne({ email, status: mainStatus.ACTIVE })
+        const user = await User.findOne({ email, isDeleted: false })
         if (!user) return error(res, 400, "Check Email or Password")
 
         // Check Password

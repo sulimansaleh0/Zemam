@@ -17,6 +17,7 @@ import {
   Link2,
   Unlink,
 } from 'lucide-react';
+import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
 import type { FleetManager, ManagerFilterStatus, ManagerSortOrder } from '../types/manager.types';
 import type { Team } from '@/features/teams/types/team.types';
 
@@ -361,35 +362,57 @@ export function ManagersTable({
                       {/* Actions */}
                       <td className="py-4 px-4 sm:px-6 text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Toggle status */}
-                          {onToggleStatusClick && (
+                          {/* Visible quick action: Assign team if not assigned */}
+                          {!teamName && onAssignTeamClick && (
                             <button
                               type="button"
-                              onClick={() => onToggleStatusClick(manager)}
-                              title={isActive ? 'تعطيل الحساب' : 'تفعيل الحساب'}
-                              className={`p-2 rounded-lg border transition-colors cursor-pointer ${
-                                isActive
-                                  ? 'border-amber-500/20 text-amber-500 hover:bg-amber-500/10'
-                                  : 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10'
-                              }`}
+                              onClick={() => onAssignTeamClick(manager)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
+                              title="تعيين على فريق"
                             >
-                              {isActive ? (
-                                <UserX className="w-4 h-4" />
-                              ) : (
-                                <UserCheck className="w-4 h-4" />
-                              )}
+                              <Link2 className="w-3.5 h-3.5" />
+                              <span>تعيين</span>
                             </button>
                           )}
 
-                          {/* Delete manager */}
-                          <button
-                            type="button"
-                            onClick={() => onDeleteClick(manager, teamName || undefined)}
-                            title="حذف حساب المدير"
-                            className="p-2 rounded-lg border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {/* Kebab Action Menu */}
+                          {(() => {
+                            const menuItems: ActionMenuItem[] = [];
+
+                            if (teamName && onDisableTeamClick) {
+                              menuItems.push({
+                                label: 'فك الارتباط عن الفريق',
+                                icon: Link2,
+                                variant: 'warning',
+                                onClick: () => onDisableTeamClick(manager),
+                              });
+                            } else if (!teamName && onAssignTeamClick) {
+                              menuItems.push({
+                                label: 'تعيين على فريق',
+                                icon: Link2,
+                                variant: 'primary',
+                                onClick: () => onAssignTeamClick(manager),
+                              });
+                            }
+
+                            if (onToggleStatusClick) {
+                              menuItems.push({
+                                label: isActive ? 'تعطيل الحساب' : 'تفعيل الحساب',
+                                icon: isActive ? UserX : UserCheck,
+                                variant: isActive ? 'warning' : 'success',
+                                onClick: () => onToggleStatusClick(manager),
+                              });
+                            }
+
+                            menuItems.push({
+                              label: 'حذف حساب المدير',
+                              icon: Trash2,
+                              variant: 'danger',
+                              onClick: () => onDeleteClick(manager, teamName || undefined),
+                            });
+
+                            return <ActionMenu items={menuItems} align="left" />;
+                          })()}
                         </div>
                       </td>
                     </tr>

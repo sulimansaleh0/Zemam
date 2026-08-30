@@ -21,6 +21,13 @@ export const driverService = {
   },
 
   /**
+   * جلب السائقين المتاحين (بدون فريق / في المخزون العام).
+   */
+  getAvailableDrivers(): Promise<ServiceResult<ListDriversResponse>> {
+    return sendRequest<ListDriversResponse>(`${API_PATHS.DRIVERS.LIST}?withoutTeam=true`);
+  },
+
+  /**
    * إنشاء سائق جديد.
    * الباك اند يقبل email فقط — يُحفظ الاسم كـ "Default" تلقائياً.
    */
@@ -54,5 +61,19 @@ export const driverService = {
    */
   unassignVehicle(driverId: string): Promise<ServiceResult<null>> {
     return postRequest<null>(API_PATHS.DRIVERS.DISABLE(driverId), {});
+  },
+
+  /**
+   * تعيين سائق لفريق تشغيلي.
+   */
+  assignTeam(driverId: string, teamId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.DRIVERS.ASSIGN_TEAM(driverId), { teamId });
+  },
+
+  /**
+   * فك ارتباط السائق عن فريقه التشغيلي.
+   */
+  removeTeam(driverId: string): Promise<ServiceResult<null>> {
+    return postRequest<null>(API_PATHS.DRIVERS.REMOVE_TEAM(driverId), {});
   },
 };

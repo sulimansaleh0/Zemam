@@ -7,3 +7,5 @@ export * from './components/TeamsTable';
 export * from './components/CreateTeamModal';
 export * from './components/EditTeamModal';
 export * from './components/DeleteTeamModal';
+export * from './components/AssignTeamManagerModal';
+export * from './components/AddResourcesToTeamModal';

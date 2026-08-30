@@ -21,11 +21,6 @@ exports.createVehicleSchema = [
         .withMessage("Plate number is required")
         .isNumeric()
         .withMessage("Plate number must be a number"),
-
-    body("teamId")
-        .optional({ nullable: true, checkFalsy: true })
-        .isMongoId()
-        .withMessage("Invalid Team ID"),
 ];
 
 exports.updateVehicleStatusSchema = [
