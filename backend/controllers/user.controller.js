@@ -286,9 +286,10 @@ exports.removeDriverFromTeam = async (req, res) => {
         if (!driver) return error(res, 404, "Driver not found")
         if (!driver.teamId) return error(res, 400, "Driver dont have a team")
 
+        await Vehicle.findOneAndUpdate({ driverId, companyId: user.companyId }, { driverId: null })
+        
         driver.teamId = null
         await driver.save()
-
         success(res)
     } catch (err) {
         console.log(err)
