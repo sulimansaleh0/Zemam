@@ -43,7 +43,7 @@ exports.listTeams = async (req, res) => {
             isDeleted: false
         }
 
-        const teams = await Team.find({ companyId: user.companyId, isDeleted: false })
+        const teams = await Team.find(filters)
         success(res, 200, { teams })
     } catch (err) {
         console.log(err)

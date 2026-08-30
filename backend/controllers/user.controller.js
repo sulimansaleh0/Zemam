@@ -71,7 +71,7 @@ exports.changeUserStatus = async (req, res) => {
 // Fleet Manager
 exports.createFleetManager = async (req, res) => {
     const user = req.user
-    const teamId = req.teamId || null
+    const teamId = req.teamId
     const { email } = req.body
     try {
         const isFound = await User.findOne({ email })
@@ -80,7 +80,7 @@ exports.createFleetManager = async (req, res) => {
         // const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
         const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)
-        await User.create({
+        const fleetManager = await User.create({
             email,
             password: passwordHash,
             companyId: user.companyId,
@@ -91,7 +91,7 @@ exports.createFleetManager = async (req, res) => {
         if (teamId)
             await Team.findByIdAndUpdate(teamId, { managerId: user._id })
 
-        success(res, 201)
+        success(res, 201, { fleetManager })
         // sendRegisterEmail({ email, password })
     } catch (err) {
         console.log(err)
@@ -191,7 +191,7 @@ exports.removeFleetManager = async (req, res) => {
 // Driver
 exports.createDriver = async (req, res) => {
     const user = req.user
-    const teamId = req.teamId || null
+    const teamId = req.teamId
     const { email, vehicleId } = req.body
     try {
         const isFound = await User.findOne({ email })
@@ -220,7 +220,7 @@ exports.createDriver = async (req, res) => {
             )
         }
 
-        success(res, 201)
+        success(res, 201, { driver })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -240,8 +240,7 @@ exports.listDrivers = async (req, res) => {
 
         if (teamId)
             filters.teamId = teamId
-
-        if (withoutTeam === "true" && !user.teamId)
+        else if (withoutTeam === "true" && !user.teamId)
             filters.teamId = null
 
         const drivers = await User.find(filters)
@@ -311,7 +310,7 @@ exports.assignDriverToVehicle = async (req, res) => {
             User.findOne({ _id: driverId, teamId, companyId: user.companyId, isDeleted: false }),
             Vehicle.findOne({ _id: vehicleId, teamId, companyId: user.companyId, isDeleted: false })
         ])
-        if (!driver) return error(res, 404, "user not found")
+        if (!driver) return error(res, 404, "Driver not found")
         if (!vehicle) return error(res, 404, "vehicle not found")
 
         if (!driver.teamId) return error(res, 400, "Driver should have a team")

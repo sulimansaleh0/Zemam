@@ -39,8 +39,7 @@ exports.listVehicles = async (req, res) => {
 
         if (teamId)
             filters.teamId = teamId
-
-        if (withoutTeam === "true" && !user.teamId)
+        else if (withoutTeam === "true" && !user.teamId)
             filters.teamId = null
 
         const vehicles = await Vehicle.find(filters)
