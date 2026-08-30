@@ -32,16 +32,6 @@ router.use(verifyToken)
 router.get("/me", me);
 router.patch("/", updateProfileSchema, validate, updateProfile);
 
-// Update Status
-router.patch("/:id/status",
-    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
-    updateUserStatusSchema,
-    validate,
-    getTeam,
-    changeUserStatus
-)
-
-router.use(allowedTo(userRoles.ADMIN))
 router.use(checkSubscription())
 
 // create Fleet Manager
@@ -55,6 +45,7 @@ router.post("/fleet-manager",
 
 // List Managers
 router.get("/fleet-manager",
+    allowedTo(userRoles.ADMIN),
     listFleetManagers
 )
 
@@ -75,7 +66,7 @@ router.post("/fleet-manager/:id/team",
 // delete Manager
 router.delete(
     "/fleet-manager/:id",
-    getTeam,
+    allowedTo(userRoles.ADMIN),
     deleteFleetManager
 )
 

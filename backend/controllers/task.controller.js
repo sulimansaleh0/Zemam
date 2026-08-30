@@ -158,7 +158,7 @@ exports.declineTask = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "Task id is required")
     try {
-        const task = await Task.findOne({ _id: id, companyId: user.companyId, teamId })
+        const task = await Task.findOne({ _id: id, copmanyId: user.companyId, teamId })
         if (!task) return error(res, 404, "Task not found")
 
         if (task.status === taskStatus.FINISHED) return error(res, 400, "Cant decline a finished task")
