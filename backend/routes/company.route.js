@@ -3,7 +3,7 @@ const { userRoles } = require("../data/roles")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
-const checkSubscription = require("../middlewares/checkSubscription")
+const checkSubscription = require("../middlewares/CheckSubscription")
 
 const { companyStatics } = require("../controllers/company.controller")
 

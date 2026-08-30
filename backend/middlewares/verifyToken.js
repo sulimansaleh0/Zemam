@@ -13,7 +13,6 @@ module.exports = async (req, res, next) => {
         if (!user) return error(res, 404, "User Not Found")
         if (user.status == mainStatus.ACTIVE) {
             req.user = user;
-            console.log(user)
             return next();
         }
         return error(res, 401, "User is not active")

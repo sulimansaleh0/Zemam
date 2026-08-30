@@ -48,6 +48,9 @@ export function useCreateTeam() {
     mutationFn: (payload: CreateTeamInput) => teamService.createTeam(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['managers'] });
       addToast({
         type: 'success',
         title: 'تم إنشاء الفريق',

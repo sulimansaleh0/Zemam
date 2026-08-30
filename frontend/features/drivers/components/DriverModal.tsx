@@ -3,8 +3,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Mail, UserPlus, X } from 'lucide-react';
+import { Loader2, Mail, UserPlus, Users, X } from 'lucide-react';
 import { createDriverSchema, type CreateDriverFormValues } from '../schemas/driver.schema';
+import { useTeams } from '@/features/teams';
 
 interface DriverModalProps {
   onClose: () => void;
@@ -13,6 +14,8 @@ interface DriverModalProps {
 }
 
 export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
+  const { data: teamsList = [], isLoading: isLoadingTeams } = useTeams();
+
   const {
     register,
     handleSubmit,
@@ -20,7 +23,7 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
     formState: { errors },
   } = useForm<CreateDriverFormValues>({
     resolver: zodResolver(createDriverSchema),
-    defaultValues: { email: '' },
+    defaultValues: { email: '', teamId: '' },
   });
 
   // إغلاق بـ Escape
@@ -34,7 +37,10 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await onSave(data);
+      await onSave({
+        email: data.email.trim(),
+        teamId: data.teamId || undefined,
+      });
     } catch (error) {
       // الـ toast يُطلق في الـ mutation — هنا نضع الخطأ على الحقل
       setError('email', {
@@ -81,40 +87,68 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
 
         {/* ── Form ── */}
         <form onSubmit={onSubmit} noValidate>
-          <div className="p-6">
+          <div className="p-6 space-y-4">
             {/* Email field */}
-            <label
-              htmlFor="driver-email"
-              className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
-            >
-              البريد الإلكتروني <span className="text-[var(--zd-red)]">*</span>
-            </label>
-            <div className="relative">
-              <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--zd-muted)]" />
-              <input
-                id="driver-email"
-                type="email"
-                dir="ltr"
-                autoFocus
-                autoComplete="email"
-                placeholder="example@company.com"
-                {...register('email')}
-                disabled={isLoading}
-                className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors disabled:opacity-60 ${
-                  errors.email
-                    ? 'border-[var(--zd-red)] focus:border-[var(--zd-red)]'
-                    : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-                }`}
-              />
+            <div>
+              <label
+                htmlFor="driver-email"
+                className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
+              >
+                البريد الإلكتروني <span className="text-[var(--zd-red)]">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--zd-muted)]" />
+                <input
+                  id="driver-email"
+                  type="email"
+                  dir="ltr"
+                  autoFocus
+                  autoComplete="email"
+                  placeholder="example@company.com"
+                  {...register('email')}
+                  disabled={isLoading}
+                  className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors disabled:opacity-60 ${
+                    errors.email
+                      ? 'border-[var(--zd-red)] focus:border-[var(--zd-red)]'
+                      : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
+                  }`}
+                />
+              </div>
+              {errors.email && (
+                <p role="alert" className="mt-1.5 text-[10px] font-medium text-[var(--zd-red)]">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
-            {errors.email && (
-              <p role="alert" className="mt-1.5 text-[10px] font-medium text-[var(--zd-red)]">
-                {errors.email.message}
-              </p>
-            )}
+
+            {/* Team field */}
+            <div>
+              <label
+                htmlFor="driver-team"
+                className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
+              >
+                الفريق التشغيلي (اختياري)
+              </label>
+              <div className="relative">
+                <Users className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--zd-muted)] pointer-events-none" />
+                <select
+                  id="driver-team"
+                  {...register('teamId')}
+                  disabled={isLoading || isLoadingTeams}
+                  className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
+                >
+                  <option value="">بدون فريق حالياً (تعيين لاحقاً)</option>
+                  {teamsList.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             {/* Info note */}
-            <div className="mt-4 rounded-xl bg-[var(--zd-surface-2)] px-4 py-3 text-[10px] leading-5 text-[var(--zd-muted)]">
+            <div className="rounded-xl bg-[var(--zd-surface-2)] px-4 py-3 text-[10px] leading-5 text-[var(--zd-muted)]">
               <b className="text-[var(--zd-text)]">ملاحظة:</b> سيُنشأ الحساب بكلمة المرور الافتراضية{' '}
               <code className="rounded bg-[var(--zd-line)] px-1 py-0.5 font-mono">123456789</code>.
               يجب على السائق تغييرها عند أول دخول.

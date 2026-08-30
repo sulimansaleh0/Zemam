@@ -22,6 +22,9 @@ export interface TeamsResponse {
 
 export interface CreateTeamInput {
   name: string;
+  managerId?: string;
+  driversIds?: string[];
+  vehiclesIds?: string[];
 }
 
 export interface UpdateTeamInput {

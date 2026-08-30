@@ -45,6 +45,7 @@ export type DriverSortOrder = 'newest' | 'oldest' | 'name';
 /** البيانات المرسلة لإنشاء سائق */
 export interface CreateDriverInput {
   email: string;
+  teamId?: string;
 }
 
 /** البيانات المرسلة لتغيير حالة سائق */
