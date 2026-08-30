@@ -101,7 +101,7 @@ exports.createFleetManager = async (req, res) => {
 
 exports.listFleetManagers = async (req, res) => {
     const user = req.user;
-    const { status } = req.query || null
+    const { status, withoutTeam } = req.query || null
     try {
         let filters = {
             role: { $in: [userRoles.FLEET_MANAGER] },
@@ -110,6 +110,9 @@ exports.listFleetManagers = async (req, res) => {
         }
         if (status)
             filters.status = status
+
+        if (withoutTeam === "true")
+            filters.teamId = null
 
         const fleetManagers = await User.find(filters)
         success(res, 200, { fleetManagers })
@@ -227,13 +230,19 @@ exports.createDriver = async (req, res) => {
 exports.listDrivers = async (req, res) => {
     const user = req.user;
     const teamId = req.teamId
+    const { withoutTeam } = req.query
     try {
         let filters = {
             role: { $in: [userRoles.DRIVER] },
-            teamId,
             companyId: user.companyId,
             isDeleted: false
         }
+
+        if (teamId)
+            filters.teamId = teamId
+
+        if (withoutTeam === "true" && !user.teamId)
+            filters.teamId = null
 
         const drivers = await User.find(filters)
         success(res, 200, { drivers })
