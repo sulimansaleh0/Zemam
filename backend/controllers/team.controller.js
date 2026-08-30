@@ -53,9 +53,11 @@ exports.listTeams = async (req, res) => {
 
 exports.listTeam = async (req, res) => {
     const user = req.user
-    const teamId = req.teamId
+    const teamId = req.params.id || req.teamId
+    if (!teamId) return error(res, 400, "team Id is required")
     try {
-        const team = await Team.findOne({ _id: teamId, companyI: user.companyId, isDeleted: false })
+        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+        if (!team) return error(res, 404, "Team not found")
         success(res, 200, { team })
     } catch (err) {
         console.log(err)

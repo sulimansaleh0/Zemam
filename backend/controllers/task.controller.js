@@ -10,22 +10,31 @@ exports.createTask = async (req, res) => {
     const teamId = req.teamId
     const { description, driverId, vehicleId } = req.body
     try {
+        let driverFilters = { _id: driverId, companyId: user.companyId, status: mainStatus.ACTIVE, isDeleted: false };
+        let vehicleFilters = { _id: vehicleId, companyId: user.companyId, status: mainStatus.ACTIVE, isDeleted: false };
+        if (teamId) {
+            driverFilters.teamId = teamId;
+            vehicleFilters.teamId = teamId;
+        }
+
         const [driver, vehicle] = await Promise.all([
-            User.findOne({ _id: driverId, companyId: user.companyId, teamId, status: mainStatus.ACTIVE, isDeleted: false }),
-            Vehicle.findOne({ _id: vehicleId, companyId: user.companyId, teamId, status: mainStatus.ACTIVE, isDeleted: false })
+            User.findOne(driverFilters),
+            Vehicle.findOne(vehicleFilters)
         ])
         if (!driver) return error(res, 404, "User not found")
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
         if (driver.role !== userRoles.DRIVER) return error(res, 400, "User should be a driver")
-        if (vehicle.teamId.toString() !== driver.teamId.toString())
+        if (!driver.teamId || !vehicle.teamId || vehicle.teamId.toString() !== driver.teamId.toString())
             return error(res, 400, "Driver and Vehicle should be in the same team")
+
+        const effectiveTeamId = teamId || driver.teamId;
 
         const task = await Task.create({
             description,
             vehicleId,
             driverId,
-            teamId,
+            teamId: effectiveTeamId,
             companyId: user.companyId
         })
         success(res, 201, { task })
@@ -158,7 +167,9 @@ exports.declineTask = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "Task id is required")
     try {
-        const task = await Task.findOne({ _id: id, copmanyId: user.companyId, teamId })
+        let filters = { _id: id, companyId: user.companyId };
+        if (teamId) filters.teamId = teamId;
+        const task = await Task.findOne(filters)
         if (!task) return error(res, 404, "Task not found")
 
         if (task.status === taskStatus.FINISHED) return error(res, 400, "Cant decline a finished task")

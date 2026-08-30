@@ -2,6 +2,7 @@ const User = require("../models/user.model")
 const Team = require("../models/team.model")
 const Vehicle = require("../models/vehicle.model")
 const { userRoles } = require("../data/roles")
+const { mainStatus } = require("../data/status")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 
@@ -307,9 +308,16 @@ exports.assignDriverToVehicle = async (req, res) => {
     if (!vehicleId) return error(res, 400, "Vehicle Id is required")
 
     try {
+        let driverFilters = { _id: driverId, companyId: user.companyId, isDeleted: false };
+        let vehicleFilters = { _id: vehicleId, companyId: user.companyId, isDeleted: false };
+        if (teamId) {
+            driverFilters.teamId = teamId;
+            vehicleFilters.teamId = teamId;
+        }
+
         const [driver, vehicle] = await Promise.all([
-            User.findOne({ _id: driverId, teamId, companyId: user.companyId, isDeleted: false }),
-            Vehicle.findOne({ _id: vehicleId, teamId, companyId: user.companyId, isDeleted: false })
+            User.findOne(driverFilters),
+            Vehicle.findOne(vehicleFilters)
         ])
         if (!driver) return error(res, 404, "user not found")
         if (!vehicle) return error(res, 404, "vehicle not found")
@@ -329,8 +337,11 @@ exports.assignDriverToVehicle = async (req, res) => {
         if (driver.status !== mainStatus.ACTIVE)
             return error(res, 400, "Driver is not active")
 
-        const hasVehicle = await Vehicle.findOne({ driverId, companyId: user.companyId })
-        if (hasVehicle) return error(res, 400, "Driver already has a car")
+        // Unlink driver from any previous vehicle in the company
+        await Vehicle.updateMany(
+            { driverId, companyId: user.companyId, _id: { $ne: vehicle._id } },
+            { driverId: null }
+        )
 
         vehicle.driverId = driverId
         await vehicle.save()
@@ -363,11 +374,13 @@ exports.deleteDriver = async (req, res) => {
     const driverId = req.params.id || null
     if (!driverId) return error(res, 400, "Driver Id is required")
     try {
-        const driver = await User.findOneAndUpdate({
+        let filters = {
             _id: driverId,
             companyId: user.companyId,
-            teamId
-        }, {
+        };
+        if (teamId) filters.teamId = teamId;
+
+        const driver = await User.findOneAndUpdate(filters, {
             isDeleted: true,
             teamId: null
         })
