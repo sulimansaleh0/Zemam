@@ -152,6 +152,7 @@ export function useAssignDriver() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
       addToast({
         type: 'success',
         title: 'تعيين السائق',
@@ -162,6 +163,136 @@ export function useAssignDriver() {
       addToast({
         type: 'error',
         title: 'فشل التعيين',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لفك ارتباط سائق عن مركبة
+ */
+export function useUnassignDriver() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (driverId: string) => {
+      const result = await vehicleService.unassignDriver(driverId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      addToast({
+        type: 'info',
+        title: 'فك الارتباط',
+        message: 'تم فك ارتباط السائق عن المركبة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل فك الارتباط',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لتعيين مركبة لفريق تشغيلي
+ */
+export function useAssignVehicleToTeam() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ vehicleId, teamId }: { vehicleId: string; teamId: string }) => {
+      const result = await vehicleService.assignTeam(vehicleId, teamId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      addToast({
+        type: 'success',
+        title: 'تعيين الفريق',
+        message: 'تم تعيين المركبة للفريق بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل التعيين',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لفك ارتباط مركبة عن فريقها التشغيلي
+ */
+export function useRemoveVehicleFromTeam() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (vehicleId: string) => {
+      const result = await vehicleService.removeTeam(vehicleId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      addToast({
+        type: 'info',
+        title: 'فك ارتباط الفريق',
+        message: 'تم نقل المركبة إلى المستودع العام بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل فك الارتباط',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Mutation لحذف مركبة (Soft Delete)
+ */
+export function useDeleteVehicle() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (vehicleId: string) => {
+      const result = await vehicleService.deleteVehicle(vehicleId);
+      if (!result.success) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      addToast({
+        type: 'info',
+        title: 'حذف المركبة',
+        message: 'تم حذف المركبة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل الحذف',
         message: error.message,
       });
     },

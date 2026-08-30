@@ -13,6 +13,7 @@ export const createDriverSchema = z.object({
     .string()
     .min(1, 'البريد الإلكتروني مطلوب')
     .email('يرجى إدخال بريد إلكتروني صحيح'),
+  teamId: z.string().optional(),
 });
 
 export type CreateDriverFormValues = z.infer<typeof createDriverSchema>;

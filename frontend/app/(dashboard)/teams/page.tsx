@@ -9,6 +9,8 @@ import {
   CreateTeamModal,
   EditTeamModal,
   DeleteTeamModal,
+  AssignTeamManagerModal,
+  AddResourcesToTeamModal,
   TeamStatsCards,
   type Team,
 } from '@/features/teams';
@@ -51,11 +53,15 @@ export default function TeamsPage() {
 
   // Fleet Manager Modal states
   const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
+  const [isCreateManagerModalOpen, setIsCreateManagerModalOpen] = useState(false);
   const [selectedTeamForManager, setSelectedTeamForManager] = useState<Team | null>(null);
   const [selectedManagerForDelete, setSelectedManagerForDelete] = useState<{
     manager: FleetManager;
     teamName?: string;
   } | null>(null);
+
+  // Add Resources (Drivers & Vehicles) Modal state
+  const [selectedTeamForResources, setSelectedTeamForResources] = useState<Team | null>(null);
 
   const handleOpenAdd = () => setIsCreateModalOpen(true);
   const handleOpenEdit = (team: Team) => setSelectedTeamForEdit(team);
@@ -64,6 +70,10 @@ export default function TeamsPage() {
   const handleOpenAssignManager = (team: Team) => {
     setSelectedTeamForManager(team);
     setIsAssignManagerModalOpen(true);
+  };
+
+  const handleOpenAddResources = (team: Team) => {
+    setSelectedTeamForResources(team);
   };
 
   const handleOpenRemoveManager = (managerId: string, teamName: string) => {
@@ -183,6 +193,7 @@ export default function TeamsPage() {
                 onEditClick={handleOpenEdit}
                 onDeleteClick={handleOpenDelete}
                 onAssignManagerClick={handleOpenAssignManager}
+                onAddResourcesClick={handleOpenAddResources}
                 onRemoveManagerClick={handleOpenRemoveManager}
               />
             </section>
@@ -219,15 +230,30 @@ export default function TeamsPage() {
         }
       />
 
-      {/* ── Manager Assignment Modal ── */}
-      <CreateManagerModal
+      {/* ── Assign Existing / Available Manager Modal ── */}
+      <AssignTeamManagerModal
         isOpen={isAssignManagerModalOpen}
         onClose={() => {
           setIsAssignManagerModalOpen(false);
           setSelectedTeamForManager(null);
         }}
+        team={selectedTeamForManager}
+        onAddNewManagerClick={() => setIsCreateManagerModalOpen(true)}
+      />
+
+      {/* ── Create New Manager Modal ── */}
+      <CreateManagerModal
+        isOpen={isCreateManagerModalOpen}
+        onClose={() => setIsCreateManagerModalOpen(false)}
         teams={teamsList}
         initialTeamId={selectedTeamForManager?._id}
+      />
+
+      {/* ── Add Resources (Drivers & Vehicles) to Team Modal ── */}
+      <AddResourcesToTeamModal
+        isOpen={Boolean(selectedTeamForResources)}
+        onClose={() => setSelectedTeamForResources(null)}
+        team={selectedTeamForResources}
       />
 
       {/* ── Manager Removal Modal ── */}

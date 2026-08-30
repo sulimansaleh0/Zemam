@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useMemo } from 'react';
 import { AlertCircle, FileDown, Loader2, Plus, RefreshCw, UsersRound } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
@@ -7,9 +8,12 @@ import {
   DriverDeleteModal,
   DriverMetrics,
   DriverModal,
+  AssignVehicleModal,
+  AssignDriverToTeamModal,
   DriversList,
   useDriversPage,
 } from '@/features/drivers';
+import { useTeams } from '@/features/teams';
 
 export default function DriversPage() {
   const {
@@ -26,6 +30,8 @@ export default function DriversPage() {
     isCreating,
     isDeleting,
     isChangingStatus,
+    isAssigningVehicle,
+    isUnassigningVehicle,
     // UI state
     selectedId,
     setSelectedId,
@@ -43,11 +49,26 @@ export default function DriversPage() {
     handleCreate,
     handleToggleStatus,
     handleDelete,
+    handleAssignVehicle,
+    handleUnassignVehicle,
+    handleAssignTeam,
+    handleUnassignTeam,
     handleExportCSV,
     // Auth
     userName,
     logout,
   } = useDriversPage();
+
+  const { data: teamsList = [] } = useTeams();
+  const teamMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    teamsList.forEach((t) => {
+      map[t._id] = t.name;
+    });
+    return map;
+  }, [teamsList]);
+
+  const currentTeamName = selectedDriver?.teamId ? teamMap[selectedDriver.teamId] : undefined;
 
   return (
     <main className="zamam-drivers zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -174,9 +195,15 @@ export default function DriversPage() {
 
                   <DetailPanel
                     driver={selectedDriver}
+                    teamName={currentTeamName}
                     onToggleStatus={handleToggleStatus}
                     onDelete={(driver) => setModal({ type: 'delete', driver })}
+                    onAssignVehicle={(driver) => setModal({ type: 'assign-vehicle', driver })}
+                    onUnassignVehicle={handleUnassignVehicle}
+                    onAssignTeam={handleAssignTeam}
+                    onUnassignTeam={handleUnassignTeam}
                     isChangingStatus={isChangingStatus}
+                    isUnassigningVehicle={isUnassigningVehicle}
                   />
                 </div>
               </>
@@ -210,6 +237,25 @@ export default function DriversPage() {
           onClose={() => setModal({ type: 'closed' })}
           onConfirm={handleDelete}
           isLoading={isDeleting}
+        />
+      )}
+
+      {/* ── Assign Vehicle Modal ── */}
+      {modal.type === 'assign-vehicle' && (
+        <AssignVehicleModal
+          driver={modal.driver}
+          onClose={() => setModal({ type: 'closed' })}
+          onAssign={handleAssignVehicle}
+          isLoading={isAssigningVehicle}
+        />
+      )}
+
+      {/* ── Assign Driver To Team Modal ── */}
+      {modal.type === 'assign-team' && (
+        <AssignDriverToTeamModal
+          isOpen={true}
+          driver={modal.driver}
+          onClose={() => setModal({ type: 'closed' })}
         />
       )}
     </main>

@@ -1,7 +1,23 @@
 const router = require("express").Router()
 const { userRoles } = require("../data/roles")
 
-const { me, updateProfile, createFleetManager, createDriver, deleteFleetManager, deleteDriver, listFleetManagers, listDrivers, changeUserStatus, disableFleetManager, assignManager, disableDriver, assignDriver } = require("../controllers/user.controller")
+const {
+    me,
+    updateProfile,
+    changeUserStatus,
+    createFleetManager,
+    deleteFleetManager,
+    listFleetManagers,
+    removeFleetManager,
+    assignManager,
+    createDriver,
+    deleteDriver,
+    listDrivers,
+    assignDriverToVehicle,
+    removeDriverFromVehicle,
+    setDriverToTeam,
+    removeDriverFromTeam
+} = require("../controllers/user.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
@@ -30,6 +46,7 @@ router.use(checkSubscription())
 
 // create Fleet Manager
 router.post("/fleet-manager",
+    allowedTo(userRoles.ADMIN),
     createUserSchema,
     validate,
     getTeam,
@@ -42,15 +59,17 @@ router.get("/fleet-manager",
 )
 
 // Assign Manager to a Team
-router.post("/fleet-manager/:id/assign",
+router.post("/fleet-manager/:id/team",
+    allowedTo(userRoles.ADMIN),
     assignManagerSchema,
     validate,
     assignManager
 )
 
 // Delete Manager from a Team
-router.post("/fleet-manager/:id/disable",
-    disableFleetManager
+router.post("/fleet-manager/:id/team",
+    allowedTo(userRoles.ADMIN),
+    removeFleetManager
 )
 
 // delete Manager
@@ -58,6 +77,19 @@ router.delete(
     "/fleet-manager/:id",
     getTeam,
     deleteFleetManager
+)
+
+// Set Driver To Team
+router.post("/driver/:id/assign-to-team",
+    allowedTo(userRoles.ADMIN),
+    getTeam,
+    setDriverToTeam
+)
+
+// Remove Driver From Team
+router.post("/driver/:id/remove-from-team",
+    allowedTo(userRoles.ADMIN),
+    removeDriverFromTeam
 )
 
 router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
@@ -73,17 +105,25 @@ router.post("/driver",
 // Get Drivers
 router.get("/driver", listDrivers)
 
-// Assign Driver to a Car
-router.post("/driver/:id/assign",
-    assignDriver
+// Assign Driver to a vehicle
+router.post("/driver/:id/assign-to-vehicle",
+    assignDriverToVehicle
 )
 
-// Delete Driver from a Car
-router.post("/driver/:id/disable",
-    disableDriver
+// Remove Driver from a vehicle
+router.post("/driver/:id/remove-from-vehicle",
+    removeDriverFromVehicle
 )
 
 // Delete Driver
 router.delete("/driver/:id", deleteDriver)
+
+// Update Status
+router.patch("/:id/status",
+    updateUserStatusSchema,
+    validate,
+    getTeam,
+    changeUserStatus
+)
 
 module.exports = router

@@ -1,13 +1,8 @@
 const Team = require("../models/team.model")
-const { userRoles } = require("../data/roles")
-const { error, serverError } = require("../utils/responses")
+const { error } = require("../utils/responses")
 
 module.exports = async (req, res, next) => {
     const user = req.user
-    // إذا كان المستخدم Admin، يُسمح له بالمرور على مستوى الشركة بالكامل
-    if (!user.teamId && user.roles?.includes(userRoles.ADMIN)) {
-        return next()
-    }
     const teamId = user.teamId
     if (!teamId) return error(res, 400, "Team Id is required")
     try {

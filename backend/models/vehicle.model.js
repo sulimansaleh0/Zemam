@@ -26,7 +26,6 @@ const vehicleSchema = new mongoose.Schema({
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",
-        required: true
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -36,6 +35,10 @@ const vehicleSchema = new mongoose.Schema({
     driverId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user"
+    },
+    isDeleted: {
+        type: String,
+        default: false
     }
 })
 

@@ -5,10 +5,14 @@ import { Truck, Plus, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
 import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import {
   useVehicles,
+  useRemoveVehicleFromTeam,
+  useUnassignDriver,
   VehiclesTable,
   VehicleFormModal,
   AssignDriverModal,
   DeleteVehicleModal,
+  AssignVehicleToTeamModal,
+  ConfirmDeleteVehicleModal,
   VehicleStatsCards,
   VehicleWithRelations,
 } from '@/features/vehicles';
@@ -24,11 +28,18 @@ export default function VehiclesPage() {
     isRefetching: isRefetchingVehicles,
   } = useVehicles();
 
+  const removeTeamMutation = useRemoveVehicleFromTeam();
+  const unassignDriverMutation = useUnassignDriver();
+
   // Modal states
   const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
   const [selectedVehicleForAssign, setSelectedVehicleForAssign] =
     useState<VehicleWithRelations | null>(null);
   const [selectedVehicleForStatusChange, setSelectedVehicleForStatusChange] =
+    useState<VehicleWithRelations | null>(null);
+  const [selectedVehicleForTeam, setSelectedVehicleForTeam] =
+    useState<VehicleWithRelations | null>(null);
+  const [selectedVehicleForDelete, setSelectedVehicleForDelete] =
     useState<VehicleWithRelations | null>(null);
 
   return (
@@ -153,6 +164,14 @@ export default function VehiclesPage() {
                   onAddVehicleClick={() => setIsAddVehicleModalOpen(true)}
                   onAssignDriverClick={(vehicle) => setSelectedVehicleForAssign(vehicle)}
                   onChangeStatusClick={(vehicle) => setSelectedVehicleForStatusChange(vehicle)}
+                  onAssignTeamClick={(vehicle) => setSelectedVehicleForTeam(vehicle)}
+                  onRemoveTeamClick={async (vehicle) => {
+                    await removeTeamMutation.mutateAsync(vehicle._id);
+                  }}
+                  onUnassignDriverClick={async (vehicle) => {
+                    await unassignDriverMutation.mutateAsync(vehicle._id);
+                  }}
+                  onDeleteVehicleClick={(vehicle) => setSelectedVehicleForDelete(vehicle)}
                 />
               </>
             )}
@@ -182,11 +201,25 @@ export default function VehiclesPage() {
         targetVehicle={selectedVehicleForAssign}
       />
 
+      {/* ── Assign Vehicle to Team Modal ── */}
+      <AssignVehicleToTeamModal
+        isOpen={Boolean(selectedVehicleForTeam)}
+        onClose={() => setSelectedVehicleForTeam(null)}
+        vehicle={selectedVehicleForTeam}
+      />
+
       {/* ── Change Vehicle Status Modal ── */}
       <DeleteVehicleModal
         isOpen={Boolean(selectedVehicleForStatusChange)}
         onClose={() => setSelectedVehicleForStatusChange(null)}
         targetVehicle={selectedVehicleForStatusChange}
+      />
+
+      {/* ── Confirm Delete Vehicle Modal ── */}
+      <ConfirmDeleteVehicleModal
+        isOpen={Boolean(selectedVehicleForDelete)}
+        onClose={() => setSelectedVehicleForDelete(null)}
+        targetVehicle={selectedVehicleForDelete}
       />
     </main>
   );

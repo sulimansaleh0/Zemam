@@ -22,10 +22,34 @@ export interface TeamsResponse {
 
 export interface CreateTeamInput {
   name: string;
+  managerId?: string;
+  driversIds?: string[];
+  vehiclesIds?: string[];
 }
 
 export interface UpdateTeamInput {
   name: string;
+}
+
+export interface TeamStatics {
+  totalTasks: number;
+  pendingTasks: number;
+  inProgressTasks: number;
+  finishedTasks: number;
+  declinedTasks: number;
+  totalVehicles: number;
+  activeVehicles: number;
+  availableVehicles: number;
+  FuelRecordsCost: { totalCost: number }[];
+  FuelRecords: number;
+  approvedFuelRecords: number;
+  declinedFuelRecords: number;
+  pendingFuelRecords: number;
+  maintenanceRecordsCost: { totalCost: number }[];
+  maintenanceRecords: number;
+  approvedMaintenanceRecords: number;
+  declinedMaintenanceRecords: number;
+  pendingMaintenanceRecords: number;
 }
 
 export type TeamSortOrder = 'newest' | 'oldest' | 'name';

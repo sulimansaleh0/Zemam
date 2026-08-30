@@ -5,7 +5,6 @@ module.exports = (...roles) =>
         const user = req.user
         if (!user) return error(res, 401, "unAuthorized")
         const userRole = user.role || ""
-
         const hasAccess = roles.includes(userRole)
 
         if (!hasAccess) {

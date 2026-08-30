@@ -7,7 +7,7 @@ const checkSubscription = require("../middlewares/CheckSubscription")
 const getTeam = require("../middlewares/getTeam")
 const validate = require("../middlewares/validator")
 
-const { createTeam, listTeams, teamStatics, updateTeam } = require("../controllers/team.controller")
+const { createTeam, listTeams, listTeam, teamStatics, updateTeam, deleteTeam } = require("../controllers/team.controller")
 const { createTeamSchema } = require("../validators/team")
 
 router.use(verifyToken)
@@ -23,6 +23,8 @@ router.use(allowedTo(userRoles.ADMIN))
 
 router.post("/", createTeamSchema, validate, createTeam)
 router.get("/", listTeams)
+router.get("/:id", listTeam)
 router.patch("/:id", updateTeam)
+router.delete("/:id", deleteTeam)
 
 module.exports = router

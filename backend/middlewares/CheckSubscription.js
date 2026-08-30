@@ -31,7 +31,6 @@ module.exports = (plan = plans.TRIAL) =>
 
             if (plan !== company.plan) return error(res, 401, "upgrade your plan to use this feature.")
 
-            req.company = company
             next()
         } catch (err) {
             console.log(err)

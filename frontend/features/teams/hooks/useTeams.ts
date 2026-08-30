@@ -33,6 +33,29 @@ export function useTeams() {
   });
 }
 
+/**
+ * Hook to fetch single team detail
+ */
+export function useTeamDetail(id: string) {
+  return useQuery({
+    queryKey: TEAM_QUERY_KEYS.detail(id),
+    queryFn: () => teamService.getTeamById(id),
+    enabled: Boolean(id),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+/**
+ * Hook to fetch team statics
+ */
+export function useTeamStatics(teamId?: string) {
+  return useQuery({
+    queryKey: ['teams', 'statics', teamId || 'all'] as const,
+    queryFn: () => teamService.getTeamStatics(teamId),
+    staleTime: 1000 * 60,
+  });
+}
+
 // ============================================================
 //  Mutation Hooks
 // ============================================================
@@ -48,6 +71,9 @@ export function useCreateTeam() {
     mutationFn: (payload: CreateTeamInput) => teamService.createTeam(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['managers'] });
       addToast({
         type: 'success',
         title: 'تم إنشاء الفريق',

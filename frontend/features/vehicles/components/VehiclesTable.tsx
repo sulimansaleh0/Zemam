@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   useReactTable,
   getCoreRowModel,
@@ -26,9 +27,16 @@ import {
   Search,
   Plus,
   SlidersHorizontal,
+  Users,
+  Link2,
+  Unlink,
+  Trash2,
+  Building2,
 } from 'lucide-react';
 import type { VehicleWithRelations, VehicleStatus } from '../types/vehicle.types';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
+import { useTeams } from '@/features/teams';
+import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
 
 interface VehiclesTableProps {
   vehiclesData: VehicleWithRelations[];
@@ -36,6 +44,10 @@ interface VehiclesTableProps {
   onAddVehicleClick: () => void;
   onAssignDriverClick: (selectedVehicle: VehicleWithRelations) => void;
   onChangeStatusClick: (selectedVehicle: VehicleWithRelations) => void;
+  onAssignTeamClick?: (selectedVehicle: VehicleWithRelations) => void;
+  onRemoveTeamClick?: (selectedVehicle: VehicleWithRelations) => void;
+  onUnassignDriverClick?: (selectedVehicle: VehicleWithRelations) => void;
+  onDeleteVehicleClick?: (selectedVehicle: VehicleWithRelations) => void;
 }
 
 export function VehiclesTable({
@@ -44,7 +56,12 @@ export function VehiclesTable({
   onAddVehicleClick,
   onAssignDriverClick,
   onChangeStatusClick,
+  onAssignTeamClick,
+  onRemoveTeamClick,
+  onUnassignDriverClick,
+  onDeleteVehicleClick,
 }: VehiclesTableProps) {
+  const { data: teamsList = [] } = useTeams();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | 'all'>('all');
@@ -93,9 +110,12 @@ export function VehiclesTable({
                 <Car className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-semibold text-xs text-[var(--text)]">
+                <Link
+                  href={`/vehicles/${vehicle._id}`}
+                  className="font-semibold text-xs text-[var(--text)] hover:text-[var(--primary)] transition-colors hover:underline block"
+                >
                   {vehicle.model}
-                </div>
+                </Link>
                 <div className="text-[11px] text-[var(--muted)] flex items-center gap-1.5 mt-0.5">
                   <span className="bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[10px] font-mono">
                     {vehicle.year}
@@ -114,6 +134,33 @@ export function VehiclesTable({
             {row.original.plateNumber}
           </div>
         ),
+      },
+      {
+        accessorKey: 'teamId',
+        header: 'الفريق التشغيلي',
+        cell: ({ row }) => {
+          const vehicle = row.original;
+          const teamIdStr =
+            typeof vehicle.teamId === 'object' && vehicle.teamId
+              ? (vehicle.teamId as any)._id
+              : vehicle.teamId;
+          const team = teamsList.find((t) => t._id === teamIdStr);
+
+          if (!team) {
+            return (
+              <span className="text-[11px] text-[var(--muted)] italic">
+                المستودع العام
+              </span>
+            );
+          }
+
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xs border border-indigo-500/20">
+              <Users className="w-3 h-3" />
+              <span>{team.name}</span>
+            </span>
+          );
+        },
       },
       {
         accessorKey: 'status',
@@ -167,33 +214,104 @@ export function VehiclesTable({
         cell: ({ row }) => {
           const vehicle = row.original;
           const isActive = vehicle.status === 'active';
+          const hasTeam = Boolean(vehicle.teamId);
+          const hasDriver = Boolean(vehicle.driverId);
 
           return (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onAssignDriverClick(vehicle)}
-                title="تغيير أو تعيين السائق"
-                className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => onChangeStatusClick(vehicle)}
-                title={isActive ? 'تعطيل المركبة' : 'تفعيل المركبة'}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  isActive
-                    ? 'text-[var(--muted)] hover:text-rose-500 hover:bg-rose-500/10'
-                    : 'text-[var(--muted)] hover:text-emerald-500 hover:bg-emerald-500/10'
-                }`}
-              >
-                <Power className="w-4 h-4" />
-              </button>
+            <div className="flex items-center gap-1.5 justify-center">
+              {/* Visible quick action: If no team, show "تعيين لفريق" */}
+              {!hasTeam && onAssignTeamClick && (
+                <button
+                  type="button"
+                  onClick={() => onAssignTeamClick(vehicle)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
+                  title="تعيين لفريق تشغيلي"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  <span>تعيين لفريق</span>
+                </button>
+              )}
+
+              {/* If has team and no driver, show "تعيين سائق" */}
+              {hasTeam && !hasDriver && (
+                <button
+                  type="button"
+                  onClick={() => onAssignDriverClick(vehicle)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-semibold hover:bg-teal-500/20 transition-colors cursor-pointer"
+                  title="تعيين سائق للمركبة"
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>تعيين سائق</span>
+                </button>
+              )}
+
+              {/* Action Menu (Kebab ⋮) */}
+              {(() => {
+                const menuItems: ActionMenuItem[] = [];
+
+                if (hasTeam && onRemoveTeamClick) {
+                  menuItems.push({
+                    label: 'فك الارتباط عن الفريق',
+                    icon: Unlink,
+                    variant: 'warning',
+                    onClick: () => onRemoveTeamClick(vehicle),
+                  });
+                } else if (!hasTeam && onAssignTeamClick) {
+                  menuItems.push({
+                    label: 'تعيين لفريق تشغيلي',
+                    icon: Link2,
+                    variant: 'primary',
+                    onClick: () => onAssignTeamClick(vehicle),
+                  });
+                }
+
+                if (hasDriver && onUnassignDriverClick) {
+                  menuItems.push({
+                    label: 'فك ارتباط السائق',
+                    icon: Unlink,
+                    variant: 'warning',
+                    onClick: () => onUnassignDriverClick(vehicle),
+                  });
+                } else {
+                  menuItems.push({
+                    label: 'تعيين سائق للمركبة',
+                    icon: UserCheck,
+                    onClick: () => onAssignDriverClick(vehicle),
+                  });
+                }
+
+                menuItems.push({
+                  label: isActive ? 'تعطيل المركبة' : 'تفعيل المركبة',
+                  icon: Power,
+                  variant: isActive ? 'warning' : 'success',
+                  onClick: () => onChangeStatusClick(vehicle),
+                });
+
+                if (onDeleteVehicleClick) {
+                  menuItems.push({
+                    label: 'حذف المركبة',
+                    icon: Trash2,
+                    variant: 'danger',
+                    onClick: () => onDeleteVehicleClick(vehicle),
+                  });
+                }
+
+                return <ActionMenu items={menuItems} align="left" />;
+              })()}
             </div>
           );
         },
       },
     ],
-    [onAssignDriverClick, onChangeStatusClick]
+    [
+      onAssignDriverClick,
+      onChangeStatusClick,
+      onAssignTeamClick,
+      onRemoveTeamClick,
+      onUnassignDriverClick,
+      onDeleteVehicleClick,
+      teamsList,
+    ]
   );
 
   const table = useReactTable({

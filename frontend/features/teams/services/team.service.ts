@@ -3,6 +3,7 @@ import { API_PATHS } from '@/shared/constants/apiPaths';
 import type {
   Team,
   TeamsResponse,
+  TeamStatics,
   CreateTeamInput,
   UpdateTeamInput,
 } from '../types/team.types';
@@ -48,5 +49,30 @@ export const teamService = {
     if (!result.success) {
       throw new Error(result.message || 'فشل في حذف الفريق');
     }
+  },
+
+  /**
+   * Get single team details by ID
+   */
+  async getTeamById(teamId: string): Promise<Team> {
+    const result = await sendRequest<{ team: Team }>(API_PATHS.TEAMS.BY_ID(teamId));
+    if (!result.success || !result.data?.team) {
+      throw new Error(result.message || 'فشل في جلب تفاصيل الفريق');
+    }
+    return result.data.team;
+  },
+
+  /**
+   * Get team statics
+   */
+  async getTeamStatics(teamId?: string): Promise<TeamStatics | null> {
+    const path = teamId
+      ? `${API_PATHS.TEAMS.STATICS}?teamId=${teamId}`
+      : API_PATHS.TEAMS.STATICS;
+    const result = await sendRequest<{ statics: TeamStatics }>(path);
+    if (!result.success) {
+      return null;
+    }
+    return result.data?.statics ?? null;
   },
 };

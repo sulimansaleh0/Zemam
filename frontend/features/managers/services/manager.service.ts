@@ -1,4 +1,4 @@
-import { sendRequest, postRequest, deleteRequest } from '@/shared/lib/coreApi';
+import { sendRequest, postRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type {
   FleetManager,
@@ -22,6 +22,20 @@ export const managerService = {
   },
 
   /**
+   * Fetch available fleet managers (without a team)
+   */
+  async getAvailableManagers(): Promise<FleetManager[]> {
+    const result = await sendRequest<FleetManagersResponse>(
+      `${API_PATHS.MANAGERS.LIST}?withoutTeam=true`
+    );
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في جلب قائمة المدراء المتاحين');
+    }
+    const managers = result.data?.fleetManagers ?? [];
+    return managers.filter((m) => !m.teamId);
+  },
+
+  /**
    * Create a new Fleet Manager and assign to team
    */
   async createManager(payload: CreateManagerInput): Promise<FleetManager | null> {
@@ -41,7 +55,37 @@ export const managerService = {
   async deleteManager(id: string): Promise<void> {
     const result = await deleteRequest<void>(API_PATHS.MANAGERS.DELETE(id));
     if (!result.success) {
-      throw new Error(result.message || 'فشل في تعطيل حساب مدير الأسطول');
+      throw new Error(result.message || 'فشل في حذف حساب مدير الأسطول');
+    }
+  },
+
+  /**
+   * Assign manager to a team
+   */
+  async assignManager(managerId: string, teamId: string): Promise<void> {
+    const result = await postRequest<void>(API_PATHS.MANAGERS.ASSIGN(managerId), { teamId });
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في تعيين مدير الأسطول للفريق');
+    }
+  },
+
+  /**
+   * Remove manager from their team (disable team assignment)
+   */
+  async disableManager(managerId: string): Promise<void> {
+    const result = await postRequest<void>(API_PATHS.MANAGERS.DISABLE(managerId), {});
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في فك ارتباط مدير الأسطول عن الفريق');
+    }
+  },
+
+  /**
+   * Change manager status (active/inactive)
+   */
+  async changeManagerStatus(managerId: string, status: 'active' | 'inactive'): Promise<void> {
+    const result = await patchRequest<void>(API_PATHS.MANAGERS.CHANGE_STATUS(managerId), { status });
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في تغيير حالة مدير الأسطول');
     }
   },
 };

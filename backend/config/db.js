@@ -1,10 +1,15 @@
 const mongoose = require("mongoose");
+const dns = require("dns");
 
-const dns = require("node:dns");
-// يوجّه سيرفر النود في هذا التيرمينال فقط لاستخدام DNS جوجل
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-
+// حل مشكلة querySrv ECONNREFUSED بتحديد خوادم DNS عامة
+dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 exports.connectDB = async () => {
-    await mongoose.connect(process.env.DB_URL);
+    try {
+        await mongoose.connect(process.env.DB_URL);
+        console.log("Connected to MongoDB successfully");
+    } catch (err) {
+        console.error("MongoDB Connection Error:", err.message);
+        throw err;
+    }
 }

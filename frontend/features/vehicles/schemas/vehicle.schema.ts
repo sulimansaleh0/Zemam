@@ -23,6 +23,7 @@ export const vehicleFormSchema = z.object({
     .positive('رقم اللوحة يجب أن يكون أكبر من صفر'),
 
   driverId: z.string().optional(),
+  teamId: z.string().optional(),
 });
 
 export type VehicleFormValues = z.infer<typeof vehicleFormSchema>;

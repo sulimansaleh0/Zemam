@@ -6,10 +6,10 @@ module.exports = async (req, res, next) => {
     const { teamId } = req.body || {}
     try {
         if (user.teamId || teamId) {
-            let filters = { companyId: user.companyId }
-            if (teamId)
+            let filters = { companyId: user.companyId, isDeleted: false }
+            if (user.teamId)
                 filters._id = user.teamId
-            else if (user.teamId)
+            else if (teamId)
                 filters._id = teamId
 
             const team = await Team.findOne(filters);

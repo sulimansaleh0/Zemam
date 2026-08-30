@@ -33,6 +33,7 @@ export interface CreateVehicleInput {
   model: string;
   year: number;
   plateNumber: number;
+  teamId?: string;
 }
 
 /** البيانات المطلوبة لتعيين سائق لمركبة */

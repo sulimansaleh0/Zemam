@@ -36,7 +36,7 @@ export function CreateManagerModal({
     resolver: zodResolver(createManagerSchema),
     defaultValues: {
       email: '',
-      teamId: initialTeamId || teams[0]?._id || '',
+      teamId: initialTeamId || '',
     },
   });
 
@@ -44,10 +44,10 @@ export function CreateManagerModal({
     if (isOpen) {
       reset({
         email: '',
-        teamId: initialTeamId || teams[0]?._id || '',
+        teamId: initialTeamId || '',
       });
     }
-  }, [isOpen, initialTeamId, teams, reset]);
+  }, [isOpen, initialTeamId, reset]);
 
   // Handle ESC key
   useEffect(() => {
@@ -90,7 +90,7 @@ export function CreateManagerModal({
                 إضافة مدير أسطول جديد
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                إنشاء حساب مدير وتعيينه على فريق تشغيلي
+                إنشاء حساب مدير أسطول (يمكن تعيينه على فريق لاحقاً)
               </p>
             </div>
           </div>
@@ -133,7 +133,7 @@ export function CreateManagerModal({
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-[var(--muted)]" />
-              الفريق المسؤول عنه *
+              الفريق المسؤول عنه (اختياري)
             </label>
             <select
               {...register('teamId')}
@@ -143,7 +143,7 @@ export function CreateManagerModal({
                   : 'border-[var(--border)] focus:border-[var(--primary)] focus:ring-[var(--primary)]'
               }`}
             >
-              <option value="">-- اختر الفريق --</option>
+              <option value="">-- بدون فريق حالياً (تعيين لاحقاً) --</option>
               {teams.map((t) => (
                 <option key={t._id} value={t._id}>
                   {t.name}

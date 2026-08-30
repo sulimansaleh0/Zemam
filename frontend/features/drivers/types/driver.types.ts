@@ -22,6 +22,13 @@ export interface Driver extends BackendDriver {
   initials: string;
   /** لون الأفاتار — محدد بشكل ثابت بناءً على الـ ID */
   color: string;
+  /** تفاصيل المركبة المعينة له حالياً (إن وجدت) */
+  assignedVehicle?: {
+    _id: string;
+    model: string;
+    year: number;
+    plateNumber: number;
+  };
 }
 
 /** حالة السائق — تعكس قيم الباك اند مباشرة */
@@ -38,9 +45,15 @@ export type DriverSortOrder = 'newest' | 'oldest' | 'name';
 /** البيانات المرسلة لإنشاء سائق */
 export interface CreateDriverInput {
   email: string;
+  teamId?: string;
 }
 
 /** البيانات المرسلة لتغيير حالة سائق */
 export interface ChangeDriverStatusInput {
   status: DriverStatus;
+}
+
+/** البيانات المرسلة لتعيين مركبة لسائق */
+export interface AssignVehicleInput {
+  vehicleId: string;
 }

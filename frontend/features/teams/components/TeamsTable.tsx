@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Users,
   Search,
@@ -14,6 +15,7 @@ import {
   Truck,
   ArrowDownUp,
   Building2,
+  Layers,
 } from 'lucide-react';
 import type { Team, TeamFilterStatus, TeamSortOrder } from '../types/team.types';
 
@@ -26,6 +28,7 @@ interface TeamsTableProps {
   onEditClick: (team: Team) => void;
   onDeleteClick: (team: Team) => void;
   onAssignManagerClick: (team: Team) => void;
+  onAddResourcesClick?: (team: Team) => void;
   onRemoveManagerClick?: (managerId: string, teamName: string) => void;
 }
 
@@ -46,6 +49,7 @@ export function TeamsTable({
   onEditClick,
   onDeleteClick,
   onAssignManagerClick,
+  onAddResourcesClick,
   onRemoveManagerClick,
 }: TeamsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -276,9 +280,12 @@ export function TeamsTable({
                             <Users className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="font-semibold text-sm text-[var(--text)]">
+                            <Link
+                              href={`/teams/${team._id}`}
+                              className="font-semibold text-sm text-[var(--text)] hover:text-[var(--primary)] transition-colors hover:underline block"
+                            >
                               {team.name}
-                            </div>
+                            </Link>
                             <div className="text-[11px] font-mono text-[var(--muted)] mt-0.5">
                               ID: {team._id}
                             </div>
@@ -348,9 +355,7 @@ export function TeamsTable({
                         <div className="flex items-center gap-1.5 text-xs text-[var(--text)] font-medium">
                           <Building2 className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
                           <span className="truncate max-w-[140px]">
-                            {typeof team.companyId === 'object' && team.companyId?.name
-                              ? team.companyId.name
-                              : companyName || 'الشركة الرئيسية'}
+                            {companyName || 'الشركة الرئيسية'}
                           </span>
                         </div>
                       </td>
@@ -358,13 +363,14 @@ export function TeamsTable({
                       {/* Actions */}
                       <td className="py-4 px-4 sm:px-6 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          {/* Add resources (drivers/vehicles) to team */}
                           <button
                             type="button"
-                            onClick={() => onAssignManagerClick(team)}
-                            title={hasManager ? 'تغيير مدير الفريق' : 'تعيين مدير للفريق'}
-                            className="p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                            onClick={() => onAddResourcesClick?.(team)}
+                            title="إضافة سائقين ومركبات للفريق من المخزون العام"
+                            className="p-2 rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
                           >
-                            <UserPlus className="w-4 h-4" />
+                            <Layers className="w-4 h-4" />
                           </button>
 
                           <button
