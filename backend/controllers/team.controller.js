@@ -23,9 +23,9 @@ exports.createTeam = async (req, res) => {
         })
         if (managerId)
             await User.findByIdAndUpdate(managerId, { teamId: team._id })
-        await User.updateMany({ _id: { $in: [driversIds] } }, { teamId: team._id })
+        await User.updateMany({ _id: { $in: driversIds } }, { teamId: team._id })
         await Vehicle.updateMany(
-            { _id: { $in: [vehiclesIds] } },
+            { _id: { $in: vehiclesIds } },
             { teamId: team._id }
         )
         success(res, 201, { team })
@@ -55,7 +55,7 @@ exports.listTeam = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
     try {
-        const team = await Team.findOne({ _id: teamId, company: user.companyId, isDeleted: false })
+        const team = await Team.findOne({ _id: teamId, companyI: user.companyId, isDeleted: false })
         success(res, 200, { team })
     } catch (err) {
         console.log(err)
