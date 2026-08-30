@@ -37,7 +37,7 @@ exports.listVehicles = async (req, res) => {
             isDeleted: false
         }
 
-        if (filters.teamId)
+        if (teamId)
             filters.teamId = teamId
 
         if (withoutTeam === "true" && !user.teamId)
