@@ -37,7 +37,7 @@ const vehicleSchema = new mongoose.Schema({
         ref: "user"
     },
     isDeleted: {
-        type: String,
+        type: Boolean,
         default: false
     }
 })

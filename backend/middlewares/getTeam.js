@@ -3,7 +3,7 @@ const { serverError, error } = require("../utils/responses")
 
 module.exports = async (req, res, next) => {
     const user = req.user
-    const { teamId } = req.body || {}
+    const teamId = req.body?.teamId || req.params?.id || null
     try {
         if (user.teamId || teamId) {
             let filters = { companyId: user.companyId, isDeleted: false }
@@ -16,7 +16,9 @@ module.exports = async (req, res, next) => {
             if (!team) return error(res, 404, "Team not found")
 
             req.teamId = team._id
+            return next()
         }
+        req.teamId = null
         next()
     } catch (err) {
         console.log(err)

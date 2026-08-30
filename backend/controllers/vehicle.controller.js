@@ -30,12 +30,19 @@ exports.createVehicle = async (req, res) => {
 exports.listVehicles = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
+    const { withoutTeam } = req.query
     try {
         let filters = {
-            teamId,
             companyId: user.companyId,
             isDeleted: false
         }
+
+        if (filters.teamId)
+            filters.teamId = teamId
+
+        if (withoutTeam === "true" && !user.teamId)
+            filters.teamId = null
+
         const vehicles = await Vehicle.find(filters)
         success(res, 200, { vehicles })
     } catch (err) {

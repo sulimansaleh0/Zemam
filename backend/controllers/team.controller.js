@@ -38,8 +38,25 @@ exports.createTeam = async (req, res) => {
 exports.listTeams = async (req, res) => {
     const user = req.user
     try {
+        let filters = {
+            companyId: user.companyId,
+            isDeleted: false
+        }
+
         const teams = await Team.find({ companyId: user.companyId, isDeleted: false })
         success(res, 200, { teams })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.listTeam = async (req, res) => {
+    const user = req.user
+    const teamId = req.teamId
+    try {
+        const team = await Team.findOne({ _id: teamId, company: user.companyId, isDeleted: false })
+        success(res, 200, { team })
     } catch (err) {
         console.log(err)
         serverError(res)
