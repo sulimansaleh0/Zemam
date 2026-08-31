@@ -1,4 +1,5 @@
 const mongoose = require("mongoose")
+const { mainStatus } = require("../data/status")
 
 const teamSchema = new mongoose.Schema({
     name: {
@@ -13,6 +14,11 @@ const teamSchema = new mongoose.Schema({
     managerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
+    },
+    status: {
+        type: String,
+        enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
+        default: mainStatus.ACTIVE
     },
     isDeleted: {
         type: Boolean,

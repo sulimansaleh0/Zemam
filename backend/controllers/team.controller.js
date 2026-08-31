@@ -13,7 +13,7 @@ exports.createTeam = async (req, res) => {
             const isFleetManager = await User.findOne({ _id: managerId, companyId: user.companyId, role: userRoles.FLEET_MANAGER })
             if (!isFleetManager) return error(res, 400, "cant make a normal user as a fleet manager")
 
-            const isInTeam = await Team.findOne({ managerId, companyId: user.companyId })
+            const isInTeam = await Team.findOne({ managerId, companyId: user.companyId, isDeleted: false })
             if (isInTeam) return error(res, 400, "Already in a team")
         }
         const team = await Team.create({
@@ -85,13 +85,16 @@ exports.deleteTeam = async (req, res) => {
     const teamId = req.params.id || null
     if (!teamId) return error(res, 400, "team Id is required")
     try {
-        const team = await Team.findOneAndUpdate({ _id: teamId, companyId: user.companyId }, { isDeleted: true })
+        const team = await Team.findOneAndUpdate({ _id: teamId, companyId: user.companyId }, { isDeleted: true, managerId: null })
         if (!team) return error(res, 404, "Team not found")
 
         if (team.managerId) {
             await User.findByIdAndUpdate(team.managerId, { teamId: null })
         }
-
+        await Promise.all([
+            Vehicle.updateMany({ teamId: team._id }, { teamId: null, driverId: null }),
+            User.updateMany({ teamId: team._id }, { teamId: null }),
+        ])
         success(res, 200)
     } catch (err) {
         console.log(err)

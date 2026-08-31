@@ -71,7 +71,7 @@ router.delete(
 )
 
 // Set Driver To Team
-router.post("/driver/:id/assign-to-team",
+router.patch("/driver/:id/assign-to-team",
     allowedTo(userRoles.ADMIN),
     getTeam,
     setDriverToTeam
@@ -110,7 +110,7 @@ router.patch("/driver/:id/remove-from-vehicle",
 router.delete("/driver/:id", deleteDriver)
 
 // Update Status
-router.patch("/:id/status",
+router.patch("/:userId/status",
     updateUserStatusSchema,
     validate,
     getTeam,

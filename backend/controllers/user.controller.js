@@ -44,7 +44,7 @@ exports.updateProfile = async (req, res) => {
 exports.changeUserStatus = async (req, res) => {
     const { _id, companyId, role } = req.user
     const teamId = req.teamId
-    const userId = req.params.id || null
+    const userId = req.params.userId || null
     if (!userId) return error(res, 400, "User Id is required")
     const { status } = req.body
     try {
@@ -154,17 +154,19 @@ exports.assignManager = async (req, res) => {
     if (!managerId) return error(res, 400, "Manager Id is required")
     const { teamId } = req.body
     try {
-        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false, status: mainStatus.ACTIVE })
         if (!team) return error(res, 404, "Team not found")
         if (team.managerId) return error(res, 400, "Team already has a manager")
 
-        const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false })
+        const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false, status: mainStatus.ACTIVE })
         if (!manager) return error(res, 404, "Manager not found")
         if (manager.teamId) return error(res, 400, "Manager already in a team")
 
+        manager.teamId = team._id
+        team.managerId = manager._id
         await Promise.all([
-            User.findByIdAndUpdate(managerId, { teamId: team._id }),
-            Team.findByIdAndUpdate(team._id, { managerId })
+            manager.save(),
+            team.save()
         ])
         success(res, 200)
     } catch (err) {
@@ -327,10 +329,8 @@ exports.assignDriverToVehicle = async (req, res) => {
         const [driver, vehicle] = await Promise.all([
             User.findOne(driverFilters),
             Vehicle.findOne(vehicleFilters)
-            User.findOne(driverFilters),
-            Vehicle.findOne(vehicleFilters)
         ])
-        
+
         if (!driver) return error(res, 404, "Driver not found")
         if (!vehicle) return error(res, 404, "vehicle not found")
 
