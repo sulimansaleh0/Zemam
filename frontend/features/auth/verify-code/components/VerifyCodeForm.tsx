@@ -10,14 +10,13 @@ import { useVerifyCode } from '../hooks/useVerifyCode';
 
 interface Props {
   email: string;
-  token: string;
 }
 
-export function VerifyCodeForm({ email, token }: Props) {
+export function VerifyCodeForm({ email }: Props) {
   const {
     control, handleSubmit, errors, isSubmitting,
     countdown, formattedCountdown, isResending, resend,
-  } = useVerifyCode({ email, token });
+  } = useVerifyCode({ email });
 
   return (
     <>

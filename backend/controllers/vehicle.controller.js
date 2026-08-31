@@ -56,11 +56,14 @@ exports.listVehicle = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "vehicle id is required")
     try {
-        const vehicle = await Vehicle.findOne({
+        let filters = {
             _id: id,
             companyId: user.companyId,
-            teamId,
-        })
+            isDeleted: false
+        }
+        if (teamId) filters.teamId = teamId;
+
+        const vehicle = await Vehicle.findOne(filters)
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
         success(res, 200, { vehicle })
@@ -117,11 +120,13 @@ exports.changeVehicleStatus = async (req, res) => {
     if (!id) return error(res, 400, "vehicle id is required")
     const { status } = req.body
     try {
-        const vehicle = await Vehicle.findOneAndUpdate({
+        let filters = {
             _id: id,
             companyId: user.companyId,
-            teamId
-        }, {
+        };
+        if (teamId) filters.teamId = teamId;
+
+        const vehicle = await Vehicle.findOneAndUpdate(filters, {
             status
         })
 
@@ -140,7 +145,13 @@ exports.deleteVehicle = async (req, res) => {
     const vehicleId = req.params.id
     if (!vehicleId) return error(res, 400, "Vehicle Id is required")
     try {
-        const vehicle = await Vehicle.findOneAndUpdate({ _id: vehicleId, companyId: user.companyId, teamId }, { driverId: null, teamId: null, isDeleted: true })
+        let filters = {
+            _id: vehicleId,
+            companyId: user.companyId,
+        };
+        if (teamId) filters.teamId = teamId;
+
+        const vehicle = await Vehicle.findOneAndUpdate(filters, { driverId: null, teamId: null, isDeleted: true })
         if (!vehicle) return error(res, 404, "Vehicle not found")
         success(res)
     } catch (err) {

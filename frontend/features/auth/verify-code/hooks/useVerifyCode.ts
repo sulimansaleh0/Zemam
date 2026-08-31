@@ -11,10 +11,9 @@ const RESEND_COUNTDOWN = 60;
 
 interface UseVerifyCodeProps {
   email: string;
-  token: string;
 }
 
-export function useVerifyCode({ email, token }: UseVerifyCodeProps) {
+export function useVerifyCode({ email }: UseVerifyCodeProps) {
   const router       = useRouter();
   const { addToast } = useToast();
   const [countdown,   setCountdown]  = useState(RESEND_COUNTDOWN);
@@ -32,8 +31,8 @@ export function useVerifyCode({ email, token }: UseVerifyCodeProps) {
 
   // إعادة التوجيه إذا لم تكن هناك بيانات
   useEffect(() => {
-    if (!email && !token) router.replace('/forgot-password');
-  }, [email, token, router]);
+    if (!email ) router.replace('/forgot-password');
+  }, [email, router]);
 
   // عداد إعادة الإرسال
   useEffect(() => {
@@ -43,7 +42,7 @@ export function useVerifyCode({ email, token }: UseVerifyCodeProps) {
   }, [countdown]);
 
   async function onSubmit({ code }: VerifyCodeFormValues) {
-    const result = await verifyCodeService.verifyCode(token, code);
+    const result = await verifyCodeService.verifyCode(code);
 
     if (!result.success) {
       setError('root', { message: result.message });
@@ -51,8 +50,7 @@ export function useVerifyCode({ email, token }: UseVerifyCodeProps) {
     }
 
     addToast({ type: 'success', title: 'تم التحقق بنجاح', message: result.message });
-    const nextToken = result.data.token || token;
-    router.push(`/reset-password?token=${encodeURIComponent(nextToken)}`);
+    router.push(`/reset-password`);
   }
 
   async function resend() {
@@ -70,11 +68,6 @@ export function useVerifyCode({ email, token }: UseVerifyCodeProps) {
     setCountdown(RESEND_COUNTDOWN);
     addToast({ type: 'info', title: 'تم إعادة الإرسال', message: result.message });
 
-    if (result.data.token && result.data.token !== token) {
-      router.replace(
-        `/verify-code?email=${encodeURIComponent(email)}&token=${encodeURIComponent(result.data.token)}`,
-      );
-    }
   }
 
   const formattedCountdown = `00:${countdown.toString().padStart(2, '0')}`;

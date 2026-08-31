@@ -1,7 +1,7 @@
 'use client';
 
-import { Star } from 'lucide-react';
-import { Driver } from '../types/driver.types';
+import type { Driver } from '../types/driver.types';
+import { getDriverDisplayName, formatRelativeDate } from '../utils/driverHelpers';
 import { DriverAvatar } from './DriverAvatar';
 import { StatusPill } from './StatusPill';
 
@@ -12,6 +12,8 @@ interface DriverCardProps {
 }
 
 export function DriverCard({ driver, selected, onSelect }: DriverCardProps) {
+  const displayName = getDriverDisplayName(driver);
+
   return (
     <button
       onClick={onSelect}
@@ -22,39 +24,23 @@ export function DriverCard({ driver, selected, onSelect }: DriverCardProps) {
           : 'border-[var(--zd-line)] bg-[var(--zd-surface)] hover:border-[var(--zd-blue)]/40'
       }`}
     >
+      {/* ── Header ── */}
       <div className="flex items-start gap-3">
-        <DriverAvatar driver={driver} />
+        <DriverAvatar driver={driver} size="md" />
         <span className="min-w-0 flex-1">
           <b className="block truncate text-[14px] font-semibold text-[var(--zd-text)]">
-            {driver.name}
+            {displayName}
           </b>
-          <span className="mt-0.5 block text-[10px] text-[var(--zd-muted)]">
-            {driver.phone}
+          <span className="mt-0.5 block truncate text-[10px] text-[var(--zd-muted)]" dir="ltr">
+            {driver.email}
           </span>
         </span>
         <StatusPill status={driver.status} />
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[var(--zd-line)] pt-3 text-right">
-        <span>
-          <small className="block text-[9px] text-[var(--zd-muted)]">التقييم</small>
-          <b className="mt-0.5 flex items-center gap-1 font-manrope text-[12px] text-[var(--zd-text)]">
-            <Star className="h-3 w-3 fill-[var(--zd-amber)] text-[var(--zd-amber)]" />
-            {driver.rating}
-          </b>
-        </span>
-        <span>
-          <small className="block text-[9px] text-[var(--zd-muted)]">الرحلات</small>
-          <b className="mt-0.5 block font-manrope text-[12px] text-[var(--zd-text)]">
-            {driver.trips}
-          </b>
-        </span>
-        <span>
-          <small className="block text-[9px] text-[var(--zd-muted)]">المركبة</small>
-          <b className="mt-0.5 block truncate text-[11px] text-[var(--zd-text)]">
-            {driver.vehicle}
-          </b>
-        </span>
+      {/* ── Footer ── */}
+      <div className="mt-3 border-t border-[var(--zd-line)] pt-3 text-[10px] text-[var(--zd-muted)]">
+        انضم {formatRelativeDate(driver.createdAt)}
       </div>
     </button>
   );

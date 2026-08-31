@@ -28,12 +28,7 @@ export function useForgotPassword() {
     }
 
     addToast({ type: 'info', title: 'تم إرسال رمز التحقق', message: result.message });
-
-    const tokenParam = result.data.token
-      ? `&token=${encodeURIComponent(result.data.token)}`
-      : '';
-
-    router.push(`/verify-code?email=${encodeURIComponent(email)}${tokenParam}`);
+    router.push(`/verify-code?email=${encodeURIComponent(email)}`);
   }
 
   return {

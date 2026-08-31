@@ -4,10 +4,10 @@ import { VerifyCodeForm } from '@/features/auth/verify-code/components/VerifyCod
 export const metadata: Metadata = { title: 'التحقق من الرمز' };
 
 interface Props {
-  searchParams: Promise<{ email?: string; token?: string }>;
+  searchParams: Promise<{ email?: string }>;
 }
 
 export default async function VerifyCodePage({ searchParams }: Props) {
-  const { email = '', token = '' } = await searchParams;
-  return <VerifyCodeForm email={decodeURIComponent(email)} token={decodeURIComponent(token)} />;
+  const { email = '' } = await searchParams;
+  return <VerifyCodeForm email={decodeURIComponent(email)} />;
 }

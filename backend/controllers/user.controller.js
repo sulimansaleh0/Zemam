@@ -2,6 +2,7 @@ const User = require("../models/user.model")
 const Team = require("../models/team.model")
 const Vehicle = require("../models/vehicle.model")
 const { userRoles } = require("../data/roles")
+const { mainStatus } = require("../data/status")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 
@@ -326,6 +327,8 @@ exports.assignDriverToVehicle = async (req, res) => {
         const [driver, vehicle] = await Promise.all([
             User.findOne(driverFilters),
             Vehicle.findOne(vehicleFilters)
+            User.findOne(driverFilters),
+            Vehicle.findOne(vehicleFilters)
         ])
         
         if (!driver) return error(res, 404, "Driver not found")
@@ -346,8 +349,11 @@ exports.assignDriverToVehicle = async (req, res) => {
         if (driver.status !== mainStatus.ACTIVE)
             return error(res, 400, "Driver is not active")
 
-        const hasVehicle = await Vehicle.findOne({ driverId, companyId: user.companyId })
-        if (hasVehicle) return error(res, 400, "Driver already has a car")
+        // Unlink driver from any previous vehicle in the company
+        await Vehicle.updateMany(
+            { driverId, companyId: user.companyId, _id: { $ne: vehicle._id } },
+            { driverId: null }
+        )
 
         vehicle.driverId = driverId
         await vehicle.save()
@@ -380,11 +386,13 @@ exports.deleteDriver = async (req, res) => {
     const driverId = req.params.id || null
     if (!driverId) return error(res, 400, "Driver Id is required")
     try {
-        const driver = await User.findOneAndUpdate({
+        let filters = {
             _id: driverId,
             companyId: user.companyId,
-            teamId
-        }, {
+        };
+        if (teamId) filters.teamId = teamId;
+
+        const driver = await User.findOneAndUpdate(filters, {
             isDeleted: true,
             teamId: null
         })

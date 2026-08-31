@@ -6,6 +6,6 @@ export interface VerifyCodeResponse {
 }
 
 export const verifyCodeService = {
-  verifyCode: (token: string, otp: string) =>
-    postRequest<VerifyCodeResponse>(API_PATHS.AUTH.VERIFY_CODE, { token, otp }),
+  verifyCode: (otp: string, token?: string) =>
+    postRequest<VerifyCodeResponse>(API_PATHS.AUTH.VERIFY_CODE, { otp, ...(token ? { token } : {}) }),
 } as const;

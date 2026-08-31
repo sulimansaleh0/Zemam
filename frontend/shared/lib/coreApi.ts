@@ -1,6 +1,7 @@
 import type { ServiceResult } from '../types/api.types';
+import { API_PATHS } from '../constants/apiPaths';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const DEFAULT_TIMEOUT_MS = 10000; // 10 seconds
 
 function fallbackMessage(status: number): string {
@@ -25,7 +26,8 @@ let refreshPromise: Promise<boolean> | null = null;
 
 async function executeRefreshToken(): Promise<boolean> {
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
+    const url = BASE_URL ? `${BASE_URL}/${API_PATHS.AUTH.REFRESH_TOKEN}` : `/${API_PATHS.AUTH.REFRESH_TOKEN}`;
+    const res = await fetch(url, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -57,7 +59,8 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
   const signal = fetchOptions.signal || controller.signal;
 
   try {
-    const res = await fetch(`${BASE_URL}/${path}`, {
+    const url = BASE_URL ? `${BASE_URL}/${path}` : `/${path}`;
+    const res = await fetch(url, {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       ...fetchOptions,
@@ -71,14 +74,14 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
 
     if (!res.ok) {
       const isAuthEndpoint =
-        path.startsWith('auth/login') ||
-        path.startsWith('auth/signup') ||
-        path.startsWith('auth/logout') ||
-        path.startsWith('auth/google') ||
-        path.startsWith('auth/verify-email') ||
-        path.startsWith('auth/verify-otp') ||
-        path.startsWith('auth/reset-password') ||
-        path.startsWith('auth/refresh-token');
+        path.includes('auth/login') ||
+        path.includes('auth/signup') ||
+        path.includes('auth/logout') ||
+        path.includes('auth/google') ||
+        path.includes('auth/verify-email') ||
+        path.includes('auth/verify-otp') ||
+        path.includes('auth/reset-password') ||
+        path.includes('auth/refresh-token');
 
       // اعتراض رد 401 وتجديد التوكن تلقائياً ثم إعادة تنفيذ الطلب
       if (res.status === 401 && !_retry && !isAuthEndpoint) {
@@ -120,5 +123,19 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
  */
 export function postRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
   return sendRequest<T>(path, { method: 'POST', body: JSON.stringify(body), ...options });
+}
+
+/**
+ * دالة مساعدة لطلبات PATCH
+ */
+export function patchRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
+  return sendRequest<T>(path, { method: 'PATCH', body: JSON.stringify(body), ...options });
+}
+
+/**
+ * دالة مساعدة لطلبات DELETE
+ */
+export function deleteRequest<T>(path: string, options?: RequestOptions): Promise<ServiceResult<T>> {
+  return sendRequest<T>(path, { method: 'DELETE', ...options });
 }
 
