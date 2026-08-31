@@ -91,13 +91,10 @@ exports.deleteTeam = async (req, res) => {
         if (team.managerId) {
             await User.findByIdAndUpdate(team.managerId, { teamId: null })
         }
-
-        // Unlink all drivers in this team
-        await User.updateMany({ teamId: team._id }, { teamId: null })
-
-        // Unlink all vehicles in this team (and unassign their drivers)
-        await Vehicle.updateMany({ teamId: team._id }, { teamId: null, driverId: null })
-
+        await Promise.all([
+            Vehicle.updateMany({ teamId: team._id }, { teamId: null, driverId: null }),
+            User.updateMany({ teamId: team._id }, { teamId: null }),
+        ])
         success(res, 200)
     } catch (err) {
         console.log(err)
