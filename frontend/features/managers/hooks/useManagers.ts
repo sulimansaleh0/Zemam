@@ -60,7 +60,7 @@ export function useCreateManager() {
       addToast({
         type: 'success',
         title: 'تم إنشاء الحساب',
-        message: 'تمت إضافة مدير الأسطول وربطه بالفريق بنجاح',
+        message: 'تمت إضافة مدير الأسطول بنجاح',
       });
     },
     onError: (err: Error) => {

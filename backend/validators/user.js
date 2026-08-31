@@ -137,8 +137,7 @@ exports.createUserSchema = [
         .isEmail()
         .withMessage("Not valid email"),
     body("teamId")
-        .trim()
-        .optional()
+        .optional({ values: "falsy" })
         .isMongoId()
         .withMessage("Invalid Team Id")
 ]

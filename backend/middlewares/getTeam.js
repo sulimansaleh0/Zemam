@@ -3,7 +3,7 @@ const { serverError, error } = require("../utils/responses")
 
 module.exports = async (req, res, next) => {
     const user = req.user
-    const teamId = req.body?.teamId || req.params?.id || null
+    const teamId = req.body?.teamId || req.query?.teamId || (req.baseUrl?.includes("team") ? req.params?.id : null) || null
     try {
         if (user.teamId || teamId) {
             let filters = { companyId: user.companyId, isDeleted: false }

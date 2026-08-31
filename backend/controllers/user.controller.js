@@ -52,7 +52,10 @@ exports.changeUserStatus = async (req, res) => {
         if (role === userRoles.ADMIN) allowedRoles = [userRoles.FLEET_MANAGER, userRoles.DRIVER]
         if (role === userRoles.FLEET_MANAGER) allowedRoles = [userRoles.DRIVER]
 
-        const user = await User.findOne({ _id: userId, teamId, companyId })
+        let filters = { _id: userId, companyId }
+        if (teamId) filters.teamId = teamId
+
+        const user = await User.findOne(filters)
         if (!user) return error(res, 404, "User not found")
         if (user.role === userRoles.ADMIN) return error(res, 400, "Cant change Admin status")
         if (user._id.toString() === _id.toString()) return error(res, 400, "Cant change your status")
@@ -72,7 +75,7 @@ exports.changeUserStatus = async (req, res) => {
 // Fleet Manager
 exports.createFleetManager = async (req, res) => {
     const user = req.user
-    const teamId = req.teamId || null
+    const teamId = req.teamId
     const { email } = req.body
     try {
         const isFound = await User.findOne({ email })
@@ -81,7 +84,7 @@ exports.createFleetManager = async (req, res) => {
         // const password = crypto.randomBytes(6).toString("base64url").slice(0, 8)
         const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)
-        await User.create({
+        const fleetManager = await User.create({
             email,
             password: passwordHash,
             companyId: user.companyId,
@@ -90,9 +93,9 @@ exports.createFleetManager = async (req, res) => {
         })
 
         if (teamId)
-            await Team.findByIdAndUpdate(teamId, { managerId: user._id })
+            await Team.findByIdAndUpdate(teamId, { managerId: fleetManager._id })
 
-        success(res, 201)
+        success(res, 201, { fleetManager })
         // sendRegisterEmail({ email, password })
     } catch (err) {
         console.log(err)
@@ -129,14 +132,16 @@ exports.deleteFleetManager = async (req, res) => {
     if (!fleetManagerId) return error(res, 400, "fleet manager id is required")
     try {
         const manager = await User.findOneAndUpdate({ _id: fleetManagerId, companyId: user.companyId }, {
-            isDeleted: true
+            isDeleted: true,
+            teamId: null
         })
         if (!manager) return error(res, 404, "Manager not found")
-        // if had a team
-        if (manager.teamId)
+        if (manager.teamId) {
             await Team.findByIdAndUpdate(manager.teamId, {
                 managerId: null
             })
+        }
+        await Team.updateMany({ managerId: fleetManagerId, companyId: user.companyId }, { managerId: null })
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -152,11 +157,19 @@ exports.assignManager = async (req, res) => {
     try {
         const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
         if (!team) return error(res, 404, "Team not found")
-        if (team.managerId) return error(res, 400, "Team already has a manager")
 
         const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false })
         if (!manager) return error(res, 404, "Manager not found")
-        if (manager.teamId) return error(res, 400, "Manager already in a team")
+
+        // If team already had another manager, unlink the old manager
+        if (team.managerId && team.managerId.toString() !== managerId) {
+            await User.findByIdAndUpdate(team.managerId, { teamId: null })
+        }
+
+        // If manager had an old team, unlink from that old team
+        if (manager.teamId && manager.teamId.toString() !== teamId) {
+            await Team.findByIdAndUpdate(manager.teamId, { managerId: null })
+        }
 
         await Promise.all([
             User.findByIdAndUpdate(managerId, { teamId: team._id }),
@@ -172,13 +185,15 @@ exports.assignManager = async (req, res) => {
 exports.removeFleetManager = async (req, res) => {
     const user = req.user
     const managerId = req.params.id || null
-    if (!managerId) return error(res, 400, "Manager Is is required")
+    if (!managerId) return error(res, 400, "Manager Id is required")
     try {
         const manager = await User.findOne({ _id: managerId, companyId: user.companyId })
         if (!manager) return error(res, 404, "Manager not found")
-        if (!manager.teamId) return error(res, 400, "Manager has no team")
 
-        await Team.findByIdAndUpdate(manager.teamId, { managerId: null })
+        if (manager.teamId) {
+            await Team.findByIdAndUpdate(manager.teamId, { managerId: null })
+        }
+        await Team.updateMany({ managerId, companyId: user.companyId }, { managerId: null })
 
         manager.teamId = null
         await manager.save()
@@ -192,7 +207,7 @@ exports.removeFleetManager = async (req, res) => {
 // Driver
 exports.createDriver = async (req, res) => {
     const user = req.user
-    const teamId = req.teamId || null
+    const teamId = req.teamId
     const { email, vehicleId } = req.body
     try {
         const isFound = await User.findOne({ email })
@@ -221,7 +236,7 @@ exports.createDriver = async (req, res) => {
             )
         }
 
-        success(res, 201)
+        success(res, 201, { driver })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -241,8 +256,7 @@ exports.listDrivers = async (req, res) => {
 
         if (teamId)
             filters.teamId = teamId
-
-        if (withoutTeam === "true" && !user.teamId)
+        else if (withoutTeam === "true" && !user.teamId)
             filters.teamId = null
 
         const drivers = await User.find(filters)
@@ -288,9 +302,10 @@ exports.removeDriverFromTeam = async (req, res) => {
         if (!driver) return error(res, 404, "Driver not found")
         if (!driver.teamId) return error(res, 400, "Driver dont have a team")
 
+        await Vehicle.findOneAndUpdate({ driverId, companyId: user.companyId }, { driverId: null })
+        
         driver.teamId = null
         await driver.save()
-
         success(res)
     } catch (err) {
         console.log(err)
@@ -319,7 +334,7 @@ exports.assignDriverToVehicle = async (req, res) => {
             User.findOne(driverFilters),
             Vehicle.findOne(vehicleFilters)
         ])
-        if (!driver) return error(res, 404, "user not found")
+        if (!driver) return error(res, 404, "Driver not found")
         if (!vehicle) return error(res, 404, "vehicle not found")
 
         if (!driver.teamId) return error(res, 400, "Driver should have a team")
@@ -328,16 +343,13 @@ exports.assignDriverToVehicle = async (req, res) => {
         if (driver.teamId.toString() !== vehicle.teamId.toString())
             return error(res, 400, "Driver and Vehicle must be in the same team")
 
-        if (vehicle.driverId)
-            return error(res, 400, "Vehicle already has a driver")
-
         if (driver.role !== userRoles.DRIVER)
             return error(res, 400, "User is not a driver")
 
         if (driver.status !== mainStatus.ACTIVE)
             return error(res, 400, "Driver is not active")
 
-        // Unlink driver from any previous vehicle in the company
+        // Unlink driver from any previous vehicle
         await Vehicle.updateMany(
             { driverId, companyId: user.companyId, _id: { $ne: vehicle._id } },
             { driverId: null }
@@ -360,8 +372,8 @@ exports.removeDriverFromVehicle = async (req, res) => {
         const driver = await User.findOne({ _id: driverId, companyId })
         if (!driver) return error(res, 404, "Driver not found")
 
-        await Vehicle.findOneAndUpdate({ driverId }, { driverId: null })
-        success(res)
+        await Vehicle.findOneAndUpdate({ driverId, companyId }, { driverId: null })
+        success(res, 200)
     } catch (err) {
         console.log(err)
         serverError(res)

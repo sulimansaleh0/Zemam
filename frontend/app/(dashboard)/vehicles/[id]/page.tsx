@@ -295,7 +295,9 @@ export default function VehicleDetailPage() {
                       <button
                         type="button"
                         onClick={async () => {
-                          await unassignDriverMutation.mutateAsync(vehicle._id);
+                          if (vehicle.driverId) {
+                            await unassignDriverMutation.mutateAsync(vehicle.driverId);
+                          }
                         }}
                         disabled={unassignDriverMutation.isPending}
                         className="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
