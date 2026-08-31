@@ -77,12 +77,6 @@ router.post("/driver/:id/assign-to-team",
     setDriverToTeam
 )
 
-// Remove Driver From Team
-router.post("/driver/:id/remove-from-team",
-    allowedTo(userRoles.ADMIN),
-    removeDriverFromTeam
-)
-
 router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
 router.use(getTeam)
 
@@ -97,12 +91,18 @@ router.post("/driver",
 router.get("/driver", listDrivers)
 
 // Assign Driver to a vehicle
-router.post("/driver/:id/assign-to-vehicle",
+router.patch("/driver/:id/assign-to-vehicle",
     assignDriverToVehicle
 )
 
+// Remove Driver From Team
+router.patch("/driver/:id/remove-from-team",
+    allowedTo(userRoles.ADMIN),
+    removeDriverFromTeam
+)
+
 // Remove Driver from a vehicle
-router.post("/driver/:id/remove-from-vehicle",
+router.patch("/driver/:id/remove-from-vehicle",
     removeDriverFromVehicle
 )
 
