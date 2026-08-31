@@ -129,6 +129,9 @@ export function useDeleteTeam() {
     mutationFn: (teamId: string) => teamService.deleteTeam(teamId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['managers'] });
       addToast({
         type: 'success',
         title: 'تم الحذف',

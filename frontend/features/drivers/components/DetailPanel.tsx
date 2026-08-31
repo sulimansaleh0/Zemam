@@ -132,7 +132,7 @@ export function DetailPanel({
                   />
                   {/* Menu */}
                   <div className="absolute left-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-lg p-1">
-                    {driver.teamId ? (
+                    {Boolean(teamName) ? (
                       <button
                         onClick={() => { onUnassignTeam?.(driver); setMenuOpen(false); }}
                         className="zd-focus flex w-full items-center gap-2 px-3 py-2 text-[11px] font-medium text-amber-600 dark:text-amber-400 transition-colors hover:bg-amber-500/10 rounded-lg cursor-pointer"

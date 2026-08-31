@@ -17,6 +17,7 @@ import {
 import {
   CreateManagerModal,
   DeleteManagerModal,
+  useDisableManager,
   type FleetManager,
 } from '@/features/managers';
 import { useVehicles } from '@/features/vehicles';
@@ -72,15 +73,18 @@ export default function TeamsPage() {
     setIsAssignManagerModalOpen(true);
   };
 
+  const disableManagerMutation = useDisableManager();
+
   const handleOpenAddResources = (team: Team) => {
     setSelectedTeamForResources(team);
   };
 
-  const handleOpenRemoveManager = (managerId: string, teamName: string) => {
-    setSelectedManagerForDelete({
-      manager: { _id: managerId, email: 'مدير الفريق', status: 'active' },
-      teamName,
-    });
+  const handleOpenRemoveManager = async (managerId: string) => {
+    try {
+      await disableManagerMutation.mutateAsync(managerId);
+    } catch {
+      // Handled by toast
+    }
   };
 
   return (

@@ -33,7 +33,7 @@ export function AssignVehicleModal({
   // تصفية المركبات المتاحة في نفس فريق السائق فقط
   const teamVehicles = vehicles.filter((v) => {
     const vTeamId = typeof v.teamId === 'object' && v.teamId ? (v.teamId as any)._id : v.teamId;
-    return vTeamId === driverTeamId;
+    return String(vTeamId) === String(driverTeamId);
   });
 
   // Close on Escape

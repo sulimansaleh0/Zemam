@@ -279,9 +279,15 @@ export default function TeamDetailPage() {
                           ({managerObj?.email ||
                             (typeof team.managerId === 'object' ? team.managerId?.email : '')})
                         </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3" /> نشط
-                        </span>
+                        {managerObj?.status === 'active' || (typeof team.managerId === 'object' && team.managerId && (team.managerId as any).status === 'active') ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3" /> نشط
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-semibold border border-amber-500/20">
+                            <AlertCircle className="w-3 h-3" /> غير نشط
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span className="text-xs text-[var(--muted)] italic mt-0.5 block">

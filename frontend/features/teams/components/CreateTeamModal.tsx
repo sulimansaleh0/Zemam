@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Users, UserCheck, Car, Shield, Loader2 } from 'lucide-react';
 import { createTeamSchema, CreateTeamFormValues } from '../schemas/team.schema';
-import { useCreateTeam } from '../hooks/useTeams';
+import { useCreateTeam, useTeams } from '../hooks/useTeams';
 import { useManagers } from '@/features/managers';
 import { useDriversList } from '@/features/drivers';
 import { useVehicles } from '@/features/vehicles';
@@ -22,14 +22,21 @@ export function CreateTeamModal({ isOpen, onClose }: CreateTeamModalProps) {
   const { data: managersList = [] } = useManagers();
   const { data: driversList = [] } = useDriversList();
   const { data: vehiclesList = [] } = useVehicles();
+  const { data: teamsList = [] } = useTeams();
 
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
 
-  // Only show managers, drivers, and vehicles not yet assigned to a team
-  const availableManagers = managersList.filter((m) => !m.teamId);
-  const availableDrivers = driversList.filter((d) => !d.teamId);
-  const availableVehicles = vehiclesList.filter((v) => !v.teamId);
+  // Only show managers, drivers, and vehicles not yet assigned to an active team
+  const availableManagers = managersList.filter((m) => !m.teamId || !teamsList.some((t) => t._id === m.teamId));
+  const availableDrivers = driversList.filter((d) => {
+    const dTeamId = typeof d.teamId === 'object' && d.teamId ? (d.teamId as any)._id : d.teamId;
+    return !dTeamId || !teamsList.some((t) => t._id === dTeamId);
+  });
+  const availableVehicles = vehiclesList.filter((v) => {
+    const vTeamId = typeof v.teamId === 'object' && v.teamId ? (v.teamId as any)._id : v.teamId;
+    return !vTeamId || !teamsList.some((t) => t._id === vTeamId);
+  });
 
   const {
     register,

@@ -214,7 +214,11 @@ export function VehiclesTable({
         cell: ({ row }) => {
           const vehicle = row.original;
           const isActive = vehicle.status === 'active';
-          const hasTeam = Boolean(vehicle.teamId);
+          const teamIdStr =
+            typeof vehicle.teamId === 'object' && vehicle.teamId
+              ? (vehicle.teamId as any)._id
+              : vehicle.teamId;
+          const hasTeam = Boolean(teamIdStr && teamsList.some((t) => t._id === teamIdStr));
           const hasDriver = Boolean(vehicle.driverId);
 
           return (

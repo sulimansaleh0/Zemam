@@ -113,7 +113,6 @@ router.delete("/driver/:id", deleteDriver)
 router.patch("/:id/status",
     updateUserStatusSchema,
     validate,
-    getTeam,
     changeUserStatus
 )
 

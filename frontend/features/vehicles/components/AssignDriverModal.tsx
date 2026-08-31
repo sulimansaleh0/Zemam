@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { X, UserCheck, Car, Loader2, Unlink, AlertTriangle } from 'lucide-react';
 import { assignDriverSchema, AssignDriverFormValues } from '../schemas/vehicle.schema';
 import { VehicleWithRelations } from '../types/vehicle.types';
-import { useAssignDriver, useUnassignDriver, useAvailableDrivers } from '../hooks/useVehicles';
+import { useAssignDriver, useUnassignDriver, useAvailableDrivers, useVehicles } from '../hooks/useVehicles';
 
 interface AssignDriverModalProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ export function AssignDriverModal({
   targetVehicle,
 }: AssignDriverModalProps) {
   const { drivers: availableDrivers, isLoading: isLoadingDrivers } = useAvailableDrivers();
+  const { data: allVehicles = [] } = useVehicles();
   const assignDriverMutation = useAssignDriver();
   const unassignDriverMutation = useUnassignDriver();
 
@@ -32,7 +33,7 @@ export function AssignDriverModal({
   // تصفية السائقين التابعين لنفس فريق المركبة فقط
   const teamDrivers = availableDrivers.filter((d) => {
     const dTeamId = typeof d.teamId === 'object' && d.teamId ? (d.teamId as any)._id : d.teamId;
-    return dTeamId === vehicleTeamId;
+    return String(dTeamId) === String(vehicleTeamId);
   });
 
   const {
@@ -193,11 +194,22 @@ export function AssignDriverModal({
                 }`}
               >
                 <option value="">-- اختر السائق من القائمة --</option>
-                {teamDrivers.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.name !== 'Default' ? d.name : d.email.split('@')[0]} ({d.email})
-                  </option>
-                ))}
+                {teamDrivers.map((d) => {
+                  const isCurrentDriver = targetVehicle.driverId === d._id;
+                  const assignedVehicle = !isCurrentDriver
+                    ? allVehicles.find((v) => v.driverId === d._id)
+                    : null;
+                  return (
+                    <option key={d._id} value={d._id}>
+                      {d.name !== 'Default' ? d.name : d.email.split('@')[0]} ({d.email})
+                      {isCurrentDriver
+                        ? ' ✓ (السائق الحالي)'
+                        : assignedVehicle
+                        ? ` ⚠️ (معين لـ ${assignedVehicle.model} - ${assignedVehicle.plateNumber})`
+                        : ' • (متاح)'}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
