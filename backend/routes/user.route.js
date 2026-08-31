@@ -50,7 +50,7 @@ router.get("/fleet-manager",
 )
 
 // Assign Manager to a Team
-router.post("/fleet-manager/:id/team",
+router.patch("/fleet-manager/:id/assign-to-team",
     allowedTo(userRoles.ADMIN),
     assignManagerSchema,
     validate,
@@ -58,7 +58,7 @@ router.post("/fleet-manager/:id/team",
 )
 
 // Delete Manager from a Team
-router.post("/fleet-manager/:id/team",
+router.patch("/fleet-manager/:id/remove-from-team",
     allowedTo(userRoles.ADMIN),
     removeFleetManager
 )
