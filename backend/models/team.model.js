@@ -13,7 +13,7 @@ const teamSchema = new mongoose.Schema({
     },
     managerId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "user",
     },
     status: {
         type: String,
@@ -26,8 +26,5 @@ const teamSchema = new mongoose.Schema({
     }
 })
 
-const Team = mongoose.models.team || mongoose.models.Team || mongoose.model("team", teamSchema)
-if (!mongoose.models.Team) {
-    mongoose.model("Team", teamSchema)
-}
+const Team = mongoose.model("team", teamSchema)
 module.exports = Team

@@ -50,14 +50,13 @@ router.get("/fleet-manager",
 )
 
 // Assign Manager to a Team
-router.route("/fleet-manager/:id/assign-to-team")
-    .patch(allowedTo(userRoles.ADMIN), assignManagerSchema, validate, assignManager)
-    // .post(allowedTo(userRoles.ADMIN), assignManagerSchema, validate, assignManager)
+router.patch("/fleet-manager/:id/assign-to-team", allowedTo(userRoles.ADMIN), assignManagerSchema, validate, assignManager)
 
 // Delete Manager from a Team
-router.route("/fleet-manager/:id/remove-from-team")
-    .patch(allowedTo(userRoles.ADMIN), removeFleetManager)
-    // .post(allowedTo(userRoles.ADMIN), removeFleetManager)
+router.patch("/fleet-manager/:id/remove-from-team",
+    allowedTo(userRoles.ADMIN),
+    removeFleetManager
+)
 
 // delete Manager
 router.delete(
@@ -67,9 +66,11 @@ router.delete(
 )
 
 // Set Driver To Team
-router.route("/driver/:id/assign-to-team")
-    .patch(allowedTo(userRoles.ADMIN), getTeam, setDriverToTeam)
-    // .post(allowedTo(userRoles.ADMIN), getTeam, setDriverToTeam)
+router.patch("/driver/:id/assign-to-team",
+    allowedTo(userRoles.ADMIN),
+    getTeam,
+    setDriverToTeam
+)
 
 router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
 router.use(getTeam)
@@ -84,19 +85,14 @@ router.post("/driver",
 // Get Drivers
 router.get("/driver", listDrivers)
 
-// Assign Driver to a vehicle
-router.route("/driver/:id/assign-to-vehicle")
-    .patch(assignDriverToVehicle)
-    // .post(assignDriverToVehicle)
-
 // Remove Driver From Team
-router.route("/driver/:id/remove-from-team").patch(removeDriverFromTeam)
+router.patch("/driver/:id/remove-from-team", removeDriverFromTeam)
 
+// Assign Driver to a vehicle
+router.patch("/driver/:id/assign-to-vehicle", assignDriverToVehicle)
 
 // Remove Driver from a vehicle
-router.route("/driver/:id/remove-from-vehicle")
-    .patch(removeDriverFromVehicle)
-    // .post(removeDriverFromVehicle)
+router.patch("/driver/:id/remove-from-vehicle", removeDriverFromVehicle)
 
 // Delete Driver
 router.delete("/driver/:id", deleteDriver)
