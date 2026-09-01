@@ -261,8 +261,17 @@ export function ManagersTable({
                     typeof manager.teamId === 'object'
                       ? manager.teamId?._id
                       : manager.teamId;
-                  const teamName = teamIdStr ? teamMap[teamIdStr] : null;
+                  const teamName =
+                    typeof manager.teamId === 'object' && manager.teamId?.name
+                      ? manager.teamId.name
+                      : teamIdStr
+                      ? teamMap[teamIdStr]
+                      : null;
                   const isActive = (manager.status || 'active').toLowerCase() === 'active';
+                  const displayName =
+                    manager.name && manager.name !== 'Default'
+                      ? manager.name
+                      : manager.email.split('@')[0];
 
                   return (
                     <tr
@@ -273,11 +282,11 @@ export function ManagersTable({
                       <td className="py-4 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-[var(--primary-light)] text-[var(--primary)] font-bold text-xs flex items-center justify-center uppercase shrink-0">
-                            {manager.name ? manager.name[0] : manager.email[0]}
+                            {displayName[0]}
                           </div>
                           <div className="min-w-0">
                             <div className="font-semibold text-sm text-[var(--text)] truncate">
-                              {manager.name || 'مدير أسطول'}
+                              {displayName}
                             </div>
                             <div
                               className="text-xs text-[var(--muted)] flex items-center gap-1 mt-0.5 truncate font-mono"

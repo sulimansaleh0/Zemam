@@ -261,7 +261,7 @@ export function TeamsTable({
                       : null;
                   const managerName =
                     typeof manager === 'object' && manager !== null
-                      ? manager.name || manager.email.split('@')[0]
+                      ? (manager.name && manager.name !== 'Default' ? manager.name : manager.email.split('@')[0])
                       : null;
                   const managerEmail =
                     typeof manager === 'object' && manager !== null

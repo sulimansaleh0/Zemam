@@ -5,8 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Car, Calendar, Hash, UserCheck, Users, Loader2 } from 'lucide-react';
 import { vehicleFormSchema, VehicleFormValues } from '../schemas/vehicle.schema';
-import { useCreateVehicle, useAssignDriver, useAvailableDrivers } from '../hooks/useVehicles';
+import { useCreateVehicle, useAvailableDrivers, useAssignDriver } from '../hooks/useVehicles';
 import { useTeams } from '@/features/teams';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface VehicleFormModalProps {
   isOpen: boolean;
@@ -14,12 +15,34 @@ interface VehicleFormModalProps {
 }
 
 export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
+  const { user } = useAuth();
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
+
   const { data: teamsList = [], isLoading: isLoadingTeams } = useTeams();
-  const { drivers: availableDrivers, isLoading: isLoadingDrivers } = useAvailableDrivers();
+  const { drivers: availableDrivers = [], isLoading: isLoadingDrivers } = useAvailableDrivers();
   const createVehicleMutation = useCreateVehicle();
   const assignDriverMutation = useAssignDriver();
 
   const isSubmitting = createVehicleMutation.isPending || assignDriverMutation.isPending;
+
+  const userTeamId =
+    typeof user?.teamId === 'object' && user?.teamId !== null
+      ? (user.teamId as any)._id
+      : user?.teamId;
+
+  const userTeamName =
+    (typeof user?.teamId === 'object' && (user.teamId as any)?.name) ||
+    teamsList.find((t) => t._id === userTeamId)?.name ||
+    'فريقك التشغيلي';
+
+  // If fleet manager, filter drivers to only their team
+  const filteredDrivers = isFleetManager && userTeamId
+    ? availableDrivers.filter((d) => {
+        const dTeamId = typeof d.teamId === 'object' && d.teamId ? (d.teamId as any)._id : d.teamId;
+        return String(dTeamId) === String(userTeamId);
+      })
+    : availableDrivers;
 
   const {
     register,
@@ -32,7 +55,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
       model: '',
       year: new Date().getFullYear(),
       plateNumber: '' as unknown as number,
-      teamId: '',
+      teamId: isFleetManager && userTeamId ? userTeamId : '',
       driverId: '',
     },
   });
@@ -44,11 +67,11 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
         model: '',
         year: new Date().getFullYear(),
         plateNumber: '' as unknown as number,
-        teamId: '',
+        teamId: isFleetManager && userTeamId ? userTeamId : '',
         driverId: '',
       });
     }
-  }, [isOpen, reset]);
+  }, [isOpen, isFleetManager, userTeamId, reset]);
 
   // Handle ESC key
   useEffect(() => {
@@ -59,15 +82,18 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isSubmitting, onClose]);
 
-  if (!isOpen) return null;
+  const isSubmittingRef = React.useRef(false);
 
   const onSubmit = async (values: VehicleFormValues) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     try {
+      const assignedTeamId = isFleetManager && user?.teamId ? user.teamId : (values.teamId || undefined);
       const newVehicle = await createVehicleMutation.mutateAsync({
         model: values.model.trim(),
         year: Number(values.year),
         plateNumber: Number(values.plateNumber),
-        teamId: values.teamId || undefined,
+        teamId: assignedTeamId,
       });
 
       // إذا اختار المستخدم سائقاً أثناء إنشاء المركبة، نقوم بتعيينه فوراً
@@ -81,8 +107,12 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
       onClose();
     } catch {
       // Handled by mutation toast
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -199,22 +229,31 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
           {/* Assign Team (Optional) */}
           <div>
             <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-              الفريق التشغيلي (اختياري)
+              الفريق التشغيلي {isFleetManager ? '(فريقك)' : '(اختياري)'}
             </label>
             <div className="relative">
               <Users className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <select
-                {...register('teamId')}
-                disabled={isSubmitting || isLoadingTeams}
-                className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
-              >
-                <option value="">المستودع العام (بدون فريق حالياً)</option>
-                {teamsList.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              {isFleetManager ? (
+                <input
+                  type="text"
+                  readOnly
+                  value={userTeamName}
+                  className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] cursor-not-allowed opacity-90"
+                />
+              ) : (
+                <select
+                  {...register('teamId')}
+                  disabled={isSubmitting || isLoadingTeams}
+                  className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
+                >
+                  <option value="">المستودع العام (بدون فريق حالياً)</option>
+                  {teamsList.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -231,7 +270,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                 className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
               >
                 <option value="">بدون سائق حالياً (تعيين لاحقاً)</option>
-                {availableDrivers.map((d) => (
+                {filteredDrivers.map((d) => (
                   <option key={d._id} value={d._id}>
                     {d.name !== 'Default' ? d.name : d.email.split('@')[0]} ({d.email})
                   </option>

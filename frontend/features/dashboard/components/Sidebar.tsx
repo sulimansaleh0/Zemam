@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface SidebarProps {
   open: boolean;
@@ -28,21 +29,6 @@ interface SidebarProps {
   userName: string;
   onLogout?: () => void;
 }
-
-const navItems = [
-  { label: 'لوحة التحكم', icon: Home, href: '/dashboard', active: true },
-  { label: 'الفرق', icon: Users, href: '/teams' },
-  { label: 'مدراء الأساطيل', icon: UserCheck, href: '/managers' },
-  { label: 'المركبات', icon: Truck, href: '/vehicles' },
-  { label: 'السائقون', icon: UsersRound, href: '/drivers' },
-  { label: 'الصيانة', icon: Wrench, href: '/maintenance' },
-  { label: 'المهام', icon: ClipboardList, href: '/tasks' },
-  { label: 'الوقود', icon: Package, href: '/fuel' },
-  { label: 'التنبيهات', icon: Bell, href: '/alerts', badge: '3' },
-  { label: 'تتبع GPS', icon: MapPin, href: '/gps' },
-  { label: 'توصيات الذكاء', icon: Bot, href: '/ai' },
-  { label: 'التقارير', icon: Activity, href: '/reports' },
-];
 
 function Logo() {
   return (
@@ -60,6 +46,28 @@ function Logo() {
 
 export function Sidebar({ open, onClose, userName, onLogout }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
+
+  const navItems = [
+    { label: 'لوحة التحكم', icon: Home, href: '/dashboard' },
+    ...(!isFleetManager
+      ? [
+          { label: 'الفرق', icon: Users, href: '/teams' },
+          { label: 'مدراء الأساطيل', icon: UserCheck, href: '/managers' },
+        ]
+      : []),
+    { label: 'المركبات', icon: Truck, href: '/vehicles' },
+    { label: 'السائقون', icon: UsersRound, href: '/drivers' },
+    { label: 'الصيانة', icon: Wrench, href: '/maintenance' },
+    { label: 'المهام', icon: ClipboardList, href: '/tasks' },
+    { label: 'الوقود', icon: Package, href: '/fuel' },
+    { label: 'التنبيهات', icon: Bell, href: '/alerts', badge: '3' },
+    { label: 'تتبع GPS', icon: MapPin, href: '/gps' },
+    { label: 'توصيات الذكاء', icon: Bot, href: '/ai' },
+    { label: 'التقارير', icon: Activity, href: '/reports' },
+  ];
 
   return (
     <aside
@@ -130,7 +138,9 @@ export function Sidebar({ open, onClose, userName, onLogout }: SidebarProps) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-xs font-semibold text-[var(--zd-text)]">{userName}</div>
-            <div className="text-[10px] text-[var(--zd-muted)]">مدير الأسطول</div>
+            <div className="text-[10px] text-[var(--zd-muted)]">
+              {isFleetManager ? 'مدير أسطول' : 'مدير الشركة (Admin)'}
+            </div>
           </div>
           <MoreHorizontal className="h-4 w-4 text-[var(--zd-muted)]" />
         </div>

@@ -5,11 +5,14 @@ const { userRoles } = require("../data/roles");
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        default: "Default"
+        trim: true
     },
     email: {
         type: String,
-        required: true
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     password: {
         type: String,
@@ -35,6 +38,9 @@ const userSchema = new mongoose.Schema({
         default: mainStatus.ACTIVE
     },
 
+    phone: {
+        type: String,
+    },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",
@@ -57,5 +63,8 @@ userSchema.methods.toJSON = function () {
     delete user.__v;
     return user;
 };
-const User = mongoose.model("User", userSchema);
+const User = mongoose.models.User || mongoose.models.user || mongoose.model("User", userSchema);
+if (!mongoose.models.user) {
+    mongoose.model("user", userSchema);
+}
 module.exports = User;

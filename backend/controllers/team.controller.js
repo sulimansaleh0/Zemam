@@ -9,26 +9,44 @@ exports.createTeam = async (req, res) => {
     const user = req.user
     const { name, managerId, driversIds, vehiclesIds } = req.body
     try {
+        const trimmedName = name ? name.trim() : ""
+        const existingTeam = await Team.findOne({
+            name: { $regex: new RegExp(`^${trimmedName}$`, "i") },
+            companyId: user.companyId,
+            isDeleted: false
+        })
+        if (existingTeam) {
+            return error(res, 400, "اسم الفريق مسجل بالفعل في شركتك")
+        }
+
         if (managerId) {
-            const isFleetManager = await User.findOne({ _id: managerId, companyId: user.companyId, role: userRoles.FLEET_MANAGER })
+            const isFleetManager = await User.findOne({ _id: managerId, companyId: user.companyId, role: userRoles.FLEET_MANAGER, isDeleted: false })
             if (!isFleetManager) return error(res, 400, "cant make a normal user as a fleet manager")
 
             const isInTeam = await Team.findOne({ managerId, companyId: user.companyId, isDeleted: false })
             if (isInTeam) return error(res, 400, "Already in a team")
         }
         const team = await Team.create({
-            name,
+            name: trimmedName,
             managerId,
             companyId: user.companyId
         })
         if (managerId)
             await User.findByIdAndUpdate(managerId, { teamId: team._id })
-        await User.updateMany({ _id: { $in: driversIds } }, { teamId: team._id })
-        await Vehicle.updateMany(
-            { _id: { $in: vehiclesIds } },
-            { teamId: team._id }
-        )
-        success(res, 201, { team })
+        if (Array.isArray(driversIds) && driversIds.length > 0) {
+            await User.updateMany(
+                { _id: { $in: driversIds }, companyId: user.companyId, role: userRoles.DRIVER },
+                { teamId: team._id }
+            )
+        }
+        if (Array.isArray(vehiclesIds) && vehiclesIds.length > 0) {
+            await Vehicle.updateMany(
+                { _id: { $in: vehiclesIds }, companyId: user.companyId },
+                { teamId: team._id }
+            )
+        }
+        const createdTeam = await Team.findById(team._id).populate("managerId", "name email status phone")
+        success(res, 201, { team: createdTeam })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -43,7 +61,7 @@ exports.listTeams = async (req, res) => {
             isDeleted: false
         }
 
-        const teams = await Team.find(filters)
+        const teams = await Team.find(filters).populate("managerId", "name email status phone")
         success(res, 200, { teams })
     } catch (err) {
         console.log(err)
@@ -56,7 +74,12 @@ exports.listTeam = async (req, res) => {
     const teamId = req.params.id || req.teamId
     if (!teamId) return error(res, 400, "team Id is required")
     try {
+        if (user.role === userRoles.FLEET_MANAGER && user.teamId && user.teamId.toString() !== teamId.toString()) {
+            return error(res, 403, "You can only view your assigned team")
+        }
+
         const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+            .populate("managerId", "name email status phone")
         if (!team) return error(res, 404, "Team not found")
         success(res, 200, { team })
     } catch (err) {

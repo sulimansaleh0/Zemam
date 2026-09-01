@@ -15,6 +15,17 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
+// Preload all models for Mongoose references and populate
+require("./models/company.model");
+require("./models/user.model");
+require("./models/team.model");
+require("./models/vehicle.model");
+require("./models/task.model");
+require("./models/fuel.model");
+require("./models/maintenance.model");
+require("./models/otp.model");
+require("./models/refreshToken.model");
+
 connectDB().then(() => {
     app.listen(3001, () => {
         console.log("Server Running at port: 3001")

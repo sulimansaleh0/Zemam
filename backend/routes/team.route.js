@@ -19,11 +19,15 @@ router.get("/statics",
     teamStatics
 )
 
+router.get("/:id",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    listTeam
+)
+
 router.use(allowedTo(userRoles.ADMIN))
 
 router.post("/", createTeamSchema, validate, createTeam)
 router.get("/", listTeams)
-router.get("/:id", listTeam)
 router.patch("/:id", updateTeam)
 router.delete("/:id", deleteTeam)
 

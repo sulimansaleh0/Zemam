@@ -34,7 +34,7 @@ const vehicleSchema = new mongoose.Schema({
     },
     driverId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "user"
+        ref: "User"
     },
     isDeleted: {
         type: Boolean,
@@ -42,5 +42,8 @@ const vehicleSchema = new mongoose.Schema({
     }
 })
 
-const Vehicle = mongoose.model("vehicle", vehicleSchema)
+const Vehicle = mongoose.models.vehicle || mongoose.models.Vehicle || mongoose.model("vehicle", vehicleSchema)
+if (!mongoose.models.Vehicle) {
+    mongoose.model("Vehicle", vehicleSchema)
+}
 module.exports = Vehicle

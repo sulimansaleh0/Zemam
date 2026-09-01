@@ -68,7 +68,13 @@ export default function DriversPage() {
     return map;
   }, [teamsList]);
 
-  const currentTeamName = selectedDriver?.teamId ? teamMap[selectedDriver.teamId] : undefined;
+  const currentTeamName = useMemo(() => {
+    if (!selectedDriver?.teamId) return undefined;
+    if (typeof selectedDriver.teamId === 'object' && selectedDriver.teamId !== null) {
+      return selectedDriver.teamId.name;
+    }
+    return teamMap[selectedDriver.teamId];
+  }, [selectedDriver, teamMap]);
 
   return (
     <main className="zamam-drivers zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">

@@ -17,6 +17,8 @@ export interface FleetManagersResponse {
 
 export interface CreateManagerInput {
   email: string;
+  name?: string;
+  phone?: string;
   teamId?: string;
 }
 

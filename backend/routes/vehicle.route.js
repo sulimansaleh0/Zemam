@@ -15,15 +15,13 @@ const { createVehicle, listVehicles, listVehicle, changeVehicleStatus, setVehicl
 router.use(verifyToken)
 router.use(getTeam)
 
-router.post("/:id/assign-to-team",
-    allowedTo(userRoles.ADMIN),
-    setVehicleToTeam
-)
+router.route("/:id/assign-to-team")
+    .post(allowedTo(userRoles.ADMIN), setVehicleToTeam)
+    .patch(allowedTo(userRoles.ADMIN), setVehicleToTeam)
 
-router.post("/:id/remove-from-team",
-    allowedTo(userRoles.ADMIN),
-    removerVehicleFromTeam
-)
+router.route("/:id/remove-from-team")
+    .post(allowedTo(userRoles.ADMIN), removerVehicleFromTeam)
+    .patch(allowedTo(userRoles.ADMIN), removerVehicleFromTeam)
 
 router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
 router.use(checkSubscription())

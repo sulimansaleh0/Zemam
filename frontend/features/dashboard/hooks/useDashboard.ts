@@ -15,7 +15,12 @@ export function useDashboard() {
     );
   };
 
-  const userName = user?.name || user?.email?.split('@')[0] || 'محمد العتيبي';
+  const userName =
+    user?.name && user.name !== 'Default'
+      ? user.name
+      : user?.email
+      ? user.email.split('@')[0]
+      : 'مستخدم';
 
   return {
     user,

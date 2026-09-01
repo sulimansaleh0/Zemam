@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -45,9 +45,12 @@ export default function TeamDetailPage() {
   const router = useRouter();
   const teamId = String(params?.id || '');
 
-  const { userName, menuOpen, setMenuOpen, logout } = useDashboard();
+  const { user, userName, menuOpen, setMenuOpen, logout } = useDashboard();
 
-  // Team detail query
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
+
+  // Team detail queries
   const { data: team, isLoading, isError, error } = useTeamDetail(teamId);
   const { data: statics } = useTeamStatics(teamId);
 
@@ -66,15 +69,24 @@ export default function TeamDetailPage() {
   const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
   const [isAddResourcesModalOpen, setIsAddResourcesModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (isFleetManager) {
+      router.replace('/dashboard');
+    }
+  }, [isFleetManager, router]);
+
   // Filter team-specific drivers and vehicles
   const teamDrivers = useMemo(() => {
-    return allDrivers.filter((d: BackendDriver) => d.teamId === teamId);
+    return allDrivers.filter((d: BackendDriver) => {
+      const dTeamId = typeof d.teamId === 'object' && d.teamId !== null ? (d.teamId as any)._id : d.teamId;
+      return String(dTeamId) === String(teamId);
+    });
   }, [allDrivers, teamId]);
 
   const teamVehicles = useMemo(() => {
     return allVehicles.filter((v: VehicleWithRelations) => {
-      const vTeamId = typeof v.teamId === 'object' && v.teamId ? (v.teamId as any)._id : v.teamId;
-      return vTeamId === teamId;
+      const vTeamId = typeof v.teamId === 'object' && v.teamId !== null ? (v.teamId as any)._id : v.teamId;
+      return String(vTeamId) === String(teamId);
     });
   }, [allVehicles, teamId]);
 
@@ -90,6 +102,10 @@ export default function TeamDetailPage() {
     if (!managerId) return null;
     return allManagers.find((m) => m._id === managerId) || null;
   }, [allManagers, managerId]);
+
+  if (isFleetManager) {
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -279,9 +295,15 @@ export default function TeamDetailPage() {
                           ({managerObj?.email ||
                             (typeof team.managerId === 'object' ? team.managerId?.email : '')})
                         </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3" /> نشط
-                        </span>
+                        {managerObj?.status === 'active' || (typeof team.managerId === 'object' && team.managerId && (team.managerId as any).status === 'active') ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3" /> نشط
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-semibold border border-amber-500/20">
+                            <AlertCircle className="w-3 h-3" /> غير نشط
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span className="text-xs text-[var(--muted)] italic mt-0.5 block">

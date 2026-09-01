@@ -10,12 +10,13 @@ export const managerService = {
   /**
    * Fetch all fleet managers of the company
    */
-  async getManagers(status?: string): Promise<FleetManager[]> {
+  async getManagers(status?: string, signal?: AbortSignal): Promise<FleetManager[]> {
     const path = status
       ? `${API_PATHS.MANAGERS.LIST}?status=${status}`
       : API_PATHS.MANAGERS.LIST;
-    const result = await sendRequest<FleetManagersResponse>(path);
+    const result = await sendRequest<FleetManagersResponse>(path, { signal });
     if (!result.success) {
+      if (result.message === 'Request cancelled') return [];
       throw new Error(result.message || 'فشل في جلب قائمة مدراء الأساطيل');
     }
     return result.data?.fleetManagers ?? [];
@@ -24,11 +25,13 @@ export const managerService = {
   /**
    * Fetch available fleet managers (without a team)
    */
-  async getAvailableManagers(): Promise<FleetManager[]> {
+  async getAvailableManagers(signal?: AbortSignal): Promise<FleetManager[]> {
     const result = await sendRequest<FleetManagersResponse>(
-      `${API_PATHS.MANAGERS.LIST}?withoutTeam=true`
+      `${API_PATHS.MANAGERS.LIST}?withoutTeam=true`,
+      { signal }
     );
     if (!result.success) {
+      if (result.message === 'Request cancelled') return [];
       throw new Error(result.message || 'فشل في جلب قائمة المدراء المتاحين');
     }
     const managers = result.data?.fleetManagers ?? [];
@@ -39,14 +42,20 @@ export const managerService = {
    * Create a new Fleet Manager and assign to team
    */
   async createManager(payload: CreateManagerInput): Promise<FleetManager | null> {
-    const result = await postRequest<{ user: FleetManager }>(
+    const dataToSend = {
+      email: payload.email,
+      ...(payload.name && payload.name.trim() ? { name: payload.name.trim() } : {}),
+      ...(payload.phone && payload.phone.trim() ? { phone: payload.phone.trim() } : {}),
+      ...(payload.teamId && payload.teamId.trim() ? { teamId: payload.teamId.trim() } : {}),
+    };
+    const result = await postRequest<{ user?: FleetManager; fleetManager?: FleetManager }>(
       API_PATHS.MANAGERS.CREATE,
-      payload
+      dataToSend
     );
     if (!result.success) {
       throw new Error(result.message || 'فشل في إنشاء حساب مدير الأسطول');
     }
-    return result.data?.user ?? null;
+    return result.data?.fleetManager ?? result.data?.user ?? null;
   },
 
   /**
@@ -63,7 +72,7 @@ export const managerService = {
    * Assign manager to a team
    */
   async assignManager(managerId: string, teamId: string): Promise<void> {
-    const result = await postRequest<void>(API_PATHS.MANAGERS.ASSIGN(managerId), { teamId });
+    const result = await patchRequest<void>(API_PATHS.MANAGERS.ASSIGN(managerId), { teamId });
     if (!result.success) {
       throw new Error(result.message || 'فشل في تعيين مدير الأسطول للفريق');
     }
@@ -73,7 +82,7 @@ export const managerService = {
    * Remove manager from their team (disable team assignment)
    */
   async disableManager(managerId: string): Promise<void> {
-    const result = await postRequest<void>(API_PATHS.MANAGERS.DISABLE(managerId), {});
+    const result = await patchRequest<void>(API_PATHS.MANAGERS.DISABLE(managerId), {});
     if (!result.success) {
       throw new Error(result.message || 'فشل في فك ارتباط مدير الأسطول عن الفريق');
     }

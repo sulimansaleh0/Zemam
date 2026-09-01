@@ -34,22 +34,32 @@ export function useVehicles() {
 
   return useQuery({
     queryKey: VEHICLE_QUERY_KEYS.all,
-    queryFn: async () => {
-      const result = await vehicleService.getVehicles();
-      if (!result.success) throw new Error(result.message);
-      return result.data.vehicles;
+    queryFn: async ({ signal }) => {
+      const result = await vehicleService.getVehicles(signal);
+      if (!result.success) {
+        if (result.message === 'Request cancelled') return [];
+        throw new Error(result.message);
+      }
+      return result.data?.vehicles ?? [];
     },
     select: (vehicles: BackendVehicle[]): VehicleWithRelations[] => {
       return vehicles.map((v) => {
-        const assignedDriver = drivers.find((d) => d._id === v.driverId);
+        const driverObj = typeof v.driverId === 'object' && v.driverId !== null ? v.driverId : null;
+        const driverIdStr = driverObj ? driverObj._id : typeof v.driverId === 'string' ? v.driverId : undefined;
+        const assignedDriver = driverObj || (driverIdStr ? drivers.find((d) => d._id === driverIdStr) : null);
+
+        const teamObj = typeof v.teamId === 'object' && v.teamId !== null ? v.teamId : null;
+        const teamName = teamObj?.name;
+
         return {
           ...v,
           driverName: assignedDriver
-            ? assignedDriver.name !== 'Default'
+            ? assignedDriver.name && assignedDriver.name !== 'Default'
               ? assignedDriver.name
-              : assignedDriver.email.split('@')[0]
+              : assignedDriver.email?.split('@')[0]
             : undefined,
           driverEmail: assignedDriver?.email,
+          teamName,
         };
       });
     },

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import {
@@ -17,12 +18,17 @@ import {
 import {
   CreateManagerModal,
   DeleteManagerModal,
+  useDisableManager,
   type FleetManager,
 } from '@/features/managers';
 import { useVehicles } from '@/features/vehicles';
 
 export default function TeamsPage() {
+  const router = useRouter();
   const { user, userName, menuOpen, setMenuOpen, logout } = useDashboard();
+
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
   const {
     data: teamsList = [],
@@ -34,17 +40,6 @@ export default function TeamsPage() {
   } = useTeams();
 
   const { data: vehiclesList = [] } = useVehicles();
-
-  // Calculate vehicle count per team
-  const vehicleCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    vehiclesList.forEach((v) => {
-      if (v.teamId) {
-        counts[v.teamId] = (counts[v.teamId] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [vehiclesList]);
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -63,6 +58,30 @@ export default function TeamsPage() {
   // Add Resources (Drivers & Vehicles) Modal state
   const [selectedTeamForResources, setSelectedTeamForResources] = useState<Team | null>(null);
 
+  const disableManagerMutation = useDisableManager();
+
+  useEffect(() => {
+    if (isFleetManager) {
+      router.replace('/dashboard');
+    }
+  }, [isFleetManager, router]);
+
+  // Calculate vehicle count per team
+  const vehicleCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    vehiclesList.forEach((v) => {
+      const vTeamId = typeof v.teamId === 'object' && v.teamId !== null ? v.teamId._id : v.teamId;
+      if (vTeamId) {
+        counts[vTeamId] = (counts[vTeamId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [vehiclesList]);
+
+  if (isFleetManager) {
+    return null;
+  }
+
   const handleOpenAdd = () => setIsCreateModalOpen(true);
   const handleOpenEdit = (team: Team) => setSelectedTeamForEdit(team);
   const handleOpenDelete = (team: Team) => setSelectedTeamForDelete(team);
@@ -76,11 +95,12 @@ export default function TeamsPage() {
     setSelectedTeamForResources(team);
   };
 
-  const handleOpenRemoveManager = (managerId: string, teamName: string) => {
-    setSelectedManagerForDelete({
-      manager: { _id: managerId, email: 'مدير الفريق', status: 'active' },
-      teamName,
-    });
+  const handleOpenRemoveManager = async (managerId: string) => {
+    try {
+      await disableManagerMutation.mutateAsync(managerId);
+    } catch {
+      // Handled by toast
+    }
   };
 
   return (

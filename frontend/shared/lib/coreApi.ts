@@ -53,10 +53,27 @@ async function handleSilentRefresh(): Promise<boolean> {
 export async function sendRequest<T>(path: string, options: RequestOptions = {}): Promise<ServiceResult<T>> {
   const { timeoutMs = DEFAULT_TIMEOUT_MS, _retry = false, ...fetchOptions } = options;
 
-  // AbortController for timeout if no custom signal is provided
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  const signal = fetchOptions.signal || controller.signal;
+  // Timeout AbortController
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort(new Error('TIMEOUT_ERROR'));
+  }, timeoutMs);
+
+  // Merge external signal (from page unmount / TanStack Query) and timeout signal
+  let combinedSignal: AbortSignal;
+  if (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal && fetchOptions.signal) {
+    combinedSignal = (AbortSignal as any).any([fetchOptions.signal, timeoutController.signal]);
+  } else if (fetchOptions.signal) {
+    const parentSignal = fetchOptions.signal;
+    if (parentSignal.aborted) {
+      timeoutController.abort(parentSignal.reason);
+    } else {
+      parentSignal.addEventListener('abort', () => timeoutController.abort(parentSignal.reason), { once: true });
+    }
+    combinedSignal = timeoutController.signal;
+  } else {
+    combinedSignal = timeoutController.signal;
+  }
 
   try {
     const url = BASE_URL ? `${BASE_URL}/${path}` : `/${path}`;
@@ -64,10 +81,10 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       ...fetchOptions,
-      signal,
+      signal: combinedSignal,
     });
 
-    clearTimeout(id);
+    clearTimeout(timeoutId);
 
     const text = await res.text();
     const body = text ? JSON.parse(text) : null;
@@ -107,11 +124,23 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
       message: body?.msg ?? 'تمت العملية بنجاح',
     };
   } catch (error: unknown) {
-    clearTimeout(id);
+    clearTimeout(timeoutId);
     
-    // Check if the error is due to abort/timeout
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, status: 408, message: 'انتهت مدة الانتظار، تأكد من سرعة اتصالك بالإنترنت' };
+    // If request was cancelled by user/navigation, ignore quietly without displaying timeout errors
+    if (fetchOptions.signal?.aborted) {
+      return { success: false, status: 0, message: 'Request cancelled' };
+    }
+
+    // If request timed out
+    if (
+      timeoutController.signal.aborted ||
+      (error instanceof Error && (error.name === 'AbortError' || error.message === 'TIMEOUT_ERROR'))
+    ) {
+      return {
+        success: false,
+        status: 408,
+        message: 'انتهت مهلة انتظار الطلب، يرجى التحقق من سرعة اتصالك بالإنترنت والمحاولة مجدداً',
+      };
     }
     
     return { success: false, status: 0, message: 'تعذّر الاتصال بالخادم، تحقق من شبكتك' };

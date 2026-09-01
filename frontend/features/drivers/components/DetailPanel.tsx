@@ -26,6 +26,8 @@ import { StatusPill } from './StatusPill';
 import { PerformanceChart } from './PerformanceChart';
 import { ActivityContent } from './ActivityContent';
 
+import { useAuth } from '@/features/auth/context/AuthContext';
+
 interface DetailPanelProps {
   driver: Driver | null;
   teamName?: string;
@@ -59,6 +61,9 @@ export function DetailPanel({
   isChangingStatus = false,
   isUnassigningVehicle = false,
 }: DetailPanelProps) {
+  const { user } = useAuth();
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
   const [tab, setTab]           = useState<ActivityTab>('المهام');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -132,7 +137,7 @@ export function DetailPanel({
                   />
                   {/* Menu */}
                   <div className="absolute left-0 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-lg p-1">
-                    {driver.teamId ? (
+                    {Boolean(teamName) ? (
                       <button
                         onClick={() => { onUnassignTeam?.(driver); setMenuOpen(false); }}
                         className="zd-focus flex w-full items-center gap-2 px-3 py-2 text-[11px] font-medium text-amber-600 dark:text-amber-400 transition-colors hover:bg-amber-500/10 rounded-lg cursor-pointer"
@@ -141,13 +146,15 @@ export function DetailPanel({
                         فك الارتباط عن الفريق
                       </button>
                     ) : (
-                      <button
-                        onClick={() => { onAssignTeam?.(driver); setMenuOpen(false); }}
-                        className="zd-focus flex w-full items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--zd-blue)] transition-colors hover:bg-[var(--zd-blue)]/10 rounded-lg cursor-pointer"
-                      >
-                        <Link2 className="h-3.5 w-3.5" />
-                        تعيين لفريق تشغيلي
-                      </button>
+                      !isFleetManager && (
+                        <button
+                          onClick={() => { onAssignTeam?.(driver); setMenuOpen(false); }}
+                          className="zd-focus flex w-full items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--zd-blue)] transition-colors hover:bg-[var(--zd-blue)]/10 rounded-lg cursor-pointer"
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                          تعيين لفريق تشغيلي
+                        </button>
+                      )
                     )}
 
                     {driver.assignedVehicle && (
@@ -226,14 +233,16 @@ export function DetailPanel({
                   <Unlink className="h-3.5 w-3.5" />
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => onAssignTeam?.(driver)}
-                  className="zd-focus flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[var(--zd-blue)]/10 text-[var(--zd-blue)] hover:bg-[var(--zd-blue)]/20 transition-colors cursor-pointer"
-                >
-                  <Link2 className="h-3 w-3" />
-                  <span>تعيين لفريق</span>
-                </button>
+                !isFleetManager && (
+                  <button
+                    type="button"
+                    onClick={() => onAssignTeam?.(driver)}
+                    className="zd-focus flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[var(--zd-blue)]/10 text-[var(--zd-blue)] hover:bg-[var(--zd-blue)]/20 transition-colors cursor-pointer"
+                  >
+                    <Link2 className="h-3 w-3" />
+                    <span>تعيين لفريق</span>
+                  </button>
+                )
               )}
             </div>
           </div>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Mail, UserPlus, Users, X } from 'lucide-react';
 import { createDriverSchema, type CreateDriverFormValues } from '../schemas/driver.schema';
 import { useTeams } from '@/features/teams';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface DriverModalProps {
   onClose: () => void;
@@ -14,7 +15,20 @@ interface DriverModalProps {
 }
 
 export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
+  const { user } = useAuth();
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
   const { data: teamsList = [], isLoading: isLoadingTeams } = useTeams();
+
+  const userTeamId =
+    typeof user?.teamId === 'object' && user?.teamId !== null
+      ? (user.teamId as any)._id
+      : user?.teamId;
+
+  const userTeamName =
+    (typeof user?.teamId === 'object' && (user.teamId as any)?.name) ||
+    teamsList.find((t) => t._id === userTeamId)?.name ||
+    'فريقك التشغيلي';
 
   const {
     register,
@@ -23,7 +37,12 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
     formState: { errors },
   } = useForm<CreateDriverFormValues>({
     resolver: zodResolver(createDriverSchema),
-    defaultValues: { email: '', teamId: '' },
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+      teamId: isFleetManager && userTeamId ? userTeamId : '',
+    },
   });
 
   // إغلاق بـ Escape
@@ -35,17 +54,25 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [isLoading, onClose]);
 
+  const isSubmittingRef = React.useRef(false);
+
   const onSubmit = handleSubmit(async (data) => {
+    if (isSubmittingRef.current || isLoading) return;
+    isSubmittingRef.current = true;
     try {
       await onSave({
         email: data.email.trim(),
-        teamId: data.teamId || undefined,
+        name: data.name?.trim() || undefined,
+        phone: data.phone?.trim() || undefined,
+        teamId: isFleetManager && userTeamId ? userTeamId : (data.teamId || undefined),
       });
     } catch (error) {
       // الـ toast يُطلق في الـ mutation — هنا نضع الخطأ على الحقل
       setError('email', {
         message: error instanceof Error ? error.message : 'حدث خطأ، حاول مرة أخرى',
       });
+    } finally {
+      isSubmittingRef.current = false;
     }
   });
 
@@ -88,6 +115,24 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
         {/* ── Form ── */}
         <form onSubmit={onSubmit} noValidate>
           <div className="p-6 space-y-4">
+            {/* Name field */}
+            <div>
+              <label
+                htmlFor="driver-name"
+                className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
+              >
+                اسم السائق (اختياري)
+              </label>
+              <input
+                id="driver-name"
+                type="text"
+                placeholder="أحمد محمد"
+                {...register('name')}
+                disabled={isLoading}
+                className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
+              />
+            </div>
+
             {/* Email field */}
             <div>
               <label
@@ -102,9 +147,8 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
                   id="driver-email"
                   type="email"
                   dir="ltr"
-                  autoFocus
                   autoComplete="email"
-                  placeholder="example@company.com"
+                  placeholder="driver@company.com"
                   {...register('email')}
                   disabled={isLoading}
                   className={`zd-focus h-11 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors disabled:opacity-60 ${
@@ -121,29 +165,58 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
               )}
             </div>
 
+            {/* Phone field */}
+            <div>
+              <label
+                htmlFor="driver-phone"
+                className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
+              >
+                رقم الهاتف (اختياري)
+              </label>
+              <input
+                id="driver-phone"
+                type="tel"
+                dir="ltr"
+                placeholder="05XXXXXXXX"
+                {...register('phone')}
+                disabled={isLoading}
+                className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
+              />
+            </div>
+
             {/* Team field */}
             <div>
               <label
                 htmlFor="driver-team"
                 className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]"
               >
-                الفريق التشغيلي (اختياري)
+                الفريق التشغيلي {isFleetManager ? '(فريقك)' : '(اختياري)'}
               </label>
               <div className="relative">
                 <Users className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--zd-muted)] pointer-events-none" />
-                <select
-                  id="driver-team"
-                  {...register('teamId')}
-                  disabled={isLoading || isLoadingTeams}
-                  className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
-                >
-                  <option value="">بدون فريق حالياً (تعيين لاحقاً)</option>
-                  {teamsList.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                {isFleetManager ? (
+                  <input
+                    id="driver-team"
+                    type="text"
+                    readOnly
+                    value={userTeamName}
+                    className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] pr-10 pl-3 text-[12px] font-semibold text-[var(--zd-text)] outline-none cursor-not-allowed opacity-90"
+                  />
+                ) : (
+                  <select
+                    id="driver-team"
+                    {...register('teamId')}
+                    disabled={isLoading || isLoadingTeams}
+                    className="zd-focus h-11 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-10 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
+                  >
+                    <option value="">بدون فريق حالياً (تعيين لاحقاً)</option>
+                    {teamsList.map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
 
