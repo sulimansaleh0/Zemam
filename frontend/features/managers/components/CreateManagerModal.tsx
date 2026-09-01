@@ -35,6 +35,8 @@ export function CreateManagerModal({
   } = useForm<CreateManagerFormValues>({
     resolver: zodResolver(createManagerSchema),
     defaultValues: {
+      name: '',
+      phone: '',
       email: '',
       teamId: initialTeamId || '',
     },
@@ -43,6 +45,8 @@ export function CreateManagerModal({
   useEffect(() => {
     if (isOpen) {
       reset({
+        name: '',
+        phone: '',
         email: '',
         teamId: initialTeamId || '',
       });
@@ -58,17 +62,25 @@ export function CreateManagerModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isSubmitting, onClose]);
 
+  const isSubmittingRef = React.useRef(false);
+
   if (!isOpen) return null;
 
   const onSubmit = async (values: CreateManagerFormValues) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     try {
       await createManagerMutation.mutateAsync({
         email: values.email.trim(),
+        name: values.name?.trim() || undefined,
+        phone: values.phone?.trim() || undefined,
         teamId: values.teamId,
       });
       onClose();
     } catch {
       // Handled by Toast in hook
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -107,6 +119,19 @@ export function CreateManagerModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text)] block">
+              اسم مدير الأسطول (اختياري)
+            </label>
+            <input
+              type="text"
+              {...register('name')}
+              placeholder="محمد أحمد"
+              className="w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors"
+            />
+          </div>
+
           {/* Email */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
@@ -127,6 +152,20 @@ export function CreateManagerModal({
             {errors.email && (
               <p className="text-xs text-rose-500 mt-1">{errors.email.message}</p>
             )}
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text)] block">
+              رقم الهاتف (اختياري)
+            </label>
+            <input
+              type="tel"
+              dir="ltr"
+              {...register('phone')}
+              placeholder="05XXXXXXXX"
+              className="w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors"
+            />
           </div>
 
           {/* Team Select */}

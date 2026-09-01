@@ -2,6 +2,19 @@
 //  Vehicle Types — aligned with Backend Vehicle model
 // ============================================================
 
+export interface DriverSummary {
+  _id: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  status?: string;
+}
+
+export interface TeamSummary {
+  _id: string;
+  name: string;
+}
+
 /** شكل بيانات المركبة كما يرجعها الباك اند */
 export interface BackendVehicle {
   _id: string;
@@ -10,9 +23,9 @@ export interface BackendVehicle {
   plateNumber: number;    // رقم اللوحة
   isInTask: boolean;      // هل المركبة في مهمة حالياً
   status: VehicleStatus;  // حالة المركبة (active / inactive)
-  teamId: string;
+  teamId?: string | TeamSummary | null;
   companyId: string;
-  driverId?: string;      // معرف السائق المعين (إن وجد)
+  driverId?: string | DriverSummary | null;      // معرف أو كائن السائق المعين (إن وجد)
   createdAt?: string;
   updatedAt?: string;
 }
@@ -24,6 +37,7 @@ export type VehicleStatus = 'active' | 'inactive';
 export interface VehicleWithRelations extends BackendVehicle {
   driverName?: string;
   driverEmail?: string;
+  teamName?: string;
 }
 
 // ── API Inputs ──────────────────────────────────────────────

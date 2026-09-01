@@ -1,21 +1,15 @@
 'use client';
 
-import { AlertTriangle, ChevronDown, ChevronLeft, MoreHorizontal } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronLeft, MoreHorizontal, UsersRound } from 'lucide-react';
+import { useDriversList } from '@/features/drivers';
+import { getDriverDisplayName } from '@/features/drivers/utils/driverHelpers';
 
 export function AlertsAndDrivers() {
-  const alerts = [
-    ['موعد صيانة المركبة ABC-1234 خلال ٣ أيام', 'منذ ١٢ دقيقة', '#eab66b'],
-    ['تجاوز السرعة — المركبة XYZ-5678', 'منذ ٤٥ دقيقة', '#eb6974'],
-    ['السائق محمد الحربي أنهى ١٠٨٪ من المسار', 'منذ ساعة', '#5d8cff'],
-    ['انخفاض مستوى الوقود في المركبة DEF-9012', 'منذ ساعتين', '#eab66b'],
-  ] as const;
+  const { data: realDrivers = [], isLoading: isLoadingDrivers } = useDriversList();
 
-  const drivers = [
-    ['حمد الأحمد', '٤.٩', '312', 'ممتاز', '#5d8cff'],
-    ['خالد السعيد', '٤.٧', '289', 'جيد', '#ab79e9'],
-    ['راشد محمد', '٤.٥', '245', 'جيد', '#e7a849'],
-    ['ماجد العنزي', '٤.٢', '198', 'في المراجعة', '#57d0bf'],
-    ['سعد الزهراني', '٣.٨', '167', 'غير نشط', '#b7c3d5'],
+  const alerts = [
+    ['موعد صيانة مجدولة للمركبات خلال الأيام القادمة', 'تنبيه نظام', '#eab66b'],
+    ['متابعة كفاءة استهلاك الوقود ومسارات الحركة', 'إشعار تشغيلي', '#5d8cff'],
   ] as const;
 
   return (
@@ -24,11 +18,11 @@ export function AlertsAndDrivers() {
       <section className="zd-panel zd-rise zd-d4 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[14px] font-bold text-[var(--zd-text)]">التنبيهات الأخيرة</h2>
-            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">ما يحتاج انتباهك الآن</p>
+            <h2 className="text-[14px] font-bold text-[var(--zd-text)]">التنبيهات التشغيلية</h2>
+            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">إشعارات النظام والأسطول</p>
           </div>
-          <span className="rounded-full bg-[var(--zd-red)]/15 px-2 py-1 text-[9px] font-semibold text-[var(--zd-red)]">
-            ٣ جديد
+          <span className="rounded-full bg-[var(--zd-blue)]/15 px-2 py-1 text-[9px] font-semibold text-[var(--zd-blue)]">
+            محدث
           </span>
         </div>
         <div className="mt-4 space-y-2">
@@ -46,65 +40,78 @@ export function AlertsAndDrivers() {
             </div>
           ))}
         </div>
-        <button className="mt-4 flex w-full items-center justify-center text-[11px] font-medium text-[var(--zd-blue)]">
-          مركز التنبيهات <ChevronLeft className="mr-1 h-3 w-3" />
-        </button>
       </section>
 
       {/* ── Drivers Performance ── */}
       <section className="zd-panel zd-rise zd-d4 overflow-hidden rounded-2xl p-5 lg:col-span-2">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[14px] font-bold text-[var(--zd-text)]">أداء السائقين</h2>
-            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">ملخص الأداء خلال هذا الأسبوع</p>
+            <h2 className="text-[14px] font-bold text-[var(--zd-text)]">سائقو الأسطول</h2>
+            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">
+              قائمة السائقين المسجلين في النظام ({realDrivers.length})
+            </p>
           </div>
-          <button className="flex items-center gap-1 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--zd-muted)] hover:text-[var(--zd-text)] transition-colors">
-            هذا الأسبوع <ChevronDown className="h-3 w-3" />
-          </button>
         </div>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-right text-[11px]">
-            <thead className="border-b border-[var(--zd-line)] text-[10px] text-[var(--zd-muted)]">
-              <tr>
-                <th className="pb-3 font-medium">السائق</th>
-                <th className="pb-3 font-medium">التقييم</th>
-                <th className="pb-3 font-medium">الرحلات</th>
-                <th className="pb-3 font-medium">الوقود</th>
-                <th className="pb-3 font-medium">الحالة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {drivers.map(([name, rating, trips, status, color]) => (
-                <tr key={name} className="border-b border-[var(--zd-line)] last:border-0">
-                  <td className="py-3">
-                    <span className="flex items-center gap-2.5">
-                      <i
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-xs"
-                        style={{ background: color }}
-                      >
-                        {name[0]}
-                      </i>
-                      <span className="font-medium text-[var(--zd-text)]">{name}</span>
-                    </span>
-                  </td>
-                  <td className="py-3 font-manrope text-[var(--zd-text)]">
-                    <span className="text-[var(--zd-amber)]">★</span> {rating}
-                  </td>
-                  <td className="py-3 font-manrope text-[var(--zd-muted)]">{trips}</td>
-                  <td className="py-3 text-[var(--zd-muted)]">ممتاز</td>
-                  <td className="py-3">
-                    <span className="rounded-full bg-[var(--zd-teal)]/15 px-2 py-1 text-[9px] font-medium text-[var(--zd-teal)]">
-                      {status}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <MoreHorizontal className="h-4 w-4 text-[var(--zd-muted)]" />
-                  </td>
+          {isLoadingDrivers ? (
+            <div className="py-8 text-center text-xs text-[var(--zd-muted)]">جارٍ تحميل بيانات السائقين...</div>
+          ) : realDrivers.length === 0 ? (
+            <div className="py-8 text-center text-xs text-[var(--zd-muted)] flex flex-col items-center gap-2">
+              <UsersRound className="w-8 h-8 opacity-40" />
+              <span>لا يوجد سائقون مسجلون حالياً</span>
+            </div>
+          ) : (
+            <table className="w-full min-w-[560px] text-right text-[11px]">
+              <thead className="border-b border-[var(--zd-line)] text-[10px] text-[var(--zd-muted)]">
+                <tr>
+                  <th className="pb-3 font-medium">السائق</th>
+                  <th className="pb-3 font-medium">البريد الإلكتروني</th>
+                  <th className="pb-3 font-medium">المركبة المعينة</th>
+                  <th className="pb-3 font-medium">الحالة</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {realDrivers.slice(0, 5).map((driver) => {
+                  const name = getDriverDisplayName(driver);
+                  const isActive = driver.status === 'active';
+                  return (
+                    <tr key={driver._id} className="border-b border-[var(--zd-line)] last:border-0">
+                      <td className="py-3">
+                        <span className="flex items-center gap-2.5">
+                          <i
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-xs"
+                            style={{ background: driver.color || '#5d8cff' }}
+                          >
+                            {driver.initials || name[0]}
+                          </i>
+                          <span className="font-medium text-[var(--zd-text)]">{name}</span>
+                        </span>
+                      </td>
+                      <td className="py-3 font-mono text-[var(--zd-muted)]" dir="ltr">
+                        {driver.email}
+                      </td>
+                      <td className="py-3 text-[var(--zd-text)]">
+                        {driver.assignedVehicle
+                          ? `${driver.assignedVehicle.model} (${driver.assignedVehicle.plateNumber})`
+                          : '— غير معين'}
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`rounded-full px-2 py-1 text-[9px] font-medium ${
+                            isActive
+                              ? 'bg-[var(--zd-teal)]/15 text-[var(--zd-teal)]'
+                              : 'bg-rose-500/15 text-rose-500'
+                          }`}
+                        >
+                          {isActive ? 'نشط' : 'معطل'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
     </>

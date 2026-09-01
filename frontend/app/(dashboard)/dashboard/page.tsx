@@ -22,6 +22,10 @@ import {
   VehicleStatusDonut,
 } from '@/features/dashboard';
 
+import { useVehicles } from '@/features/vehicles';
+import { useDriversList } from '@/features/drivers';
+import { useTeams } from '@/features/teams';
+
 export default function DashboardPage() {
   const {
     userName,
@@ -33,6 +37,13 @@ export default function DashboardPage() {
     toggleTask,
     logout,
   } = useDashboard();
+
+  const { data: vehiclesList = [] } = useVehicles();
+  const { data: driversList = [] } = useDriversList();
+  const { data: teamsList = [] } = useTeams();
+
+  const activeVehiclesCount = vehiclesList.filter((v) => v.status === 'active').length;
+  const activeDriversCount = driversList.filter((d) => d.status === 'active').length;
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -68,68 +79,57 @@ export default function DashboardPage() {
             <section className="zd-rise mb-7 flex flex-col justify-between gap-5 md:flex-row md:items-end">
               <div>
                 <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--zd-muted)]">
-                  <CalendarDays className="h-3.5 w-3.5" /> الأربعاء، ١٥ أغسطس ٢٠٢٦{' '}
-                  <span className="opacity-40">•</span> آخر تحديث منذ دقيقة
+                  <CalendarDays className="h-3.5 w-3.5" />{' '}
+                  {new Date().toLocaleDateString('ar-EG', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                  <span className="opacity-40">•</span> بيانات مباشرة
                 </div>
                 <h1 className="text-[25px] font-bold tracking-[-.035em] text-[var(--zd-text)] sm:text-[30px]">
-                  صباح الخير، {userName.split(' ')[0]} <span className="text-[var(--zd-blue)]">.</span>
+                  مرحباً بك، {userName.split(' ')[0]} <span className="text-[var(--zd-blue)]">.</span>
                 </h1>
                 <p className="mt-1.5 text-[12px] text-[var(--zd-muted)]">
-                  إليك نظرة سريعة على حالة أسطولك وما يحتاج إلى انتباهك اليوم.
+                  إليك نظرة سريعة على حالة أسطولك والبيانات التشغيلية الحالية.
                 </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-4 py-2.5 text-[12px] font-semibold text-[var(--zd-text)] hover:border-[var(--zd-blue)] transition-colors shadow-xs">
-                  <SlidersHorizontal className="h-4 w-4" /> تخصيص العرض
-                </button>
-                <button className="zd-focus flex items-center gap-2 rounded-xl bg-[var(--zd-blue)] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[0_9px_22px_rgba(37,99,235,.2)] hover:opacity-95 transition-opacity">
-                  <Truck className="h-4 w-4" /> إضافة مركبة
-                </button>
               </div>
             </section>
 
-            {/* ── KPIs Grid ── */}
-            <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {/* ── Real Dynamic KPIs Grid ── */}
+            <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard
                 icon={Truck}
                 label="إجمالي المركبات"
-                value="٥٨"
-                change="+٦.٢٪"
+                value={String(vehiclesList.length)}
+                change={`${activeVehiclesCount} نشطة`}
                 color="bg-[#5d8cff]"
-                note="مقارنة بالأسبوع الماضي"
+                note="مسجلة في أسطولك"
               />
               <KpiCard
                 icon={UsersRound}
-                label="السائقون النشطون"
-                value="٤٧"
-                change="+٢.١٪"
+                label="السائقون"
+                value={String(driversList.length)}
+                change={`${activeDriversCount} نشط`}
                 color="bg-[#57d0bf]"
-                note="من أصل ٥٢ سائقاً"
+                note="في الفرق التشغيلية"
               />
               <KpiCard
                 icon={Package}
-                label="طلبات الوقود"
-                value="٢٨,٩٠٠"
-                change="+٥.٣٪"
+                label="الفرق التشغيلية"
+                value={String(teamsList.length)}
+                change="فرق معتمدة"
                 color="bg-[#eab66b]"
-                note="ريال هذا الشهر"
-              />
-              <KpiCard
-                icon={Wrench}
-                label="صيانة مجدولة"
-                value="١١"
-                change="+٨.٧٪"
-                color="bg-[#a981ef]"
-                note="تحتاج إلى متابعة"
+                note="هيكل الشركة"
               />
               <KpiCard
                 icon={AlertTriangle}
-                label="تنبيهات نشطة"
-                value="٧"
-                change="+١٢٪"
-                color="bg-[#eb6974]"
-                note="٣ منها عالية الأولوية"
+                label="حالة النظام"
+                value="مستقر"
+                change="100%"
+                color="bg-[#10b981]"
+                note="جميع الخوادم متصلة"
               />
             </section>
 

@@ -30,6 +30,13 @@ export function AssignDriverModal({
       : targetVehicle?.teamId;
   const hasTeam = Boolean(vehicleTeamId);
 
+  const targetDriverId: string | undefined =
+    targetVehicle && typeof targetVehicle.driverId === 'object' && targetVehicle.driverId !== null
+      ? targetVehicle.driverId._id
+      : typeof targetVehicle?.driverId === 'string'
+      ? targetVehicle.driverId
+      : undefined;
+
   // تصفية السائقين التابعين لنفس فريق المركبة فقط
   const teamDrivers = availableDrivers.filter((d) => {
     const dTeamId = typeof d.teamId === 'object' && d.teamId ? (d.teamId as any)._id : d.teamId;
@@ -51,10 +58,10 @@ export function AssignDriverModal({
   useEffect(() => {
     if (isOpen && targetVehicle) {
       reset({
-        driverId: targetVehicle.driverId || '',
+        driverId: targetDriverId || '',
       });
     }
-  }, [isOpen, targetVehicle, reset]);
+  }, [isOpen, targetVehicle, targetDriverId, reset]);
 
   // Handle ESC
   useEffect(() => {
@@ -72,12 +79,14 @@ export function AssignDriverModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, assignDriverMutation.isPending, unassignDriverMutation.isPending, onClose]);
 
+  const isPending = assignDriverMutation.isPending || unassignDriverMutation.isPending;
+  const isSubmittingRef = React.useRef(false);
+
   if (!isOpen || !targetVehicle) return null;
 
-  const isPending = assignDriverMutation.isPending || unassignDriverMutation.isPending;
-
   const onSubmit = async (values: AssignDriverFormValues) => {
-    if (!hasTeam) return;
+    if (!hasTeam || isSubmittingRef.current || isPending) return;
+    isSubmittingRef.current = true;
     try {
       await assignDriverMutation.mutateAsync({
         vehicleId: targetVehicle._id,
@@ -86,16 +95,21 @@ export function AssignDriverModal({
       onClose();
     } catch {
       // Handled by toast
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
   const handleUnassign = async () => {
-    if (!targetVehicle.driverId) return;
+    if (!targetDriverId || isSubmittingRef.current || isPending) return;
+    isSubmittingRef.current = true;
     try {
-      await unassignDriverMutation.mutateAsync(targetVehicle.driverId);
+      await unassignDriverMutation.mutateAsync(targetDriverId);
       onClose();
     } catch {
       // Handled by toast
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 

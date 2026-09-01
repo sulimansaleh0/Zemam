@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { UserCheck, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import {
@@ -17,7 +18,11 @@ import {
 import { useTeams } from '@/features/teams';
 
 export default function ManagersPage() {
-  const { userName, menuOpen, setMenuOpen, logout } = useDashboard();
+  const router = useRouter();
+  const { user, userName, menuOpen, setMenuOpen, logout } = useDashboard();
+
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
   const {
     data: managersList = [],
@@ -45,6 +50,16 @@ export default function ManagersPage() {
   const [selectedTeamIdForCreate, setSelectedTeamIdForCreate] = useState<string | undefined>(
     undefined
   );
+
+  useEffect(() => {
+    if (isFleetManager) {
+      router.replace('/dashboard');
+    }
+  }, [isFleetManager, router]);
+
+  if (isFleetManager) {
+    return null;
+  }
 
   const handleOpenAdd = (teamId?: string) => {
     setSelectedTeamIdForCreate(teamId);

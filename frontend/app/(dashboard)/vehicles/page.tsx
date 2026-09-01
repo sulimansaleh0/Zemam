@@ -169,8 +169,9 @@ export default function VehiclesPage() {
                     await removeTeamMutation.mutateAsync(vehicle._id);
                   }}
                   onUnassignDriverClick={async (vehicle) => {
-                    if (vehicle.driverId) {
-                      await unassignDriverMutation.mutateAsync(vehicle.driverId);
+                    const dId = typeof vehicle.driverId === 'object' && vehicle.driverId !== null ? vehicle.driverId._id : vehicle.driverId;
+                    if (dId) {
+                      await unassignDriverMutation.mutateAsync(dId);
                     }
                   }}
                   onDeleteVehicleClick={(vehicle) => setSelectedVehicleForDelete(vehicle)}

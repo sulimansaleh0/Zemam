@@ -68,6 +68,8 @@ export function CreateTeamModal({ isOpen, onClose }: CreateTeamModalProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isSubmitting, onClose]);
 
+  const isSubmittingRef = React.useRef(false);
+
   if (!isOpen) return null;
 
   const toggleDriver = (id: string) => {
@@ -83,6 +85,8 @@ export function CreateTeamModal({ isOpen, onClose }: CreateTeamModalProps) {
   };
 
   const onSubmit = async (values: CreateTeamFormValues) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     try {
       await createTeamMutation.mutateAsync({
         name: values.name.trim(),
@@ -93,6 +97,8 @@ export function CreateTeamModal({ isOpen, onClose }: CreateTeamModalProps) {
       onClose();
     } catch {
       // Handled by Toast in hook
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 

@@ -7,10 +7,12 @@ export interface BackendDriver {
   _id: string;
   name: string;           // defaults to "Default" إذا لم يُحدَّد
   email: string;
-  roles: string[];
+  phone?: string;
+  role?: string;
+  roles?: string[];
   status: DriverStatus;
   companyId: string;
-  teamId: string;
+  teamId?: string | { _id: string; name: string } | null;
   isDeleted: boolean;
   createdAt: string;      // ISO 8601
   updatedAt: string;      // ISO 8601
@@ -45,6 +47,8 @@ export type DriverSortOrder = 'newest' | 'oldest' | 'name';
 /** البيانات المرسلة لإنشاء سائق */
 export interface CreateDriverInput {
   email: string;
+  name?: string;
+  phone?: string;
   teamId?: string;
 }
 
