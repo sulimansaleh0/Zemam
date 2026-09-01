@@ -1,90 +1,65 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  UsersRound,
   ChevronRight,
   UserCheck,
   UserX,
   Trash2,
-  Car,
-  Building2,
-  Mail,
-  Calendar,
-  Unlink,
-  Link2,
   AlertCircle,
   Loader2,
-  CheckCircle2,
-  XCircle,
-  ClipboardCheck,
-  Wrench,
-  Fuel,
 } from 'lucide-react';
-import { Sidebar, Header, useDashboard } from '@/features/dashboard';
+import { Sidebar, Header } from '@/features/dashboard';
 import {
-  useDriversList,
-  useChangeDriverStatus,
-  useDeleteDriver,
-  useAssignVehicleToDriver,
-  useUnassignVehicleFromDriver,
-  useRemoveDriverFromTeam,
+  useDriverDetailPage,
+  DriverAvatar,
+  StatusPill,
+  DriverDetailCards,
+  PerformanceChart,
+  ActivityContent,
+  ACTIVITY_TAB_ITEMS,
   AssignVehicleModal,
   AssignDriverToTeamModal,
   DriverDeleteModal,
-  PerformanceChart,
-  ActivityContent,
-  type Driver,
 } from '@/features/drivers';
-import { useTeams } from '@/features/teams';
-import { getDriverDisplayName, formatRelativeDate } from '@/features/drivers/utils/driverHelpers';
-import { DriverAvatar } from '@/features/drivers/components/DriverAvatar';
-import { StatusPill } from '@/features/drivers/components/StatusPill';
-
-type ActivityTab = 'المهام' | 'البلاغات' | 'الوقود';
-
-const TAB_ITEMS: { label: ActivityTab; icon: React.ElementType }[] = [
-  { label: 'المهام', icon: ClipboardCheck },
-  { label: 'البلاغات', icon: Wrench },
-  { label: 'الوقود', icon: Fuel },
-];
 
 export default function DriverDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const driverId = String(params?.id || '');
 
-  const { userName, menuOpen, setMenuOpen, logout } = useDashboard();
-
-  // Queries
-  const { data: drivers = [], isLoading, isError, error } = useDriversList();
-  const { data: teamsList = [] } = useTeams();
-
-  // Mutations
-  const changeStatusMutation = useChangeDriverStatus();
-  const deleteMutation = useDeleteDriver();
-  const assignVehicleMutation = useAssignVehicleToDriver();
-  const unassignVehicleMutation = useUnassignVehicleFromDriver();
-  const removeTeamMutation = useRemoveDriverFromTeam();
-
-  // Tab & Modals
-  const [tab, setTab] = useState<ActivityTab>('المهام');
-  const [isAssignVehicleOpen, setIsAssignVehicleOpen] = useState(false);
-  const [isAssignTeamOpen, setIsAssignTeamOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-  // Find target driver
-  const driver = useMemo(() => {
-    return drivers.find((d) => d._id === driverId) || null;
-  }, [drivers, driverId]);
-
-  // Team lookup
-  const teamObj = useMemo(() => {
-    if (!driver?.teamId) return null;
-    return teamsList.find((t) => t._id === driver.teamId) || null;
-  }, [teamsList, driver?.teamId]);
+  const {
+    driver,
+    displayName,
+    isActive,
+    teamObj,
+    isLoading,
+    isError,
+    error,
+    tab,
+    setTab,
+    isAssignVehicleOpen,
+    setIsAssignVehicleOpen,
+    isAssignTeamOpen,
+    setIsAssignTeamOpen,
+    isDeleteOpen,
+    setIsDeleteOpen,
+    handleToggleStatus,
+    handleDelete,
+    handleAssignVehicle,
+    handleUnassignVehicle,
+    handleRemoveTeam,
+    isChangingStatus,
+    isDeleting,
+    isAssigningVehicle,
+    isUnassigningVehicle,
+    isRemovingTeam,
+    userName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+  } = useDriverDetailPage(driverId);
 
   if (isLoading) {
     return (
@@ -117,9 +92,6 @@ export default function DriverDetailPage() {
       </main>
     );
   }
-
-  const displayName = getDriverDisplayName(driver);
-  const isActive = driver.status === 'active';
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -180,11 +152,8 @@ export default function DriverDetailPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => {
-                    const nextStatus = isActive ? 'inactive' : 'active';
-                    changeStatusMutation.mutate({ id: driver._id, status: nextStatus });
-                  }}
-                  disabled={changeStatusMutation.isPending}
+                  onClick={handleToggleStatus}
+                  disabled={isChangingStatus}
                   className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
                     isActive
                       ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
@@ -207,141 +176,16 @@ export default function DriverDetailPage() {
             </div>
 
             {/* ── Driver Cards Grid ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Card 1: Basic Info */}
-              <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
-                <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
-                  <Mail className="w-4 h-4 text-blue-500" />
-                  البيانات الأساسية
-                </span>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <span className="text-[var(--muted)] block">البريد الإلكتروني:</span>
-                    <span className="font-semibold text-[var(--text)] font-mono" dir="ltr">
-                      {driver.email}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[var(--muted)] block">تاريخ الانضمام:</span>
-                    <span className="font-semibold text-[var(--text)]">
-                      {formatRelativeDate(driver.createdAt)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[var(--muted)] block">حالة الحساب:</span>
-                    <span className="font-semibold text-[var(--text)]">
-                      {isActive ? 'نشط ويعمل' : 'معطل مؤقتاً'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Team */}
-              <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4 text-indigo-500" />
-                    الفريق التشغيلي
-                  </span>
-                  {teamObj ? (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await removeTeamMutation.mutateAsync(driver._id);
-                      }}
-                      disabled={removeTeamMutation.isPending}
-                      className="p-1 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                      title="فك الارتباط عن الفريق"
-                    >
-                      <Unlink className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAssignTeamOpen(true)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
-                    >
-                      <Link2 className="w-3 h-3" />
-                      <span>تعيين</span>
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-1 text-xs">
-                  {teamObj ? (
-                    <>
-                      <Link
-                        href={`/teams/${teamObj._id}`}
-                        className="font-bold text-sm text-[var(--text)] hover:text-[var(--primary)] hover:underline block"
-                      >
-                        {teamObj.name}
-                      </Link>
-                      <span className="text-[11px] text-[var(--muted)]">فريق تشغيلي مسند</span>
-                    </>
-                  ) : (
-                    <span className="text-xs text-[var(--muted)] italic block pt-2">
-                      في المخزون العام (غير مقيد بفريق)
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Card 3: Vehicle */}
-              <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
-                    <Car className="w-4 h-4 text-emerald-500" />
-                    المركبة المعينة
-                  </span>
-                  {driver.assignedVehicle ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsAssignVehicleOpen(true)}
-                        className="text-[11px] text-[var(--primary)] hover:underline font-semibold cursor-pointer"
-                      >
-                        تغيير
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await unassignVehicleMutation.mutateAsync(driver._id);
-                        }}
-                        disabled={unassignVehicleMutation.isPending}
-                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        title="فك ارتباط المركبة"
-                      >
-                        <Unlink className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAssignVehicleOpen(true)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
-                    >
-                      <Car className="w-3 h-3" />
-                      <span>تعيين</span>
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-1 text-xs">
-                  {driver.assignedVehicle ? (
-                    <>
-                      <div className="font-bold text-sm text-[var(--text)]">
-                        {driver.assignedVehicle.model} ({driver.assignedVehicle.year})
-                      </div>
-                      <div className="font-mono text-xs text-[var(--muted)]">
-                        لوحة: {driver.assignedVehicle.plateNumber}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-xs text-[var(--muted)] italic block pt-2">
-                      لا توجد مركبة معينة حالياً
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+            <DriverDetailCards
+              driver={driver}
+              teamObj={teamObj}
+              onOpenAssignTeam={() => setIsAssignTeamOpen(true)}
+              onRemoveTeam={handleRemoveTeam}
+              isRemovingTeam={isRemovingTeam}
+              onOpenAssignVehicle={() => setIsAssignVehicleOpen(true)}
+              onUnassignVehicle={handleUnassignVehicle}
+              isUnassigningVehicle={isUnassigningVehicle}
+            />
 
             {/* ── Performance Chart ── */}
             <div className="p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
@@ -359,7 +203,7 @@ export default function DriverDetailPage() {
 
                 {/* Tab selector */}
                 <div className="flex gap-1 rounded-xl bg-[var(--surface-2)] p-1">
-                  {TAB_ITEMS.map(({ label, icon: Icon }) => (
+                  {ACTIVITY_TAB_ITEMS.map(({ label, icon: Icon }) => (
                     <button
                       key={label}
                       onClick={() => setTab(label)}
@@ -387,14 +231,8 @@ export default function DriverDetailPage() {
         <AssignVehicleModal
           driver={driver}
           onClose={() => setIsAssignVehicleOpen(false)}
-          onAssign={async (vehicleId) => {
-            await assignVehicleMutation.mutateAsync({
-              driverId: driver._id,
-              vehicleId,
-            });
-            setIsAssignVehicleOpen(false);
-          }}
-          isLoading={assignVehicleMutation.isPending}
+          onAssign={handleAssignVehicle}
+          isLoading={isAssigningVehicle}
         />
       )}
 
@@ -412,12 +250,8 @@ export default function DriverDetailPage() {
         <DriverDeleteModal
           driver={driver}
           onClose={() => setIsDeleteOpen(false)}
-          onConfirm={async () => {
-            await deleteMutation.mutateAsync(driver._id);
-            setIsDeleteOpen(false);
-            router.push('/drivers');
-          }}
-          isLoading={deleteMutation.isPending}
+          onConfirm={handleDelete}
+          isLoading={isDeleting}
         />
       )}
     </main>

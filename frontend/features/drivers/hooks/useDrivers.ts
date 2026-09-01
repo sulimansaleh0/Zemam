@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { useTeams } from '@/features/teams';
 import { useToast } from '@/shared/ui/Toast';
 import { driverService } from '../services/driverService';
 import { vehicleService } from '@/features/vehicles/services/vehicle.service';
-import { enrichDriver, exportDriversCSV } from '../utils/driverHelpers';
+import { enrichDriver, exportDriversCSV, getDriverDisplayName, getDriverTeamId } from '../utils/driverHelpers';
 import type {
   Driver,
   DriverStatus,
@@ -27,6 +29,10 @@ const VEHICLE_KEYS = {
   all: ['vehicles'] as const,
 } as const;
 
+const TEAM_KEYS = {
+  all: ['teams'] as const,
+} as const;
+
 // ============================================================
 //  Data Hooks (React Query)
 // ============================================================
@@ -42,7 +48,7 @@ export function useDriversList() {
         driverService.getDrivers(signal),
         vehicleService.getVehicles(signal).catch(() => ({ success: true as const, data: { vehicles: [] } })),
       ]);
-      
+
       if (!driversRes.success) {
         if (driversRes.message === 'Request cancelled') return [];
         throw new Error(driversRes.message);
@@ -67,9 +73,7 @@ export function useDriversList() {
         return enriched;
       });
     },
-
     staleTime: 1000 * 60 * 2, // 2 minutes
-
   });
 }
 
@@ -91,8 +95,7 @@ export function useAvailableVehicles() {
 }
 
 /**
- * Mutation لإنشاء سائق جديد.
- * يُحدّث القائمة ويُطلق toast عند النجاح أو الفشل.
+ * Mutation لإنشاء سائق جديد
  */
 export function useCreateDriver() {
   const queryClient = useQueryClient();
@@ -115,7 +118,7 @@ export function useCreateDriver() {
 }
 
 /**
- * Mutation لتغيير حالة سائق (تفعيل / تعطيل).
+ * Mutation لتغيير حالة سائق (تفعيل / تعطيل)
  */
 export function useChangeDriverStatus() {
   const queryClient = useQueryClient();
@@ -139,7 +142,7 @@ export function useChangeDriverStatus() {
 }
 
 /**
- * Mutation لحذف سائق (soft delete).
+ * Mutation لحذف سائق (soft delete)
  */
 export function useDeleteDriver() {
   const queryClient = useQueryClient();
@@ -241,7 +244,7 @@ export function useAssignDriverToTeam() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: TEAM_KEYS.all });
       addToast({
         type: 'success',
         title: 'تعيين الفريق',
@@ -274,7 +277,7 @@ export function useRemoveDriverFromTeam() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: VEHICLE_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: TEAM_KEYS.all });
       addToast({
         type: 'info',
         title: 'فك ارتباط الفريق',
@@ -303,39 +306,34 @@ export type ModalState =
   | { type: 'assign-team'; driver: Driver };
 
 // ============================================================
-//  Page Hook — UI state + orchestration
+//  Page Hook — UI state + Orchestration
 // ============================================================
 
-/**
- * Hook رئيسي لصفحة السائقين.
- * يجمع بين الـ data hooks والـ UI state في مكان واحد.
- */
 export function useDriversPage() {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
 
   // ── UI State ─────────────────────────────────────────────
-  const [selectedId, setSelectedId]       = useState<string | null>(null);
-  const [searchQuery, setSearchQuery]     = useState('');
-  const [statusFilter, setStatusFilter]   = useState<DriverStatusFilter>('all');
-  const [sortOrder, setSortOrder]         = useState<DriverSortOrder>('newest');
-  const [menuOpen, setMenuOpen]           = useState(false);
-  const [modal, setModal]                 = useState<ModalState>({ type: 'closed' });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<DriverStatusFilter>('all');
+  const [sortOrder, setSortOrder] = useState<DriverSortOrder>('newest');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [modal, setModal] = useState<ModalState>({ type: 'closed' });
 
   // ── Data ─────────────────────────────────────────────────
-  const driversQuery            = useDriversList();
-  const createMutation          = useCreateDriver();
-  const changeStatusMutation    = useChangeDriverStatus();
-  const deleteMutation          = useDeleteDriver();
-  const assignVehicleMutation   = useAssignVehicleToDriver();
+  const driversQuery = useDriversList();
+  const createMutation = useCreateDriver();
+  const changeStatusMutation = useChangeDriverStatus();
+  const deleteMutation = useDeleteDriver();
+  const assignVehicleMutation = useAssignVehicleToDriver();
   const unassignVehicleMutation = useUnassignVehicleFromDriver();
-  const assignTeamMutation      = useAssignDriverToTeam();
-  const removeTeamMutation      = useRemoveDriverFromTeam();
+  const assignTeamMutation = useAssignDriverToTeam();
+  const removeTeamMutation = useRemoveDriverFromTeam();
 
   const drivers = driversQuery.data ?? [];
 
-  // ── Auto-select ──────────────────────────────────────────
-  // اختيار أول سائق تلقائياً عند التحميل أو بعد حذف السائق المحدد
+  // ── Auto-select first driver ──────────────────────────────
   useEffect(() => {
     if (drivers.length === 0) {
       setSelectedId(null);
@@ -348,7 +346,6 @@ export function useDriversPage() {
   }, [drivers, selectedId]);
 
   // ── Computed ─────────────────────────────────────────────
-
   const filteredDrivers = useMemo(() => {
     let result = drivers.filter((driver) => {
       const q = searchQuery.trim().toLowerCase();
@@ -368,7 +365,6 @@ export function useDriversPage() {
       if (sortOrder === 'oldest') {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
-      // newest (default)
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
@@ -377,12 +373,12 @@ export function useDriversPage() {
 
   const selectedDriver = useMemo(
     () => drivers.find((d) => d._id === selectedId) ?? null,
-    [drivers, selectedId],
+    [drivers, selectedId]
   );
 
   const metrics = useMemo(() => {
-    const total    = drivers.length;
-    const active   = drivers.filter((d) => d.status === 'active').length;
+    const total = drivers.length;
+    const active = drivers.filter((d) => d.status === 'active').length;
     const inactive = drivers.filter((d) => d.status === 'inactive').length;
     return {
       total,
@@ -395,33 +391,28 @@ export function useDriversPage() {
   const userName = user?.name || user?.email?.split('@')[0] || '';
 
   // ── Handlers ─────────────────────────────────────────────
-
-  /** إضافة سائق جديد — يُغلق الـ modal عند النجاح فقط */
   const handleCreate = useCallback(
     async (data: CreateDriverInput) => {
       await createMutation.mutateAsync(data);
       setModal({ type: 'closed' });
     },
-    [createMutation],
+    [createMutation]
   );
 
-  /** تبديل حالة السائق بين active وinactive */
   const handleToggleStatus = useCallback(
     (driver: Driver) => {
       const newStatus: DriverStatus = driver.status === 'active' ? 'inactive' : 'active';
       changeStatusMutation.mutate({ id: driver._id, status: newStatus });
     },
-    [changeStatusMutation],
+    [changeStatusMutation]
   );
 
-  /** تنفيذ الحذف بعد التأكيد */
   const handleDelete = useCallback(async () => {
     if (modal.type !== 'delete') return;
     await deleteMutation.mutateAsync(modal.driver._id);
     setModal({ type: 'closed' });
   }, [modal, deleteMutation]);
 
-  /** تعيين مركبة لسائق */
   const handleAssignVehicle = useCallback(
     async (vehicleId: string) => {
       if (modal.type !== 'assign-vehicle') return;
@@ -431,31 +422,27 @@ export function useDriversPage() {
       });
       setModal({ type: 'closed' });
     },
-    [modal, assignVehicleMutation],
+    [modal, assignVehicleMutation]
   );
 
-  /** فك ارتباط مركبة عن سائق */
   const handleUnassignVehicle = useCallback(
     async (driver: Driver) => {
       await unassignVehicleMutation.mutateAsync(driver._id);
     },
-    [unassignVehicleMutation],
+    [unassignVehicleMutation]
   );
 
-  /** فتح نافذة تعيين السائق لفريق */
   const handleAssignTeam = useCallback((driver: Driver) => {
     setModal({ type: 'assign-team', driver });
   }, []);
 
-  /** فك ارتباط السائق عن فريقه */
   const handleUnassignTeam = useCallback(
     async (driver: Driver) => {
       await removeTeamMutation.mutateAsync(driver._id);
     },
-    [removeTeamMutation],
+    [removeTeamMutation]
   );
 
-  /** تصدير CSV */
   const handleExportCSV = useCallback(() => {
     if (drivers.length === 0) {
       addToast({ type: 'warning', message: 'لا توجد بيانات سائقين للتصدير' });
@@ -464,8 +451,6 @@ export function useDriversPage() {
     exportDriversCSV(drivers);
     addToast({ type: 'success', title: 'تم التصدير', message: 'تم تصدير بيانات السائقين بصيغة CSV' });
   }, [drivers, addToast]);
-
-  // ── Return ────────────────────────────────────────────────
 
   return {
     // Data
@@ -476,17 +461,17 @@ export function useDriversPage() {
 
     // Query state
     isLoading: driversQuery.isLoading,
-    isError:   driversQuery.isError,
-    error:     driversQuery.error,
+    isError: driversQuery.isError,
+    error: driversQuery.error,
 
     // Mutations pending state
-    isCreating:               createMutation.isPending,
-    isDeleting:               deleteMutation.isPending,
-    isChangingStatus:         changeStatusMutation.isPending,
-    isAssigningVehicle:       assignVehicleMutation.isPending,
-    isUnassigningVehicle:     unassignVehicleMutation.isPending,
-    isAssigningTeam:          assignTeamMutation.isPending,
-    isRemovingTeam:           removeTeamMutation.isPending,
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isChangingStatus: changeStatusMutation.isPending,
+    isAssigningVehicle: assignVehicleMutation.isPending,
+    isUnassigningVehicle: unassignVehicleMutation.isPending,
+    isAssigningTeam: assignTeamMutation.isPending,
+    isRemovingTeam: removeTeamMutation.isPending,
 
     // UI state
     selectedId,
@@ -514,6 +499,128 @@ export function useDriversPage() {
 
     // Auth
     userName,
+    logout,
+  };
+}
+
+// ============================================================
+//  Detail Page Hook — Orchestrates the Driver Detail page
+// ============================================================
+
+export function useDriverDetailPage(driverId: string) {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [tab, setTab] = useState<'المهام' | 'البلاغات' | 'الوقود'>('المهام');
+  const [isAssignVehicleOpen, setIsAssignVehicleOpen] = useState(false);
+  const [isAssignTeamOpen, setIsAssignTeamOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // Queries
+  const { data: drivers = [], isLoading, isError, error } = useDriversList();
+  const { data: teamsList = [] } = useTeams();
+
+  // Mutations
+  const changeStatusMutation = useChangeDriverStatus();
+  const deleteMutation = useDeleteDriver();
+  const assignVehicleMutation = useAssignVehicleToDriver();
+  const unassignVehicleMutation = useUnassignVehicleFromDriver();
+  const removeTeamMutation = useRemoveDriverFromTeam();
+
+  // Selected driver
+  const driver = useMemo(() => {
+    return drivers.find((d) => d._id === driverId) || null;
+  }, [drivers, driverId]);
+
+  // Team lookup
+  const teamObj = useMemo(() => {
+    const teamId = getDriverTeamId(driver?.teamId);
+    if (!teamId) return null;
+    return teamsList.find((t) => t._id === teamId) || null;
+  }, [teamsList, driver?.teamId]);
+
+  const displayName = getDriverDisplayName(driver);
+  const isActive = driver?.status === 'active';
+  const userName = user?.name || user?.email?.split('@')[0] || '';
+
+  // Action handlers
+  const handleToggleStatus = useCallback(async () => {
+    if (!driver) return;
+    const nextStatus: DriverStatus = isActive ? 'inactive' : 'active';
+    await changeStatusMutation.mutateAsync({ id: driver._id, status: nextStatus });
+  }, [driver, isActive, changeStatusMutation]);
+
+  const handleDelete = useCallback(async () => {
+    if (!driver) return;
+    await deleteMutation.mutateAsync(driver._id);
+    setIsDeleteOpen(false);
+    router.push('/drivers');
+  }, [driver, deleteMutation, router]);
+
+  const handleAssignVehicle = useCallback(
+    async (vehicleId: string) => {
+      if (!driver) return;
+      await assignVehicleMutation.mutateAsync({
+        driverId: driver._id,
+        vehicleId,
+      });
+      setIsAssignVehicleOpen(false);
+    },
+    [driver, assignVehicleMutation]
+  );
+
+  const handleUnassignVehicle = useCallback(async () => {
+    if (!driver) return;
+    await unassignVehicleMutation.mutateAsync(driver._id);
+  }, [driver, unassignVehicleMutation]);
+
+  const handleRemoveTeam = useCallback(async () => {
+    if (!driver) return;
+    await removeTeamMutation.mutateAsync(driver._id);
+  }, [driver, removeTeamMutation]);
+
+  return {
+    // Data
+    driver,
+    displayName,
+    isActive,
+    teamObj,
+
+    // Status
+    isLoading,
+    isError,
+    error,
+
+    // Tab state
+    tab,
+    setTab,
+
+    // Modal states
+    isAssignVehicleOpen,
+    setIsAssignVehicleOpen,
+    isAssignTeamOpen,
+    setIsAssignTeamOpen,
+    isDeleteOpen,
+    setIsDeleteOpen,
+
+    // Action handlers
+    handleToggleStatus,
+    handleDelete,
+    handleAssignVehicle,
+    handleUnassignVehicle,
+    handleRemoveTeam,
+
+    // Pending states
+    isChangingStatus: changeStatusMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isAssigningVehicle: assignVehicleMutation.isPending,
+    isUnassigningVehicle: unassignVehicleMutation.isPending,
+    isRemovingTeam: removeTeamMutation.isPending,
+
+    // Auth & Navigation
+    userName,
+    menuOpen,
+    setMenuOpen,
     logout,
   };
 }

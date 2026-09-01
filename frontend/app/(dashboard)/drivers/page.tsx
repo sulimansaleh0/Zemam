@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { AlertCircle, FileDown, Loader2, Plus, RefreshCw, UsersRound } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
@@ -12,6 +12,7 @@ import {
   AssignDriverToTeamModal,
   DriversList,
   useDriversPage,
+  getDriverTeamName,
 } from '@/features/drivers';
 import { useTeams } from '@/features/teams';
 
@@ -60,21 +61,9 @@ export default function DriversPage() {
   } = useDriversPage();
 
   const { data: teamsList = [] } = useTeams();
-  const teamMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    teamsList.forEach((t) => {
-      map[t._id] = t.name;
-    });
-    return map;
-  }, [teamsList]);
-
   const currentTeamName = useMemo(() => {
-    if (!selectedDriver?.teamId) return undefined;
-    if (typeof selectedDriver.teamId === 'object' && selectedDriver.teamId !== null) {
-      return selectedDriver.teamId.name;
-    }
-    return teamMap[selectedDriver.teamId];
-  }, [selectedDriver, teamMap]);
+    return getDriverTeamName(selectedDriver?.teamId, teamsList);
+  }, [selectedDriver?.teamId, teamsList]);
 
   return (
     <main className="zamam-drivers zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">

@@ -9,19 +9,16 @@
     --zd-bg:             #081323;
     --zd-surface:        #0e1c30;
     --zd-surface-2:      #12243c;
-    --zd-surface-soft:   #102039;
     --zd-surface-hover:  #1b3152;
     --zd-line:           rgba(162, 190, 226, 0.13);
     --zd-text:           #edf4ff;
     --zd-muted:          #8da1bd;
     --zd-blue:           #3d7bff;
-    --zd-blue-hover:     #548aff;
     --zd-teal:           #57d0bf;
     --zd-amber:          #eab66b;
     --zd-red:            #ee6b76;
     --zd-input-bg:       #0c1a2f;
     --zd-detail-bg:      #0b192d;
-    --zd-chart-bg:       #0d1d34;
     --zd-row-selected:   rgba(23, 52, 92, 0.75);
     --zd-row-selected-border: #4f88ff;
 
@@ -38,19 +35,16 @@
     --zd-bg:             #f3f6fa;
     --zd-surface:        #ffffff;
     --zd-surface-2:      #f1f5f9;
-    --zd-surface-soft:   #e9eff8;
     --zd-surface-hover:  #e2e8f0;
     --zd-line:           rgba(15, 23, 42, 0.09);
     --zd-text:           #0f172a;
     --zd-muted:          #64748b;
     --zd-blue:           #2563eb;
-    --zd-blue-hover:     #1d4ed8;
     --zd-teal:           #0d9488;
     --zd-amber:          #b45309;
     --zd-red:            #dc2626;
     --zd-input-bg:       #f8fafc;
     --zd-detail-bg:      #f8fafc;
-    --zd-chart-bg:       #f1f5f9;
     --zd-row-selected:   rgba(37, 99, 235, 0.07);
     --zd-row-selected-border: #2563eb;
   }
@@ -107,26 +101,6 @@
   [data-theme="light"] .zamam-drivers .zd-focus:focus-visible {
     outline: 3px solid rgba(37, 99, 235, 0.45);
   }
-
-  /* ── Status Pill — Dark defaults ── */
-  .zamam-drivers .zd-status-active        { background: #173d39; color: #6ed2c0; }
-  .zamam-drivers .zd-status-active-dot    { background: #57d0bf; }
-  .zamam-drivers .zd-status-maintenance   { background: #4a3820; color: #efc16f; }
-  .zamam-drivers .zd-status-maintenance-dot { background: #eab66b; }
-  .zamam-drivers .zd-status-leave         { background: #1e3047; color: #93b8e0; }
-  .zamam-drivers .zd-status-leave-dot     { background: #7ba8d4; }
-  .zamam-drivers .zd-status-inactive      { background: #3c2030; color: #e49aa3; }
-  .zamam-drivers .zd-status-inactive-dot  { background: #ee6b76; }
-
-  /* ── Status Pill — Light overrides ── */
-  [data-theme="light"] .zamam-drivers .zd-status-active        { background: #d1fae5; color: #065f46; }
-  [data-theme="light"] .zamam-drivers .zd-status-active-dot    { background: #059669; }
-  [data-theme="light"] .zamam-drivers .zd-status-maintenance   { background: #fef3c7; color: #92400e; }
-  [data-theme="light"] .zamam-drivers .zd-status-maintenance-dot { background: #d97706; }
-  [data-theme="light"] .zamam-drivers .zd-status-leave         { background: #dbeafe; color: #1e40af; }
-  [data-theme="light"] .zamam-drivers .zd-status-leave-dot     { background: #3b82f6; }
-  [data-theme="light"] .zamam-drivers .zd-status-inactive      { background: #fee2e2; color: #991b1b; }
-  [data-theme="light"] .zamam-drivers .zd-status-inactive-dot  { background: #dc2626; }
 }
 
 /* ─── Scrollbar ────────────────────────────────────────── */
