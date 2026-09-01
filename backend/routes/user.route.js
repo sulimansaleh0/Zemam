@@ -50,18 +50,14 @@ router.get("/fleet-manager",
 )
 
 // Assign Manager to a Team
-router.patch("/fleet-manager/:id/assign-to-team",
-    allowedTo(userRoles.ADMIN),
-    assignManagerSchema,
-    validate,
-    assignManager
-)
+router.route("/fleet-manager/:id/assign-to-team")
+    .patch(allowedTo(userRoles.ADMIN), assignManagerSchema, validate, assignManager)
+    .post(allowedTo(userRoles.ADMIN), assignManagerSchema, validate, assignManager)
 
 // Delete Manager from a Team
-router.patch("/fleet-manager/:id/remove-from-team",
-    allowedTo(userRoles.ADMIN),
-    removeFleetManager
-)
+router.route("/fleet-manager/:id/remove-from-team")
+    .patch(allowedTo(userRoles.ADMIN), removeFleetManager)
+    .post(allowedTo(userRoles.ADMIN), removeFleetManager)
 
 // delete Manager
 router.delete(
@@ -71,11 +67,9 @@ router.delete(
 )
 
 // Set Driver To Team
-router.patch("/driver/:id/assign-to-team",
-    allowedTo(userRoles.ADMIN),
-    getTeam,
-    setDriverToTeam
-)
+router.route("/driver/:id/assign-to-team")
+    .patch(allowedTo(userRoles.ADMIN), getTeam, setDriverToTeam)
+    .post(allowedTo(userRoles.ADMIN), getTeam, setDriverToTeam)
 
 router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
 router.use(getTeam)
@@ -91,20 +85,19 @@ router.post("/driver",
 router.get("/driver", listDrivers)
 
 // Assign Driver to a vehicle
-router.patch("/driver/:id/assign-to-vehicle",
-    assignDriverToVehicle
-)
+router.route("/driver/:id/assign-to-vehicle")
+    .patch(assignDriverToVehicle)
+    .post(assignDriverToVehicle)
 
 // Remove Driver From Team
-router.patch("/driver/:id/remove-from-team",
-    allowedTo(userRoles.ADMIN),
-    removeDriverFromTeam
-)
+router.route("/driver/:id/remove-from-team")
+    .patch(allowedTo(userRoles.ADMIN), removeDriverFromTeam)
+    .post(allowedTo(userRoles.ADMIN), removeDriverFromTeam)
 
 // Remove Driver from a vehicle
-router.patch("/driver/:id/remove-from-vehicle",
-    removeDriverFromVehicle
-)
+router.route("/driver/:id/remove-from-vehicle")
+    .patch(removeDriverFromVehicle)
+    .post(removeDriverFromVehicle)
 
 // Delete Driver
 router.delete("/driver/:id", deleteDriver)
