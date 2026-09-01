@@ -28,7 +28,7 @@ export const TEAM_QUERY_KEYS = {
 export function useTeams() {
   return useQuery({
     queryKey: TEAM_QUERY_KEYS.all,
-    queryFn: teamService.getTeams,
+    queryFn: ({ signal }) => teamService.getTeams(signal),
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
@@ -39,7 +39,7 @@ export function useTeams() {
 export function useTeamDetail(id: string) {
   return useQuery({
     queryKey: TEAM_QUERY_KEYS.detail(id),
-    queryFn: () => teamService.getTeamById(id),
+    queryFn: ({ signal }) => teamService.getTeamById(id, signal),
     enabled: Boolean(id),
     staleTime: 1000 * 60 * 2,
   });
@@ -51,7 +51,7 @@ export function useTeamDetail(id: string) {
 export function useTeamStatics(teamId?: string) {
   return useQuery({
     queryKey: ['teams', 'statics', teamId || 'all'] as const,
-    queryFn: () => teamService.getTeamStatics(teamId),
+    queryFn: ({ signal }) => teamService.getTeamStatics(teamId, signal),
     staleTime: 1000 * 60,
   });
 }

@@ -25,7 +25,7 @@ export const MANAGER_QUERY_KEYS = {
 export function useManagers(status?: string) {
   return useQuery({
     queryKey: MANAGER_QUERY_KEYS.byStatus(status),
-    queryFn: () => managerService.getManagers(status),
+    queryFn: ({ signal }) => managerService.getManagers(status, signal),
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
@@ -36,7 +36,7 @@ export function useManagers(status?: string) {
 export function useAvailableManagers() {
   return useQuery({
     queryKey: [...MANAGER_QUERY_KEYS.all, 'available'],
-    queryFn: () => managerService.getAvailableManagers(),
+    queryFn: ({ signal }) => managerService.getAvailableManagers(signal),
     staleTime: 1000 * 30, // 30 seconds
   });
 }

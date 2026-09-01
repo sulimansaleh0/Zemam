@@ -5,8 +5,10 @@ export interface AuthUser {
   _id: string;
   name?: string;
   email: string;
+  role?: string;
   roles?: string[];
   companyId?: string;
+  teamId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

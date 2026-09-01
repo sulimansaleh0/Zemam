@@ -24,22 +24,22 @@ export const vehicleService = {
   /**
    * جلب قائمة جميع المركبات
    */
-  getVehicles(): Promise<ServiceResult<ListVehiclesResponse>> {
-    return sendRequest<ListVehiclesResponse>(API_PATHS.VEHICLES.LIST);
+  getVehicles(signal?: AbortSignal): Promise<ServiceResult<ListVehiclesResponse>> {
+    return sendRequest<ListVehiclesResponse>(API_PATHS.VEHICLES.LIST, { signal });
   },
 
   /**
    * جلب المركبات المتاحة (بدون فريق / في المخزون العام)
    */
-  getAvailableVehicles(): Promise<ServiceResult<ListVehiclesResponse>> {
-    return sendRequest<ListVehiclesResponse>(`${API_PATHS.VEHICLES.LIST}?withoutTeam=true`);
+  getAvailableVehicles(signal?: AbortSignal): Promise<ServiceResult<ListVehiclesResponse>> {
+    return sendRequest<ListVehiclesResponse>(`${API_PATHS.VEHICLES.LIST}?withoutTeam=true`, { signal });
   },
 
   /**
    * جلب تفاصيل مركبة محددة
    */
-  getVehicleById(id: string): Promise<ServiceResult<SingleVehicleResponse>> {
-    return sendRequest<SingleVehicleResponse>(API_PATHS.VEHICLES.DETAIL(id));
+  getVehicleById(id: string, signal?: AbortSignal): Promise<ServiceResult<SingleVehicleResponse>> {
+    return sendRequest<SingleVehicleResponse>(API_PATHS.VEHICLES.DETAIL(id), { signal });
   },
 
   /**

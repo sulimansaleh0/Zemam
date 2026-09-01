@@ -12,9 +12,10 @@ export const teamService = {
   /**
    * Fetch all teams of the company (Admin)
    */
-  async getTeams(): Promise<Team[]> {
-    const result = await sendRequest<TeamsResponse>(API_PATHS.TEAMS.LIST);
+  async getTeams(signal?: AbortSignal): Promise<Team[]> {
+    const result = await sendRequest<TeamsResponse>(API_PATHS.TEAMS.LIST, { signal });
     if (!result.success) {
+      if (result.message === 'Request cancelled') return [];
       throw new Error(result.message || 'فشل في جلب قائمة الفرق');
     }
     return result.data?.teams ?? [];
@@ -54,8 +55,8 @@ export const teamService = {
   /**
    * Get single team details by ID
    */
-  async getTeamById(teamId: string): Promise<Team> {
-    const result = await sendRequest<{ team: Team }>(API_PATHS.TEAMS.BY_ID(teamId));
+  async getTeamById(teamId: string, signal?: AbortSignal): Promise<Team> {
+    const result = await sendRequest<{ team: Team }>(API_PATHS.TEAMS.BY_ID(teamId), { signal });
     if (!result.success || !result.data?.team) {
       throw new Error(result.message || 'فشل في جلب تفاصيل الفريق');
     }
@@ -65,11 +66,11 @@ export const teamService = {
   /**
    * Get team statics
    */
-  async getTeamStatics(teamId?: string): Promise<TeamStatics | null> {
+  async getTeamStatics(teamId?: string, signal?: AbortSignal): Promise<TeamStatics | null> {
     const path = teamId
       ? `${API_PATHS.TEAMS.STATICS}?teamId=${teamId}`
       : API_PATHS.TEAMS.STATICS;
-    const result = await sendRequest<{ statics: TeamStatics }>(path);
+    const result = await sendRequest<{ statics: TeamStatics }>(path, { signal });
     if (!result.success) {
       return null;
     }

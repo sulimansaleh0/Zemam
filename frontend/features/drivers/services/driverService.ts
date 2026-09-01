@@ -16,15 +16,15 @@ export const driverService = {
   /**
    * جلب قائمة سائقي الفريق من الباك اند.
    */
-  getDrivers(): Promise<ServiceResult<ListDriversResponse>> {
-    return sendRequest<ListDriversResponse>(API_PATHS.DRIVERS.LIST);
+  getDrivers(signal?: AbortSignal): Promise<ServiceResult<ListDriversResponse>> {
+    return sendRequest<ListDriversResponse>(API_PATHS.DRIVERS.LIST, { signal });
   },
 
   /**
    * جلب السائقين المتاحين (بدون فريق / في المخزون العام).
    */
-  getAvailableDrivers(): Promise<ServiceResult<ListDriversResponse>> {
-    return sendRequest<ListDriversResponse>(`${API_PATHS.DRIVERS.LIST}?withoutTeam=true`);
+  getAvailableDrivers(signal?: AbortSignal): Promise<ServiceResult<ListDriversResponse>> {
+    return sendRequest<ListDriversResponse>(`${API_PATHS.DRIVERS.LIST}?withoutTeam=true`, { signal });
   },
 
   /**
@@ -32,7 +32,13 @@ export const driverService = {
    * الباك اند يقبل email فقط — يُحفظ الاسم كـ "Default" تلقائياً.
    */
   createDriver(data: CreateDriverInput): Promise<ServiceResult<null>> {
-    return postRequest<null>(API_PATHS.DRIVERS.CREATE, data);
+    const payload = {
+      email: data.email,
+      ...(data.name && data.name.trim() ? { name: data.name.trim() } : {}),
+      ...(data.phone && data.phone.trim() ? { phone: data.phone.trim() } : {}),
+      ...(data.teamId && data.teamId.trim() ? { teamId: data.teamId.trim() } : {}),
+    };
+    return postRequest<null>(API_PATHS.DRIVERS.CREATE, payload);
   },
 
   /**

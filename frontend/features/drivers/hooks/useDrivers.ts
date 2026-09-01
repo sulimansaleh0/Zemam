@@ -37,18 +37,24 @@ const VEHICLE_KEYS = {
 export function useDriversList() {
   return useQuery({
     queryKey: DRIVER_KEYS.all,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const [driversRes, vehiclesRes] = await Promise.all([
-        driverService.getDrivers(),
-        vehicleService.getVehicles().catch(() => ({ success: true as const, data: { vehicles: [] } })),
+        driverService.getDrivers(signal),
+        vehicleService.getVehicles(signal).catch(() => ({ success: true as const, data: { vehicles: [] } })),
       ]);
-      if (!driversRes.success) throw new Error(driversRes.message);
+      if (!driversRes.success) {
+        if (driversRes.message === 'Request cancelled') return [];
+        throw new Error(driversRes.message);
+      }
 
       const vehicles = vehiclesRes.success && vehiclesRes.data ? vehiclesRes.data.vehicles : [];
 
       return driversRes.data.drivers.map((d) => {
         const enriched = enrichDriver(d);
-        const assignedVeh = vehicles.find((v) => v.driverId === d._id);
+        const assignedVeh = vehicles.find((v) => {
+          const vDriverId = typeof v.driverId === 'object' && v.driverId !== null ? v.driverId._id : v.driverId;
+          return vDriverId === d._id;
+        });
         if (assignedVeh) {
           enriched.assignedVehicle = {
             _id: assignedVeh._id,
@@ -69,10 +75,13 @@ export function useDriversList() {
 export function useAvailableVehicles() {
   return useQuery({
     queryKey: VEHICLE_KEYS.all,
-    queryFn: async () => {
-      const result = await vehicleService.getVehicles();
-      if (!result.success) throw new Error(result.message);
-      return result.data.vehicles;
+    queryFn: async ({ signal }) => {
+      const result = await vehicleService.getVehicles(signal);
+      if (!result.success) {
+        if (result.message === 'Request cancelled') return [];
+        throw new Error(result.message);
+      }
+      return result.data?.vehicles ?? [];
     },
   });
 }

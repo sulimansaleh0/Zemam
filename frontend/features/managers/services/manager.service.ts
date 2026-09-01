@@ -10,12 +10,13 @@ export const managerService = {
   /**
    * Fetch all fleet managers of the company
    */
-  async getManagers(status?: string): Promise<FleetManager[]> {
+  async getManagers(status?: string, signal?: AbortSignal): Promise<FleetManager[]> {
     const path = status
       ? `${API_PATHS.MANAGERS.LIST}?status=${status}`
       : API_PATHS.MANAGERS.LIST;
-    const result = await sendRequest<FleetManagersResponse>(path);
+    const result = await sendRequest<FleetManagersResponse>(path, { signal });
     if (!result.success) {
+      if (result.message === 'Request cancelled') return [];
       throw new Error(result.message || 'فشل في جلب قائمة مدراء الأساطيل');
     }
     return result.data?.fleetManagers ?? [];
@@ -24,11 +25,13 @@ export const managerService = {
   /**
    * Fetch available fleet managers (without a team)
    */
-  async getAvailableManagers(): Promise<FleetManager[]> {
+  async getAvailableManagers(signal?: AbortSignal): Promise<FleetManager[]> {
     const result = await sendRequest<FleetManagersResponse>(
-      `${API_PATHS.MANAGERS.LIST}?withoutTeam=true`
+      `${API_PATHS.MANAGERS.LIST}?withoutTeam=true`,
+      { signal }
     );
     if (!result.success) {
+      if (result.message === 'Request cancelled') return [];
       throw new Error(result.message || 'فشل في جلب قائمة المدراء المتاحين');
     }
     const managers = result.data?.fleetManagers ?? [];
@@ -41,6 +44,8 @@ export const managerService = {
   async createManager(payload: CreateManagerInput): Promise<FleetManager | null> {
     const dataToSend = {
       email: payload.email,
+      ...(payload.name && payload.name.trim() ? { name: payload.name.trim() } : {}),
+      ...(payload.phone && payload.phone.trim() ? { phone: payload.phone.trim() } : {}),
       ...(payload.teamId && payload.teamId.trim() ? { teamId: payload.teamId.trim() } : {}),
     };
     const result = await postRequest<{ user?: FleetManager; fleetManager?: FleetManager }>(
