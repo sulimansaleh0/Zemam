@@ -5,10 +5,10 @@ exports.createTeamSchema = [
         .trim()
         .notEmpty()
         .withMessage("Name is required")
-        .isLength({ min: 6 })
-        .withMessage("Name should be at least 6 charachters"),
+        .isLength({ min: 2 })
+        .withMessage("Name should be at least 2 characters"),
     body("managerId")
-        .optional()
+        .optional({ values: "falsy" })
         .isMongoId()
         .withMessage("Invalid Mongo Id"),
 ]
