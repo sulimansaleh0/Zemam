@@ -10,7 +10,18 @@ exports.createVehicle = async (req, res) => {
     const teamId = req.teamId
     const { model, year, plateNumber, driverId } = req.body
     try {
-        const assignedTeamId = user.role === userRoles.FLEET_MANAGER ? user.teamId : (teamId || null)
+        const isFleetManager = user.role === userRoles.FLEET_MANAGER || user.role === "fleet_manager";
+        if (isFleetManager) {
+            if (!user.teamId) {
+                return error(res, 400, "ليس لديك فريق تشغيلي مسند حالياً لإضافة مركبة إليه")
+            }
+            const activeTeam = await Team.findOne({ _id: user.teamId, companyId: user.companyId, isDeleted: false })
+            if (!activeTeam) {
+                return error(res, 400, "الفريق المسند إليك غير موجود أو تم حذفه")
+            }
+        }
+
+        const assignedTeamId = isFleetManager ? user.teamId : (teamId || null)
 
         const existingVehicle = await Vehicle.findOne({
             plateNumber,
@@ -55,28 +66,44 @@ exports.createVehicle = async (req, res) => {
 }
 
 exports.listVehicles = async (req, res) => {
-    const user = req.user
-    const teamId = req.teamId
-    const { withoutTeam } = req.query
+    const user = req.user;
+    const teamId = req.teamId;
+    const { withoutTeam } = req.query;
     try {
         let filters = {
             companyId: user.companyId,
             isDeleted: false
-        }
+        };
 
-        if (teamId)
-            filters.teamId = teamId
-        else if (withoutTeam === "true" && !user.teamId)
-            filters.teamId = null
+        const isFleetManager = user.role === userRoles.FLEET_MANAGER || user.role === "fleet_manager";
+
+        if (isFleetManager) {
+            // Fleet manager MUST have a team to see any vehicles
+            if (!user.teamId) {
+                return success(res, 200, { vehicles: [] });
+            }
+            const activeTeam = await Team.findOne({ _id: user.teamId, companyId: user.companyId, isDeleted: false });
+            if (!activeTeam) {
+                return success(res, 200, { vehicles: [] });
+            }
+            filters.teamId = activeTeam._id;
+        } else {
+            // Admin logic
+            if (teamId) {
+                filters.teamId = teamId;
+            } else if (withoutTeam === "true") {
+                filters.teamId = null;
+            }
+        }
 
         const vehicles = await Vehicle.find(filters)
             .populate("driverId", "name email phone status")
-            .populate("teamId", "name")
+            .populate("teamId", "name");
 
-        success(res, 200, { vehicles })
+        success(res, 200, { vehicles });
     } catch (err) {
-        console.log(err)
-        serverError(res)
+        console.log(err);
+        serverError(res);
     }
 }
 
@@ -189,7 +216,12 @@ exports.deleteVehicle = async (req, res) => {
             companyId: user.companyId,
             isDeleted: false
         };
-        if (teamId) filters.teamId = teamId;
+        if (user.role === userRoles.FLEET_MANAGER) {
+            if (!user.teamId) return error(res, 400, "ليس لديك فريق تشغيلي")
+            filters.teamId = user.teamId
+        } else if (teamId) {
+            filters.teamId = teamId
+        }
 
         const existingVehicle = await Vehicle.findOne(filters)
         if (!existingVehicle) return error(res, 404, "Vehicle not found")

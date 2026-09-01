@@ -36,6 +36,7 @@ import {
 import type { VehicleWithRelations, VehicleStatus } from '../types/vehicle.types';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { useTeams } from '@/features/teams';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
 
 interface VehiclesTableProps {
@@ -61,6 +62,9 @@ export function VehiclesTable({
   onUnassignDriverClick,
   onDeleteVehicleClick,
 }: VehiclesTableProps) {
+  const { user } = useAuth();
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
   const { data: teamsList = [] } = useTeams();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -223,8 +227,8 @@ export function VehiclesTable({
 
           return (
             <div className="flex items-center gap-1.5 justify-center">
-              {/* Visible quick action: If no team, show "تعيين لفريق" */}
-              {!hasTeam && onAssignTeamClick && (
+              {/* Visible quick action: If no team, show "تعيين لفريق" (Admin only) */}
+              {!hasTeam && onAssignTeamClick && !isFleetManager && (
                 <button
                   type="button"
                   onClick={() => onAssignTeamClick(vehicle)}

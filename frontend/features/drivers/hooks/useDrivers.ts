@@ -42,6 +42,7 @@ export function useDriversList() {
         driverService.getDrivers(signal),
         vehicleService.getVehicles(signal).catch(() => ({ success: true as const, data: { vehicles: [] } })),
       ]);
+      
       if (!driversRes.success) {
         if (driversRes.message === 'Request cancelled') return [];
         throw new Error(driversRes.message);
@@ -66,6 +67,9 @@ export function useDriversList() {
         return enriched;
       });
     },
+
+    staleTime: 1000 * 60 * 2, // 2 minutes
+
   });
 }
 

@@ -59,27 +59,27 @@ export const driverService = {
    * تعيين مركبة لسائق.
    */
   assignVehicle(driverId: string, vehicleId: string): Promise<ServiceResult<null>> {
-    return postRequest<null>(API_PATHS.DRIVERS.ASSIGN(driverId), { vehicleId });
+    return patchRequest<null>(API_PATHS.DRIVERS.ASSIGN(driverId), { vehicleId });
   },
 
   /**
    * فك ارتباط السائق من مركبته الحالية.
    */
   unassignVehicle(driverId: string): Promise<ServiceResult<null>> {
-    return postRequest<null>(API_PATHS.DRIVERS.DISABLE(driverId), {});
+    return patchRequest<null>(API_PATHS.DRIVERS.DISABLE(driverId), {});
   },
 
   /**
    * تعيين سائق لفريق تشغيلي.
    */
   assignTeam(driverId: string, teamId: string): Promise<ServiceResult<null>> {
-    return postRequest<null>(API_PATHS.DRIVERS.ASSIGN_TEAM(driverId), { teamId });
+    return patchRequest<null>(API_PATHS.DRIVERS.ASSIGN_TEAM(driverId), { teamId });
   },
 
   /**
    * فك ارتباط السائق عن فريقه التشغيلي.
    */
   removeTeam(driverId: string): Promise<ServiceResult<null>> {
-    return postRequest<null>(API_PATHS.DRIVERS.REMOVE_TEAM(driverId), {});
+    return patchRequest<null>(API_PATHS.DRIVERS.REMOVE_TEAM(driverId), {});
   },
 };
