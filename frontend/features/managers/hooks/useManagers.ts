@@ -1,10 +1,11 @@
-'use client';
-
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useTeams, TEAM_QUERY_KEYS } from '@/features/teams';
 import { useToast } from '@/shared/ui/Toast';
 import { managerService } from '../services/manager.service';
-import { TEAM_QUERY_KEYS } from '@/features/teams';
-import type { CreateManagerInput } from '../types/manager.types';
+import type { CreateManagerInput, FleetManager } from '../types/manager.types';
 
 // ============================================================
 //  Query Keys
@@ -185,4 +186,107 @@ export function useDeleteManager() {
       });
     },
   });
+}
+
+// ============================================================
+//  Page Hook — Orchestrates the Fleet Managers page
+// ============================================================
+
+export function useManagersPage() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isFleetManager =
+    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
+
+  const {
+    data: managersList = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useManagers();
+
+  const { data: teamsList = [] } = useTeams();
+
+  const changeStatusMutation = useChangeManagerStatus();
+  const disableTeamMutation = useDisableManager();
+
+  // Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedManagerForDelete, setSelectedManagerForDelete] = useState<{
+    manager: FleetManager;
+    teamName?: string;
+  } | null>(null);
+  const [selectedManagerForAssign, setSelectedManagerForAssign] = useState<FleetManager | null>(
+    null
+  );
+  const [selectedTeamIdForCreate, setSelectedTeamIdForCreate] = useState<string | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (isFleetManager) {
+      router.replace('/dashboard');
+    }
+  }, [isFleetManager, router]);
+
+  const userName = user?.name || user?.email?.split('@')[0] || '';
+
+  const handleOpenAdd = useCallback((teamId?: string) => {
+    setSelectedTeamIdForCreate(teamId);
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleOpenDelete = useCallback((manager: FleetManager, teamName?: string) => {
+    setSelectedManagerForDelete({ manager, teamName });
+  }, []);
+
+  const handleToggleStatus = useCallback((manager: FleetManager) => {
+    const currentActive = (manager.status || 'active').toLowerCase() === 'active';
+    changeStatusMutation.mutate({
+      managerId: manager._id,
+      status: currentActive ? 'inactive' : 'active',
+    });
+  }, [changeStatusMutation]);
+
+  const handleDisableTeam = useCallback((manager: FleetManager) => {
+    disableTeamMutation.mutate(manager._id);
+  }, [disableTeamMutation]);
+
+  return {
+    // Auth & Permission
+    isFleetManager,
+    userName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+
+    // Data
+    managersList,
+    teamsList,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+
+    // Modal states
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    selectedManagerForDelete,
+    setSelectedManagerForDelete,
+    selectedManagerForAssign,
+    setSelectedManagerForAssign,
+    selectedTeamIdForCreate,
+    setSelectedTeamIdForCreate,
+
+    // Actions
+    handleOpenAdd,
+    handleOpenDelete,
+    handleToggleStatus,
+    handleDisableTeam,
+  };
 }

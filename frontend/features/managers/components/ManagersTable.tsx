@@ -20,6 +20,10 @@ import {
 import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
 import type { FleetManager, ManagerFilterStatus, ManagerSortOrder } from '../types/manager.types';
 import type { Team } from '@/features/teams/types/team.types';
+import {
+  getManagerTeamName,
+  getManagerDisplayName,
+} from '../utils/managerHelpers';
 
 interface ManagersTableProps {
   managers: FleetManager[];
@@ -59,15 +63,6 @@ export function ManagersTable({
     setSortOrder(SORT_CYCLE[(currentIndex + 1) % SORT_CYCLE.length]);
   };
 
-  // Team lookup map
-  const teamMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    teams.forEach((t) => {
-      map[t._id] = t.name;
-    });
-    return map;
-  }, [teams]);
-
   // Filter & Sort Logic
   const filteredManagers = useMemo(() => {
     return managers
@@ -75,10 +70,7 @@ export function ManagersTable({
         const query = searchQuery.trim().toLowerCase();
         const emailMatch = (manager.email || '').toLowerCase().includes(query);
         const nameMatch = (manager.name || '').toLowerCase().includes(query);
-
-        const teamIdStr =
-          typeof manager.teamId === 'object' ? manager.teamId?._id : manager.teamId;
-        const teamName = teamIdStr ? teamMap[teamIdStr] || '' : '';
+        const teamName = getManagerTeamName(manager.teamId, teams) || '';
         const teamMatch = teamName.toLowerCase().includes(query);
 
         const matchesSearch = !query || emailMatch || nameMatch || teamMatch;
@@ -103,7 +95,7 @@ export function ManagersTable({
         // newest
         return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       });
-  }, [managers, searchQuery, statusFilter, sortOrder, teamMap]);
+  }, [managers, searchQuery, statusFilter, sortOrder, teams]);
 
   return (
     <div className="space-y-4">
@@ -257,21 +249,9 @@ export function ManagersTable({
                 </tr>
               ) : (
                 filteredManagers.map((manager) => {
-                  const teamIdStr =
-                    typeof manager.teamId === 'object'
-                      ? manager.teamId?._id
-                      : manager.teamId;
-                  const teamName =
-                    typeof manager.teamId === 'object' && manager.teamId?.name
-                      ? manager.teamId.name
-                      : teamIdStr
-                      ? teamMap[teamIdStr]
-                      : null;
+                  const teamName = getManagerTeamName(manager.teamId, teams);
                   const isActive = (manager.status || 'active').toLowerCase() === 'active';
-                  const displayName =
-                    manager.name && manager.name !== 'Default'
-                      ? manager.name
-                      : manager.email.split('@')[0];
+                  const displayName = getManagerDisplayName(manager);
 
                   return (
                     <tr
