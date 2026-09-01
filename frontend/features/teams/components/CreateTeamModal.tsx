@@ -7,8 +7,8 @@ import { Users, UserCheck, Car, Shield, Loader2 } from 'lucide-react';
 import { createTeamSchema, CreateTeamFormValues } from '../schemas/team.schema';
 import { useCreateTeam, useTeams } from '../hooks/useTeams';
 import { useManagers } from '@/features/managers';
-import { useDriversList } from '@/features/drivers';
-import { useVehicles } from '@/features/vehicles';
+import { useDriversList, getDriverTeamId } from '@/features/drivers';
+import { useVehicles, getVehicleTeamId } from '@/features/vehicles';
 import { Modal } from '@/shared/ui/Modal';
 
 interface CreateTeamModalProps {
@@ -32,11 +32,11 @@ export function CreateTeamModal({ isOpen, onClose }: CreateTeamModalProps) {
     (m) => !m.teamId || !teamsList.some((t) => t._id === m.teamId)
   );
   const availableDrivers = driversList.filter((d) => {
-    const dTeamId = typeof d.teamId === 'object' && d.teamId ? (d.teamId as any)._id : d.teamId;
+    const dTeamId = getDriverTeamId(d.teamId);
     return !dTeamId || !teamsList.some((t) => t._id === dTeamId);
   });
   const availableVehicles = vehiclesList.filter((v) => {
-    const vTeamId = typeof v.teamId === 'object' && v.teamId ? (v.teamId as any)._id : v.teamId;
+    const vTeamId = getVehicleTeamId(v.teamId);
     return !vTeamId || !teamsList.some((t) => t._id === vTeamId);
   });
 

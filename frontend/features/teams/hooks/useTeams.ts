@@ -5,10 +5,9 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
 import { teamService } from '../services/team.service';
 import { calculateTeamVehicleCounts } from '../utils/teamHelpers';
-import { useVehicles } from '@/features/vehicles';
+import { useDriversList, useRemoveDriverFromTeam, getDriverTeamId } from '@/features/drivers';
+import { useVehicles, useRemoveVehicleFromTeam, getVehicleTeamId } from '@/features/vehicles';
 import { useManagers, useDisableManager, type FleetManager } from '@/features/managers';
-import { useDriversList, useRemoveDriverFromTeam } from '@/features/drivers';
-import { useRemoveVehicleFromTeam } from '@/features/vehicles';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.types';
 import type {
@@ -319,14 +318,14 @@ export function useTeamDetailPage(teamId: string) {
 
   const teamDrivers = useMemo(() => {
     return allDrivers.filter((d: BackendDriver) => {
-      const dTeamId = typeof d.teamId === 'object' && d.teamId !== null ? (d.teamId as any)._id : d.teamId;
+      const dTeamId = getDriverTeamId(d.teamId);
       return String(dTeamId) === String(teamId);
     });
   }, [allDrivers, teamId]);
 
   const teamVehicles = useMemo(() => {
     return allVehicles.filter((v: VehicleWithRelations) => {
-      const vTeamId = typeof v.teamId === 'object' && v.teamId !== null ? (v.teamId as any)._id : v.teamId;
+      const vTeamId = getVehicleTeamId(v.teamId);
       return String(vTeamId) === String(teamId);
     });
   }, [allVehicles, teamId]);
