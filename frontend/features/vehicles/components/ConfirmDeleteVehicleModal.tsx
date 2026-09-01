@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Trash2, X, Loader2, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { Trash2, Loader2, AlertCircle } from 'lucide-react';
 import type { VehicleWithRelations } from '../types/vehicle.types';
 import { useDeleteVehicle } from '../hooks/useVehicles';
+import { Modal } from '@/shared/ui/Modal';
 
 interface ConfirmDeleteVehicleModalProps {
   isOpen: boolean;
@@ -18,16 +19,7 @@ export function ConfirmDeleteVehicleModal({
 }: ConfirmDeleteVehicleModalProps) {
   const deleteMutation = useDeleteVehicle();
 
-  // Handle ESC
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !deleteMutation.isPending) onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, deleteMutation.isPending, onClose]);
-
-  if (!isOpen || !targetVehicle) return null;
+  if (!targetVehicle) return null;
 
   const handleConfirm = async () => {
     try {
@@ -39,24 +31,17 @@ export function ConfirmDeleteVehicleModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="حذف المركبة من الأسطول"
+      description={`${targetVehicle.model} (${targetVehicle.year}) - لوحة: ${targetVehicle.plateNumber}`}
+      icon={Trash2}
+      iconClassName="bg-rose-500/10 text-rose-500"
+      maxWidth="md"
+      preventClose={deleteMutation.isPending}
     >
-      <div className="relative w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-            <Trash2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-[var(--text)]">حذف المركبة من الأسطول</h3>
-            <p className="text-xs text-[var(--muted)]">
-              {targetVehicle.model} ({targetVehicle.year}) - لوحة: {targetVehicle.plateNumber}
-            </p>
-          </div>
-        </div>
-
+      <div className="p-6 space-y-4">
         <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-700 dark:text-rose-400 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
@@ -84,6 +69,6 @@ export function ConfirmDeleteVehicleModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

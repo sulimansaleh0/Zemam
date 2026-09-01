@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Truck, Plus, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
-import { Sidebar, Header, useDashboard } from '@/features/dashboard';
+import { Sidebar, Header } from '@/features/dashboard';
 import {
-  useVehicles,
-  useRemoveVehicleFromTeam,
-  useUnassignDriver,
+  useVehiclesPage,
   VehiclesTable,
   VehicleFormModal,
   AssignDriverModal,
@@ -14,33 +12,33 @@ import {
   AssignVehicleToTeamModal,
   ConfirmDeleteVehicleModal,
   VehicleStatsCards,
-  VehicleWithRelations,
 } from '@/features/vehicles';
 
 export default function VehiclesPage() {
-  const { userName, menuOpen, setMenuOpen, logout } = useDashboard();
   const {
-    data: vehiclesList = [],
-    isLoading: isLoadingVehicles,
-    isError: isVehiclesError,
-    error: vehiclesError,
-    refetch: refetchVehicles,
-    isRefetching: isRefetchingVehicles,
-  } = useVehicles();
-
-  const removeTeamMutation = useRemoveVehicleFromTeam();
-  const unassignDriverMutation = useUnassignDriver();
-
-  // Modal states
-  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
-  const [selectedVehicleForAssign, setSelectedVehicleForAssign] =
-    useState<VehicleWithRelations | null>(null);
-  const [selectedVehicleForStatusChange, setSelectedVehicleForStatusChange] =
-    useState<VehicleWithRelations | null>(null);
-  const [selectedVehicleForTeam, setSelectedVehicleForTeam] =
-    useState<VehicleWithRelations | null>(null);
-  const [selectedVehicleForDelete, setSelectedVehicleForDelete] =
-    useState<VehicleWithRelations | null>(null);
+    vehiclesList,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+    isAddVehicleModalOpen,
+    setIsAddVehicleModalOpen,
+    selectedVehicleForAssign,
+    setSelectedVehicleForAssign,
+    selectedVehicleForStatusChange,
+    setSelectedVehicleForStatusChange,
+    selectedVehicleForTeam,
+    setSelectedVehicleForTeam,
+    selectedVehicleForDelete,
+    setSelectedVehicleForDelete,
+    handleRemoveTeam,
+    handleUnassignDriver,
+    userName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+  } = useVehiclesPage();
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -81,7 +79,7 @@ export default function VehiclesPage() {
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
                   سجل المركبات والأسطول{' '}
-                  {!isLoadingVehicles && (
+                  {!isLoading && (
                     <span className="mr-1 font-manrope text-lg font-semibold text-[var(--primary)]">
                       {vehiclesList.length}
                     </span>
@@ -95,13 +93,13 @@ export default function VehiclesPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => refetchVehicles()}
-                  disabled={isRefetchingVehicles || isLoadingVehicles}
+                  onClick={() => refetch()}
+                  disabled={isRefetching || isLoading}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                   title="تحديث البيانات"
                 >
                   <RefreshCw
-                    className={`w-3.5 h-3.5 ${isRefetchingVehicles ? 'animate-spin' : ''}`}
+                    className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`}
                   />
                   <span>تحديث</span>
                 </button>
@@ -117,7 +115,7 @@ export default function VehiclesPage() {
             </div>
 
             {/* ── Error State ── */}
-            {isVehiclesError && !isLoadingVehicles && (
+            {isError && !isLoading && (
               <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-8 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
                   <AlertCircle className="h-6 w-6" />
@@ -127,14 +125,14 @@ export default function VehiclesPage() {
                     تعذّر تحميل بيانات المركبات
                   </h2>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {vehiclesError instanceof Error
-                      ? vehiclesError.message
+                    {error instanceof Error
+                      ? error.message
                       : 'حدث خطأ أثناء الاتصال بالسيرفر'}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => refetchVehicles()}
+                  onClick={() => refetch()}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -144,7 +142,7 @@ export default function VehiclesPage() {
             )}
 
             {/* ── Loading Skeleton ── */}
-            {isLoadingVehicles && (
+            {isLoading && (
               <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-[var(--muted)]">
                 <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
                 <p className="text-xs">جارٍ تحميل بيانات أسطول المركبات...</p>
@@ -152,7 +150,7 @@ export default function VehiclesPage() {
             )}
 
             {/* ── Main Content ── */}
-            {!isLoadingVehicles && !isVehiclesError && (
+            {!isLoading && !isError && (
               <>
                 {/* Stats Cards */}
                 <VehicleStatsCards vehicles={vehiclesList} />
@@ -160,20 +158,13 @@ export default function VehiclesPage() {
                 {/* Vehicles Table */}
                 <VehiclesTable
                   vehiclesData={vehiclesList}
-                  isLoadingVehicles={isLoadingVehicles}
+                  isLoadingVehicles={isLoading}
                   onAddVehicleClick={() => setIsAddVehicleModalOpen(true)}
                   onAssignDriverClick={(vehicle) => setSelectedVehicleForAssign(vehicle)}
                   onChangeStatusClick={(vehicle) => setSelectedVehicleForStatusChange(vehicle)}
                   onAssignTeamClick={(vehicle) => setSelectedVehicleForTeam(vehicle)}
-                  onRemoveTeamClick={async (vehicle) => {
-                    await removeTeamMutation.mutateAsync(vehicle._id);
-                  }}
-                  onUnassignDriverClick={async (vehicle) => {
-                    const dId = typeof vehicle.driverId === 'object' && vehicle.driverId !== null ? vehicle.driverId._id : vehicle.driverId;
-                    if (dId) {
-                      await unassignDriverMutation.mutateAsync(dId);
-                    }
-                  }}
+                  onRemoveTeamClick={handleRemoveTeam}
+                  onUnassignDriverClick={handleUnassignDriver}
                   onDeleteVehicleClick={(vehicle) => setSelectedVehicleForDelete(vehicle)}
                 />
               </>

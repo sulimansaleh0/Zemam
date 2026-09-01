@@ -1,9 +1,14 @@
 'use client';
 
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useTeams } from '@/features/teams';
 import { useToast } from '@/shared/ui/Toast';
 import { vehicleService } from '../services/vehicle.service';
 import { useDriversList } from '@/features/drivers';
+import { getVehicleTeamId, getVehicleDriverId } from '../utils/vehicleHelpers';
 import type {
   BackendVehicle,
   VehicleWithRelations,
@@ -307,4 +312,195 @@ export function useDeleteVehicle() {
       });
     },
   });
+}
+
+// ============================================================
+//  Page Hook — Orchestrates the Vehicles main page
+// ============================================================
+
+export function useVehiclesPage() {
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Queries
+  const {
+    data: vehiclesList = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useVehicles();
+
+  // Mutations
+  const removeTeamMutation = useRemoveVehicleFromTeam();
+  const unassignDriverMutation = useUnassignDriver();
+
+  // Modal states
+  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
+  const [selectedVehicleForAssign, setSelectedVehicleForAssign] =
+    useState<VehicleWithRelations | null>(null);
+  const [selectedVehicleForStatusChange, setSelectedVehicleForStatusChange] =
+    useState<VehicleWithRelations | null>(null);
+  const [selectedVehicleForTeam, setSelectedVehicleForTeam] =
+    useState<VehicleWithRelations | null>(null);
+  const [selectedVehicleForDelete, setSelectedVehicleForDelete] =
+    useState<VehicleWithRelations | null>(null);
+
+  const userName = user?.name || user?.email?.split('@')[0] || '';
+
+  // Handlers
+  const handleRemoveTeam = useCallback(
+    async (vehicle: VehicleWithRelations) => {
+      await removeTeamMutation.mutateAsync(vehicle._id);
+    },
+    [removeTeamMutation]
+  );
+
+  const handleUnassignDriver = useCallback(
+    async (vehicle: VehicleWithRelations) => {
+      const driverId = getVehicleDriverId(vehicle.driverId);
+      if (driverId) {
+        await unassignDriverMutation.mutateAsync(driverId);
+      }
+    },
+    [unassignDriverMutation]
+  );
+
+  return {
+    // Data
+    vehiclesList,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+
+    // Modal states
+    isAddVehicleModalOpen,
+    setIsAddVehicleModalOpen,
+    selectedVehicleForAssign,
+    setSelectedVehicleForAssign,
+    selectedVehicleForStatusChange,
+    setSelectedVehicleForStatusChange,
+    selectedVehicleForTeam,
+    setSelectedVehicleForTeam,
+    selectedVehicleForDelete,
+    setSelectedVehicleForDelete,
+
+    // Actions
+    handleRemoveTeam,
+    handleUnassignDriver,
+
+    // Auth & Navigation
+    userName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+  };
+}
+
+// ============================================================
+//  Detail Page Hook — Orchestrates the Vehicle Detail page
+// ============================================================
+
+export function useVehicleDetailPage(vehicleId: string) {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Queries
+  const { data: vehicles = [], isLoading, isError, error } = useVehicles();
+  const { data: teamsList = [] } = useTeams();
+
+  // Mutations
+  const changeStatusMutation = useChangeVehicleStatus();
+  const removeTeamMutation = useRemoveVehicleFromTeam();
+  const unassignDriverMutation = useUnassignDriver();
+  const deleteMutation = useDeleteVehicle();
+
+  // Modals
+  const [isAssignDriverOpen, setIsAssignDriverOpen] = useState(false);
+  const [isAssignTeamOpen, setIsAssignTeamOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // Selected vehicle
+  const vehicle = useMemo(() => {
+    return vehicles.find((v) => v._id === vehicleId) || null;
+  }, [vehicles, vehicleId]);
+
+  // Team lookup
+  const teamObj = useMemo(() => {
+    const teamId = getVehicleTeamId(vehicle?.teamId);
+    if (!teamId) return null;
+    return teamsList.find((t) => t._id === teamId) || null;
+  }, [teamsList, vehicle?.teamId]);
+
+  const userName = user?.name || user?.email?.split('@')[0] || '';
+  const isActive = vehicle?.status === 'active';
+
+  // Action handlers
+  const handleToggleStatus = useCallback(async () => {
+    if (!vehicle) return;
+    const newStatus = isActive ? 'inactive' : 'active';
+    await changeStatusMutation.mutateAsync({ id: vehicle._id, status: newStatus });
+  }, [vehicle, isActive, changeStatusMutation]);
+
+  const handleRemoveTeam = useCallback(async () => {
+    if (!vehicle) return;
+    await removeTeamMutation.mutateAsync(vehicle._id);
+  }, [vehicle, removeTeamMutation]);
+
+  const handleUnassignDriver = useCallback(async () => {
+    if (!vehicle) return;
+    const driverId = getVehicleDriverId(vehicle.driverId);
+    if (driverId) {
+      await unassignDriverMutation.mutateAsync(driverId);
+    }
+  }, [vehicle, unassignDriverMutation]);
+
+  const handleDelete = useCallback(async () => {
+    if (!vehicle) return;
+    await deleteMutation.mutateAsync(vehicle._id);
+    setIsDeleteOpen(false);
+    router.push('/vehicles');
+  }, [vehicle, deleteMutation, router]);
+
+  return {
+    // Data
+    vehicle,
+    teamObj,
+    isActive,
+
+    // Query states
+    isLoading,
+    isError,
+    error,
+
+    // Modal states
+    isAssignDriverOpen,
+    setIsAssignDriverOpen,
+    isAssignTeamOpen,
+    setIsAssignTeamOpen,
+    isDeleteOpen,
+    setIsDeleteOpen,
+
+    // Mutation pending states
+    isChangingStatus: changeStatusMutation.isPending,
+    isRemovingTeam: removeTeamMutation.isPending,
+    isUnassigningDriver: unassignDriverMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+
+    // Action handlers
+    handleToggleStatus,
+    handleRemoveTeam,
+    handleUnassignDriver,
+    handleDelete,
+
+    // Auth & Navigation
+    userName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+  };
 }

@@ -31,12 +31,12 @@ import {
   Link2,
   Unlink,
   Trash2,
-  Building2,
 } from 'lucide-react';
 import type { VehicleWithRelations, VehicleStatus } from '../types/vehicle.types';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { useTeams } from '@/features/teams';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { getVehicleTeamId, getVehicleTeamName } from '../utils/vehicleHelpers';
 import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
 
 interface VehiclesTableProps {
@@ -144,13 +144,9 @@ export function VehiclesTable({
         header: 'الفريق التشغيلي',
         cell: ({ row }) => {
           const vehicle = row.original;
-          const teamIdStr =
-            typeof vehicle.teamId === 'object' && vehicle.teamId
-              ? (vehicle.teamId as any)._id
-              : vehicle.teamId;
-          const team = teamsList.find((t) => t._id === teamIdStr);
+          const teamName = getVehicleTeamName(vehicle.teamId, teamsList);
 
-          if (!team) {
+          if (!teamName) {
             return (
               <span className="text-[11px] text-[var(--muted)] italic">
                 المستودع العام
@@ -161,7 +157,7 @@ export function VehiclesTable({
           return (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xs border border-indigo-500/20">
               <Users className="w-3 h-3" />
-              <span>{team.name}</span>
+              <span>{teamName}</span>
             </span>
           );
         },
@@ -218,10 +214,7 @@ export function VehiclesTable({
         cell: ({ row }) => {
           const vehicle = row.original;
           const isActive = vehicle.status === 'active';
-          const teamIdStr =
-            typeof vehicle.teamId === 'object' && vehicle.teamId
-              ? (vehicle.teamId as any)._id
-              : vehicle.teamId;
+          const teamIdStr = getVehicleTeamId(vehicle.teamId);
           const hasTeam = Boolean(teamIdStr && teamsList.some((t) => t._id === teamIdStr));
           const hasDriver = Boolean(vehicle.driverId);
 
