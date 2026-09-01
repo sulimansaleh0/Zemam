@@ -1,6 +1,7 @@
 export * from './types/team.types';
 export * from './schemas/team.schema';
 export * from './services/team.service';
+export * from './utils/teamHelpers';
 export * from './hooks/useTeams';
 export * from './components/TeamStatsCards';
 export * from './components/TeamsTable';

@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import { Users, Plus, RefreshCw, AlertCircle } from 'lucide-react';
-import { Sidebar, Header, useDashboard } from '@/features/dashboard';
+import { Sidebar, Header } from '@/features/dashboard';
 import {
-  useTeams,
+  useTeamsPage,
   TeamsTable,
   CreateTeamModal,
   EditTeamModal,
@@ -13,95 +12,55 @@ import {
   AssignTeamManagerModal,
   AddResourcesToTeamModal,
   TeamStatsCards,
-  type Team,
 } from '@/features/teams';
 import {
   CreateManagerModal,
   DeleteManagerModal,
-  useDisableManager,
-  type FleetManager,
 } from '@/features/managers';
-import { useVehicles } from '@/features/vehicles';
 
 export default function TeamsPage() {
-  const router = useRouter();
-  const { user, userName, menuOpen, setMenuOpen, logout } = useDashboard();
-
-  const isFleetManager =
-    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
-
   const {
-    data: teamsList = [],
-    isLoading: isLoadingTeams,
-    isError: isTeamsError,
-    error: teamsError,
-    refetch: refetchTeams,
-    isRefetching: isRefetchingTeams,
-  } = useTeams();
-
-  const { data: vehiclesList = [] } = useVehicles();
-
-  // Modal states
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedTeamForEdit, setSelectedTeamForEdit] = useState<Team | null>(null);
-  const [selectedTeamForDelete, setSelectedTeamForDelete] = useState<Team | null>(null);
-
-  // Fleet Manager Modal states
-  const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
-  const [isCreateManagerModalOpen, setIsCreateManagerModalOpen] = useState(false);
-  const [selectedTeamForManager, setSelectedTeamForManager] = useState<Team | null>(null);
-  const [selectedManagerForDelete, setSelectedManagerForDelete] = useState<{
-    manager: FleetManager;
-    teamName?: string;
-  } | null>(null);
-
-  // Add Resources (Drivers & Vehicles) Modal state
-  const [selectedTeamForResources, setSelectedTeamForResources] = useState<Team | null>(null);
-
-  const disableManagerMutation = useDisableManager();
-
-  useEffect(() => {
-    if (isFleetManager) {
-      router.replace('/dashboard');
-    }
-  }, [isFleetManager, router]);
-
-  // Calculate vehicle count per team
-  const vehicleCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    vehiclesList.forEach((v) => {
-      const vTeamId = typeof v.teamId === 'object' && v.teamId !== null ? v.teamId._id : v.teamId;
-      if (vTeamId) {
-        counts[vTeamId] = (counts[vTeamId] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [vehiclesList]);
+    isFleetManager,
+    userName,
+    companyName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+    teamsList,
+    vehiclesList,
+    vehicleCounts,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    selectedTeamForEdit,
+    setSelectedTeamForEdit,
+    selectedTeamForDelete,
+    setSelectedTeamForDelete,
+    isAssignManagerModalOpen,
+    setIsAssignManagerModalOpen,
+    isCreateManagerModalOpen,
+    setIsCreateManagerModalOpen,
+    selectedTeamForManager,
+    setSelectedTeamForManager,
+    selectedManagerForDelete,
+    setSelectedManagerForDelete,
+    selectedTeamForResources,
+    setSelectedTeamForResources,
+    handleOpenAdd,
+    handleOpenEdit,
+    handleOpenDelete,
+    handleOpenAssignManager,
+    handleOpenAddResources,
+    handleOpenRemoveManager,
+  } = useTeamsPage();
 
   if (isFleetManager) {
     return null;
   }
-
-  const handleOpenAdd = () => setIsCreateModalOpen(true);
-  const handleOpenEdit = (team: Team) => setSelectedTeamForEdit(team);
-  const handleOpenDelete = (team: Team) => setSelectedTeamForDelete(team);
-
-  const handleOpenAssignManager = (team: Team) => {
-    setSelectedTeamForManager(team);
-    setIsAssignManagerModalOpen(true);
-  };
-
-  const handleOpenAddResources = (team: Team) => {
-    setSelectedTeamForResources(team);
-  };
-
-  const handleOpenRemoveManager = async (managerId: string) => {
-    try {
-      await disableManagerMutation.mutateAsync(managerId);
-    } catch {
-      // Handled by toast
-    }
-  };
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -151,13 +110,13 @@ export default function TeamsPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => refetchTeams()}
-                  disabled={isRefetchingTeams}
+                  onClick={() => refetch()}
+                  disabled={isRefetching}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                   title="تحديث البيانات"
                 >
                   <RefreshCw
-                    className={`w-3.5 h-3.5 ${isRefetchingTeams ? 'animate-spin' : ''}`}
+                    className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`}
                   />
                   <span>تحديث</span>
                 </button>
@@ -174,17 +133,17 @@ export default function TeamsPage() {
             </div>
 
             {/* ── Error Banner ── */}
-            {isTeamsError && (
+            {isError && (
               <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-between gap-3 text-sm">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 shrink-0" />
                   <span>
-                    {(teamsError as Error)?.message || 'فشل في تحميل بيانات الفرق.'}
+                    {(error as Error)?.message || 'فشل في تحميل بيانات الفرق.'}
                   </span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => refetchTeams()}
+                  onClick={() => refetch()}
                   className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors cursor-pointer"
                 >
                   إعادة المحاولة
@@ -206,8 +165,8 @@ export default function TeamsPage() {
 
               <TeamsTable
                 teams={teamsList}
-                isLoading={isLoadingTeams}
-                companyName={user?.name || undefined}
+                isLoading={isLoading}
+                companyName={companyName}
                 vehicleCounts={vehicleCounts}
                 onAddClick={handleOpenAdd}
                 onEditClick={handleOpenEdit}

@@ -18,6 +18,11 @@ import {
   Layers,
 } from 'lucide-react';
 import type { Team, TeamFilterStatus, TeamSortOrder } from '../types/team.types';
+import {
+  getTeamManagerId,
+  getTeamManagerName,
+  getTeamManagerEmail,
+} from '../utils/teamHelpers';
 
 interface TeamsTableProps {
   teams: Team[];
@@ -253,20 +258,9 @@ export function TeamsTable({
                   const vehiclesCount = vehicleCounts[team._id] ?? 0;
                   const manager = team.managerId;
                   const hasManager = Boolean(manager);
-                  const managerId =
-                    typeof manager === 'object' && manager !== null
-                      ? manager._id
-                      : typeof manager === 'string'
-                      ? manager
-                      : null;
-                  const managerName =
-                    typeof manager === 'object' && manager !== null
-                      ? (manager.name && manager.name !== 'Default' ? manager.name : manager.email.split('@')[0])
-                      : null;
-                  const managerEmail =
-                    typeof manager === 'object' && manager !== null
-                      ? manager.email
-                      : null;
+                  const managerId = getTeamManagerId(manager);
+                  const managerName = getTeamManagerName(manager);
+                  const managerEmail = getTeamManagerEmail(manager);
 
                   return (
                     <tr

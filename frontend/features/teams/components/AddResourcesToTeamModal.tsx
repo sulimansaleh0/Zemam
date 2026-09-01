@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, UserPlus, Car, Users, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { UserPlus, Car, Users, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/shared/ui/Toast';
 import { driverService } from '@/features/drivers/services/driverService';
 import { vehicleService } from '@/features/vehicles/services/vehicle.service';
 import type { Team } from '../types/team.types';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { BackendVehicle } from '@/features/vehicles/types/vehicle.types';
+import { Modal } from '@/shared/ui/Modal';
 
 interface AddResourcesToTeamModalProps {
   isOpen: boolean;
@@ -62,16 +63,7 @@ export function AddResourcesToTeamModal({
     }
   }, [isOpen, team]);
 
-  // Handle ESC
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isSubmitting) onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isSubmitting, onClose]);
-
-  if (!isOpen || !team) return null;
+  if (!team) return null;
 
   const toggleDriver = (id: string) => {
     setSelectedDrivers((prev) =>
@@ -164,38 +156,17 @@ export function AddResourcesToTeamModal({
   const totalSelected = selectedDrivers.length + selectedVehicles.length;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="إضافة موارد من المخزون العام"
+      description={<>تعيين سائقين ومركبات غير مقيدة لفريق: <strong>{team.name}</strong></>}
+      icon={Users}
+      iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+      maxWidth="lg"
+      preventClose={isSubmitting}
     >
-      <div className="relative w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-2)]/40 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[var(--text)]">
-                إضافة موارد من المخزون العام
-              </h2>
-              <p className="text-xs text-[var(--muted)] mt-0.5">
-                تعيين سائقين ومركبات غير مقيدة لفريق: <strong>{team.name}</strong>
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            aria-label="إغلاق النافذة"
-            className="p-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+      <div className="flex flex-col max-h-[75vh]">
         {/* Tab switcher */}
         <div className="flex items-center border-b border-[var(--border)] px-6 pt-3 bg-[var(--surface-2)]/20 shrink-0 gap-2">
           <button
@@ -305,6 +276,7 @@ export function AddResourcesToTeamModal({
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleDriver(driver._id)}
+                          disabled={isSubmitting}
                           className="rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer w-4 h-4"
                         />
                       </label>
@@ -377,6 +349,7 @@ export function AddResourcesToTeamModal({
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleVehicle(vehicle._id)}
+                          disabled={isSubmitting}
                           className="rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer w-4 h-4"
                         />
                       </label>
@@ -416,6 +389,6 @@ export function AddResourcesToTeamModal({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

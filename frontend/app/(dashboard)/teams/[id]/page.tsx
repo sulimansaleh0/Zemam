@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Users,
   ChevronRight,
-  UserCheck,
   Truck,
   Layers,
   Edit2,
@@ -23,20 +22,14 @@ import {
   Clock,
   CheckCheck,
 } from 'lucide-react';
-import { Sidebar, Header, useDashboard } from '@/features/dashboard';
+import { Sidebar, Header } from '@/features/dashboard';
 import {
-  useTeamDetail,
-  useTeamStatics,
-  useTeams,
+  useTeamDetailPage,
   EditTeamModal,
   DeleteTeamModal,
   AssignTeamManagerModal,
   AddResourcesToTeamModal,
-  type Team,
 } from '@/features/teams';
-import { useManagers, useDisableManager } from '@/features/managers';
-import { useDriversList, useRemoveDriverFromTeam } from '@/features/drivers';
-import { useVehicles, useRemoveVehicleFromTeam } from '@/features/vehicles';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.types';
 
@@ -45,63 +38,34 @@ export default function TeamDetailPage() {
   const router = useRouter();
   const teamId = String(params?.id || '');
 
-  const { user, userName, menuOpen, setMenuOpen, logout } = useDashboard();
-
-  const isFleetManager =
-    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
-
-  // Team detail queries
-  const { data: team, isLoading, isError, error } = useTeamDetail(teamId);
-  const { data: statics } = useTeamStatics(teamId);
-
-  // Related data
-  const { data: allDrivers = [] } = useDriversList();
-  const { data: allVehicles = [] } = useVehicles();
-  const { data: allManagers = [] } = useManagers();
-
-  const disableManagerMutation = useDisableManager();
-  const removeDriverMutation = useRemoveDriverFromTeam();
-  const removeVehicleMutation = useRemoveVehicleFromTeam();
-
-  // Modals state
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
-  const [isAddResourcesModalOpen, setIsAddResourcesModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (isFleetManager) {
-      router.replace('/dashboard');
-    }
-  }, [isFleetManager, router]);
-
-  // Filter team-specific drivers and vehicles
-  const teamDrivers = useMemo(() => {
-    return allDrivers.filter((d: BackendDriver) => {
-      const dTeamId = typeof d.teamId === 'object' && d.teamId !== null ? (d.teamId as any)._id : d.teamId;
-      return String(dTeamId) === String(teamId);
-    });
-  }, [allDrivers, teamId]);
-
-  const teamVehicles = useMemo(() => {
-    return allVehicles.filter((v: VehicleWithRelations) => {
-      const vTeamId = typeof v.teamId === 'object' && v.teamId !== null ? (v.teamId as any)._id : v.teamId;
-      return String(vTeamId) === String(teamId);
-    });
-  }, [allVehicles, teamId]);
-
-  // Find manager details
-  const managerId =
-    typeof team?.managerId === 'object' && team?.managerId !== null
-      ? team.managerId._id
-      : typeof team?.managerId === 'string'
-      ? team.managerId
-      : null;
-
-  const managerObj = useMemo(() => {
-    if (!managerId) return null;
-    return allManagers.find((m) => m._id === managerId) || null;
-  }, [allManagers, managerId]);
+  const {
+    isFleetManager,
+    userName,
+    menuOpen,
+    setMenuOpen,
+    logout,
+    team,
+    statics,
+    teamDrivers,
+    teamVehicles,
+    managerId,
+    managerObj,
+    isLoading,
+    isError,
+    error,
+    isEditModalOpen,
+    setIsEditModalOpen,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    isAssignManagerModalOpen,
+    setIsAssignManagerModalOpen,
+    isAddResourcesModalOpen,
+    setIsAddResourcesModalOpen,
+    isDisablingManager,
+    handleRemoveDriver,
+    handleRemoveVehicle,
+    handleDisableManager,
+  } = useTeamDetailPage(teamId);
 
   if (isFleetManager) {
     return null;
@@ -326,10 +290,8 @@ export default function TeamDetailPage() {
                   {team.managerId && managerId && (
                     <button
                       type="button"
-                      onClick={async () => {
-                        await disableManagerMutation.mutateAsync(managerId);
-                      }}
-                      disabled={disableManagerMutation.isPending}
+                      onClick={handleDisableManager}
+                      disabled={isDisablingManager}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
                     >
                       <Unlink className="w-3.5 h-3.5" />
@@ -400,9 +362,7 @@ export default function TeamDetailPage() {
                           <td className="py-3 px-4 text-center">
                             <button
                               type="button"
-                              onClick={async () => {
-                                await removeDriverMutation.mutateAsync(driver._id);
-                              }}
+                              onClick={() => handleRemoveDriver(driver._id)}
                               title="فك ارتباط السائق عن هذا الفريق"
                               className="p-1.5 rounded-lg text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
                             >
@@ -479,9 +439,7 @@ export default function TeamDetailPage() {
                           <td className="py-3 px-4 text-center">
                             <button
                               type="button"
-                              onClick={async () => {
-                                await removeVehicleMutation.mutateAsync(vehicle._id);
-                              }}
+                              onClick={() => handleRemoveVehicle(vehicle._id)}
                               title="فك ارتباط المركبة ونقلها للمستودع العام"
                               className="p-1.5 rounded-lg text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
                             >
@@ -509,10 +467,8 @@ export default function TeamDetailPage() {
       {/* ── Delete Team Modal ── */}
       <DeleteTeamModal
         isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          router.push('/teams');
-        }}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onSuccess={() => router.push('/teams')}
         team={team}
         assignedVehiclesCount={teamVehicles.length}
       />
