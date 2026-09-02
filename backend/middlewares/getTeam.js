@@ -1,9 +1,14 @@
 const Team = require("../models/team.model");
+const { userRoles } = require("../data/roles");
 const { serverError, error } = require("../utils/responses")
 
 module.exports = async (req, res, next) => {
     const user = req.user
-    const teamId = req.body?.teamId || req.query?.teamId || (req.baseUrl?.includes("team") ? req.params?.id : null) || null
+    const teamId = req.body?.teamId || req.params?.id || null
+
+    if (user.role === userRoles.FLEET_MANAGER && !user.teamId)
+        return error(res, 403, "You are not assigned to any team")
+
     try {
         if (user.teamId || teamId) {
             let filters = { companyId: user.companyId, isDeleted: false }
