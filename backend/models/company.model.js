@@ -45,8 +45,5 @@ const companySchema = new mongoose.Schema({
     }
 }, { timestamps: true })
 
-const Company = mongoose.models.company || mongoose.models.Company || mongoose.model("company", companySchema)
-if (!mongoose.models.Company) {
-    mongoose.model("Company", companySchema)
-}
+const Company = mongoose.model("company", companySchema)
 module.exports = Company

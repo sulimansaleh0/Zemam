@@ -63,8 +63,5 @@ userSchema.methods.toJSON = function () {
     delete user.__v;
     return user;
 };
-const User = mongoose.models.User || mongoose.models.user || mongoose.model("User", userSchema);
-if (!mongoose.models.user) {
-    mongoose.model("user", userSchema);
-}
+const User = mongoose.model("user", userSchema);
 module.exports = User;

@@ -71,13 +71,9 @@ exports.listTeams = async (req, res) => {
 
 exports.listTeam = async (req, res) => {
     const user = req.user
-    const teamId = req.params.id || req.teamId
+    const teamId = req.teamId
     if (!teamId) return error(res, 400, "team Id is required")
     try {
-        if (user.role === userRoles.FLEET_MANAGER && user.teamId && user.teamId.toString() !== teamId.toString()) {
-            return error(res, 403, "You can only view your assigned team")
-        }
-
         const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
             .populate("managerId", "name email status phone")
         if (!team) return error(res, 404, "Team not found")

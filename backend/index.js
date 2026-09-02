@@ -8,23 +8,11 @@ const app = express();
 app.use(express.json());
 app.use(cors({
     origin: [
-        "http://localhost:3000",
-        "https://bonnet-untrimmed-rants.ngrok-free.dev"
+        "http://localhost:3000"
     ],
     credentials: true
 }));
 app.use(cookieParser());
-
-// Preload all models for Mongoose references and populate
-require("./models/company.model");
-require("./models/user.model");
-require("./models/team.model");
-require("./models/vehicle.model");
-require("./models/task.model");
-require("./models/fuel.model");
-require("./models/maintenance.model");
-require("./models/otp.model");
-require("./models/refreshToken.model");
 
 connectDB().then(() => {
     app.listen(3001, () => {

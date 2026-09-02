@@ -217,24 +217,11 @@ exports.createDriver = async (req, res) => {
     const teamId = req.teamId
     const { email, name, phone, vehicleId } = req.body
     try {
-        const isFleetManager = user.role === userRoles.FLEET_MANAGER || user.role === "fleet_manager";
-        if (isFleetManager) {
-            if (!user.teamId) {
-                return error(res, 400, "ليس لديك فريق تشغيلي مسند حالياً لإضافة سائق إليه")
-            }
-            const activeTeam = await Team.findOne({ _id: user.teamId, companyId: user.companyId, isDeleted: false })
-            if (!activeTeam) {
-                return error(res, 400, "الفريق المسند إليك غير موجود أو تم حذفه")
-            }
-        }
-
-        const assignedTeamId = isFleetManager ? user.teamId : (teamId || null)
-
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email already in use")
 
-        if (assignedTeamId && vehicleId) {
-            const vehicle = await Vehicle.findOne({ _id: vehicleId, teamId: assignedTeamId, companyId: user.companyId, isDeleted: false })
+        if (teamId && vehicleId) {
+            const vehicle = await Vehicle.findOne({ _id: vehicleId, teamId, companyId: user.companyId, isDeleted: false })
             if (!vehicle) return error(res, 404, "Vehicle not found")
         }
 
@@ -244,16 +231,16 @@ exports.createDriver = async (req, res) => {
         const driver = await User.create({
             email,
             name: name?.trim() || email.split('@')[0],
-            phone: phone || undefined,
+            phone,
             password: passwordHash,
             role: userRoles.DRIVER,
             companyId: user.companyId,
-            teamId: assignedTeamId
+            teamId
         })
 
-        if (assignedTeamId && vehicleId) {
+        if (teamId && vehicleId) {
             await Vehicle.findOneAndUpdate(
-                { _id: vehicleId, teamId: assignedTeamId, companyId: user.companyId },
+                { _id: vehicleId, teamId, companyId: user.companyId },
                 { driverId: driver._id }
             )
         }
@@ -277,26 +264,10 @@ exports.listDrivers = async (req, res) => {
             isDeleted: false
         };
 
-        const isFleetManager = user.role === userRoles.FLEET_MANAGER || user.role === "fleet_manager";
-
-        if (isFleetManager) {
-            // Fleet manager MUST have a team to see any drivers
-            if (!user.teamId) {
-                return success(res, 200, { drivers: [] });
-            }
-            const activeTeam = await Team.findOne({ _id: user.teamId, companyId: user.companyId, isDeleted: false });
-            if (!activeTeam) {
-                return success(res, 200, { drivers: [] });
-            }
-            filters.teamId = activeTeam._id;
-        } else {
-            // Admin logic
-            if (teamId) {
-                filters.teamId = teamId;
-            } else if (withoutTeam === "true") {
-                filters.teamId = null;
-            }
-        }
+        if (teamId)
+            filters.teamId = teamId;
+        else if (withoutTeam === "true")
+            filters.teamId = null
 
         const drivers = await User.find(filters).populate("teamId", "name");
         success(res, 200, { drivers });
@@ -308,7 +279,7 @@ exports.listDrivers = async (req, res) => {
 
 exports.setDriverToTeam = async (req, res) => {
     const user = req.user
-    const teamId = req.teamId || req.body?.teamId
+    const teamId = req.teamId
     const driverId = req.params.id
     if (!driverId) return error(res, 400, "Driver Id is required")
     if (!teamId) return error(res, 400, "Team Id is required")
@@ -444,21 +415,14 @@ exports.deleteDriver = async (req, res) => {
             companyId: user.companyId,
             isDeleted: false
         };
-        if (user.role === userRoles.FLEET_MANAGER) {
-            if (!user.teamId) return error(res, 400, "ليس لديك فريق تشغيلي")
-            filters.teamId = user.teamId
-        } else if (teamId) {
-            filters.teamId = teamId
-        }
+
+        if (teamId) filters.teamId = teamId;
 
         const driver = await User.findOne(filters);
         if (!driver) return error(res, 404, "Driver not found");
 
-        if (user.role === userRoles.FLEET_MANAGER) {
-            driver.teamId = null;
-            await driver.save();
+        if (driver.teamId) {
             await Vehicle.findOneAndUpdate({ driverId, companyId: user.companyId }, { driverId: null });
-            return success(res, 200, { message: "تمت إزالة السائق من فريقك بنجاح ونقله للمستودع العام" });
         }
 
         driver.isDeleted = true;
