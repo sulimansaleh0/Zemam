@@ -171,6 +171,7 @@ exports.assignManager = async (req, res) => {
     try {
         const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false, status: mainStatus.ACTIVE })
         if (!team) return error(res, 404, "Team not found")
+        if (team.managerId) return error(res, 400, "Team already has a manager")
 
         const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false, status: mainStatus.ACTIVE })
         if (!manager) return error(res, 404, "Manager not found")
