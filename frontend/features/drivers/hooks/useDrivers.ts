@@ -8,6 +8,7 @@ import { useTeams } from '@/features/teams';
 import { useToast } from '@/shared/ui/Toast';
 import { driverService } from '../services/driverService';
 import { vehicleService } from '@/features/vehicles/services/vehicle.service';
+import { driverKeys, vehicleKeys, teamKeys } from '@/shared/constants/queryKeys';
 import { enrichDriver, exportDriversCSV, getDriverDisplayName, getDriverTeamId } from '../utils/driverHelpers';
 import type {
   Driver,
@@ -18,20 +19,10 @@ import type {
 } from '../types/driver.types';
 
 // ============================================================
-//  Query Keys
+//  Query Keys — إعادة تصدير من المصدر المركزي للتوافق الخلفي
 // ============================================================
 
-export const DRIVER_KEYS = {
-  all: ['drivers'] as const,
-} as const;
-
-const VEHICLE_KEYS = {
-  all: ['vehicles'] as const,
-} as const;
-
-const TEAM_KEYS = {
-  all: ['teams'] as const,
-} as const;
+export const DRIVER_KEYS = driverKeys;
 
 // ============================================================
 //  Data Hooks (React Query)
@@ -42,7 +33,7 @@ const TEAM_KEYS = {
  */
 export function useDriversList() {
   return useQuery({
-    queryKey: DRIVER_KEYS.all,
+    queryKey: driverKeys.all,
     queryFn: async ({ signal }) => {
       const [driversRes, vehiclesRes] = await Promise.all([
         driverService.getDrivers(signal),
@@ -73,24 +64,6 @@ export function useDriversList() {
         return enriched;
       });
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
-  });
-}
-
-/**
- * جلب قائمة المركبات لاستخدامها في نافذة تعيين المركبة للسائق
- */
-export function useAvailableVehicles() {
-  return useQuery({
-    queryKey: VEHICLE_KEYS.all,
-    queryFn: async ({ signal }) => {
-      const result = await vehicleService.getVehicles(signal);
-      if (!result.success) {
-        if (result.message === 'Request cancelled') return [];
-        throw new Error(result.message);
-      }
-      return result.data?.vehicles ?? [];
-    },
   });
 }
 
@@ -108,7 +81,7 @@ export function useCreateDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
       addToast({ type: 'success', title: 'تمت الإضافة', message: 'تمت إضافة السائق بنجاح' });
     },
     onError: (error: Error) => {
@@ -131,7 +104,7 @@ export function useChangeDriverStatus() {
       return result;
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
       const label = status === 'active' ? 'تفعيل' : 'تعطيل';
       addToast({ type: 'info', title: 'تغيير الحالة', message: `تم ${label} حساب السائق بنجاح` });
     },
@@ -155,8 +128,8 @@ export function useDeleteDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: VEHICLE_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       addToast({ type: 'info', title: 'تم الحذف', message: 'تم حذف سجل السائق' });
     },
     onError: (error: Error) => {
@@ -179,8 +152,8 @@ export function useAssignVehicleToDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: VEHICLE_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       addToast({
         type: 'success',
         title: 'تعيين المركبة',
@@ -211,8 +184,8 @@ export function useUnassignVehicleFromDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: VEHICLE_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       addToast({
         type: 'info',
         title: 'فك الارتباط',
@@ -243,8 +216,8 @@ export function useAssignDriverToTeam() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: TEAM_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تعيين الفريق',
@@ -275,9 +248,9 @@ export function useRemoveDriverFromTeam() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVER_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: VEHICLE_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: TEAM_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'فك ارتباط الفريق',
@@ -463,6 +436,8 @@ export function useDriversPage() {
     isLoading: driversQuery.isLoading,
     isError: driversQuery.isError,
     error: driversQuery.error,
+    refetch: driversQuery.refetch,
+    isRefetching: driversQuery.isRefetching,
 
     // Mutations pending state
     isCreating: createMutation.isPending,

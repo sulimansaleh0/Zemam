@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Car, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { Driver } from '../types/driver.types';
-import { useAvailableVehicles } from '../hooks/useDrivers';
+import { useVehicles } from '@/features/vehicles';
 import { getDriverDisplayName, getDriverTeamId } from '../utils/driverHelpers';
 import { Modal } from '@/shared/ui/Modal';
 
@@ -20,7 +20,7 @@ export function AssignVehicleModal({
   onAssign,
   isLoading,
 }: AssignVehicleModalProps) {
-  const { data: vehicles = [], isLoading: isLoadingVehicles } = useAvailableVehicles();
+  const { data: vehicles = [], isLoading: isLoadingVehicles } = useVehicles();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
     driver.assignedVehicle?._id || ''
   );
@@ -119,8 +119,14 @@ export function AssignVehicleModal({
               >
                 <option value="">-- اختر المركبة من القائمة --</option>
                 {teamVehicles.map((v) => {
-                  const isCurrentlyAssignedToThis = v.driverId === driver._id;
-                  const isAssignedToOther = v.driverId && !isCurrentlyAssignedToThis;
+                  const vDriverId =
+                    typeof v.driverId === 'object' && v.driverId !== null
+                      ? v.driverId._id
+                      : typeof v.driverId === 'string'
+                      ? v.driverId
+                      : undefined;
+                  const isCurrentlyAssignedToThis = vDriverId === driver._id;
+                  const isAssignedToOther = Boolean(vDriverId) && !isCurrentlyAssignedToThis;
 
                   return (
                     <option key={v._id} value={v._id}>

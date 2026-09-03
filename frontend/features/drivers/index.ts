@@ -33,7 +33,6 @@ export { driverService } from './services/driverService';
 export {
   DRIVER_KEYS,
   useDriversList,
-  useAvailableVehicles,
   useCreateDriver,
   useChangeDriverStatus,
   useDeleteDriver,

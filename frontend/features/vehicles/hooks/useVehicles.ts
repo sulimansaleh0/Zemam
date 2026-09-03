@@ -9,6 +9,7 @@ import { useToast } from '@/shared/ui/Toast';
 import { vehicleService } from '../services/vehicle.service';
 import { useDriversList } from '@/features/drivers';
 import { getVehicleTeamId, getVehicleDriverId } from '../utils/vehicleHelpers';
+import { vehicleKeys, driverKeys, teamKeys } from '@/shared/constants/queryKeys';
 import type {
   BackendVehicle,
   VehicleWithRelations,
@@ -18,13 +19,10 @@ import type {
 } from '../types/vehicle.types';
 
 // ============================================================
-//  Query Keys
+//  Query Keys — إعادة تصدير من المصدر المركزي للتوافق الخلفي
 // ============================================================
 
-export const VEHICLE_QUERY_KEYS = {
-  all: ['vehicles'] as const,
-  detail: (id: string) => ['vehicles', id] as const,
-};
+export const VEHICLE_QUERY_KEYS = vehicleKeys;
 
 // ============================================================
 //  Data Hooks (React Query v5)
@@ -38,7 +36,7 @@ export function useVehicles() {
   const drivers = driversQuery.data ?? [];
 
   return useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.all,
+    queryKey: vehicleKeys.all,
     queryFn: async ({ signal }) => {
       const result = await vehicleService.getVehicles(signal);
       if (!result.success) {
@@ -97,7 +95,7 @@ export function useCreateVehicle() {
       return result.data.vehicle;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       addToast({
         type: 'success',
         title: 'تمت الإضافة',
@@ -128,7 +126,7 @@ export function useChangeVehicleStatus() {
       return result;
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       const label = status === 'active' ? 'تفعيل' : 'تعطيل';
       addToast({
         type: 'info',
@@ -166,8 +164,8 @@ export function useAssignDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
       addToast({
         type: 'success',
         title: 'تعيين السائق',
@@ -198,8 +196,8 @@ export function useUnassignDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
       addToast({
         type: 'info',
         title: 'فك الارتباط',
@@ -230,8 +228,8 @@ export function useAssignVehicleToTeam() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تعيين الفريق',
@@ -262,9 +260,9 @@ export function useRemoveVehicleFromTeam() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'فك ارتباط الفريق',
@@ -295,9 +293,9 @@ export function useDeleteVehicle() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'حذف المركبة',

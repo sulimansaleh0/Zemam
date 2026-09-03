@@ -6,6 +6,7 @@ import { UserPlus, Car, Users, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/shared/ui/Toast';
 import { driverService } from '@/features/drivers/services/driverService';
 import { vehicleService } from '@/features/vehicles/services/vehicle.service';
+import { driverKeys, vehicleKeys, teamKeys } from '@/shared/constants/queryKeys';
 import type { Team } from '../types/team.types';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { BackendVehicle } from '@/features/vehicles/types/vehicle.types';
@@ -32,7 +33,7 @@ export function AddResourcesToTeamModal({
 
   // Fetch available drivers (without team)
   const { data: availableDrivers = [], isLoading: isLoadingDrivers } = useQuery({
-    queryKey: ['drivers', 'available'],
+    queryKey: [...driverKeys.all, 'available'] as const,
     queryFn: async () => {
       const res = await driverService.getAvailableDrivers();
       if (!res.success) return [];
@@ -44,7 +45,7 @@ export function AddResourcesToTeamModal({
 
   // Fetch available vehicles (without team)
   const { data: availableVehicles = [], isLoading: isLoadingVehicles } = useQuery({
-    queryKey: ['vehicles', 'available'],
+    queryKey: [...vehicleKeys.all, 'available'] as const,
     queryFn: async () => {
       const res = await vehicleService.getAvailableVehicles();
       if (!res.success) return [];
@@ -123,9 +124,9 @@ export function AddResourcesToTeamModal({
       const failed = results.filter((r) => r.status === 'rejected').length;
 
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
 
       if (failed === 0) {
         addToast({

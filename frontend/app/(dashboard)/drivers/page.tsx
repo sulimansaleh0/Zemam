@@ -27,6 +27,8 @@ export default function DriversPage() {
     isLoading,
     isError,
     error,
+    refetch,
+    isRefetching,
     // Mutations state
     isCreating,
     isDeleting,
@@ -118,6 +120,16 @@ export default function DriversPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2">
                 <button
+                  type="button"
+                  onClick={() => refetch()}
+                  disabled={isRefetching || isLoading}
+                  className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3.5 py-2.5 text-[11px] font-semibold text-[var(--zd-text)] shadow-xs transition-colors hover:border-[var(--zd-blue)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                  title="تحديث البيانات"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
+                  <span>تحديث</span>
+                </button>
+                <button
                   onClick={handleExportCSV}
                   disabled={isLoading || drivers.length === 0}
                   className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-4 py-2.5 text-[11px] font-semibold text-[var(--zd-text)] shadow-xs transition-colors hover:border-[var(--zd-blue)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -156,8 +168,8 @@ export default function DriversPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => window.location.reload()}
-                  className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] px-4 py-2 text-[11px] font-semibold text-[var(--zd-text)] transition-colors hover:bg-[var(--zd-surface-2)]"
+                  onClick={() => refetch()}
+                  className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] px-4 py-2 text-[11px] font-semibold text-[var(--zd-text)] transition-colors hover:bg-[var(--zd-surface-2)] cursor-pointer"
                 >
                   <RefreshCw className="h-3.5 w-3.5" /> إعادة المحاولة
                 </button>
