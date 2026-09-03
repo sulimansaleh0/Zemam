@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser")
 const { connectDB } = require("./config/db");
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json());
 
 const allowedOrigins = [
@@ -27,10 +28,12 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
+const PORT = process.env.PORT || 3001;
+
 connectDB().then(() => {
-    app.listen(3001, () => {
-        console.log("Server Running at port: 3001")
-    })
+    app.listen(PORT, () => {
+        console.log(`Server Running at port: ${PORT}`);
+    });
 });
 
 const authRoutes = require("./routes/auth.route")
