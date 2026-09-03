@@ -2,21 +2,22 @@
    ZIMAM — Design Tokens
    ============================================ */
 
-:root {
+:root,
+[data-theme="dark"] {
   /* ─── Brand ─────────────────────────────── */
   --primary:        #2563EB;
   --primary-hover:  #1D4ED8;
-  --primary-light:  #2563EB20;
+  --primary-light:  rgba(37, 99, 235, 0.15);
 
   /* ─── Semantic ───────────────────────────── */
   --success:        #16A34A;
-  --success-light:  #16A34A20;
+  --success-light:  rgba(22, 163, 74, 0.15);
   --warning:        #D97706;
-  --warning-light:  #D9770620;
+  --warning-light:  rgba(217, 119, 6, 0.15);
   --danger:         #DC2626;
-  --danger-light:   #DC262620;
+  --danger-light:   rgba(220, 38, 38, 0.15);
   --info:           #0891B2;
-  --info-light:     #0891B220;
+  --info-light:     rgba(8, 145, 178, 0.15);
 
   /* ─── Backgrounds ────────────────────────── */
   --bg:             #0F172A;
@@ -34,6 +35,12 @@
   --border:         #334155;
   --border-focus:   #2563EB;
   --border-error:   #DC2626;
+
+  /* ─── Shadows ────────────────────────────── */
+  --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.3);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.4);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.5);
+  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.6);
 
   /* ─── Typography ─────────────────────────── */
   --font-sans:  'Cairo', 'Segoe UI', system-ui, sans-serif;
@@ -65,12 +72,6 @@
   --radius-xl:   1rem;
   --radius-2xl:  1.5rem;
   --radius-full: 9999px;
-
-  /* ─── Shadows ────────────────────────────── */
-  --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.3);
-  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.4);
-  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.5);
-  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.6);
 
   /* ─── Transitions ────────────────────────── */
   --transition-fast:   150ms ease;
@@ -105,4 +106,44 @@
   --status-in-progress: var(--primary);
   --status-completed:   var(--success);
   --status-cancelled:   var(--danger);
+}
+
+[data-theme="light"] {
+  /* ─── Brand ─────────────────────────────── */
+  --primary:        #2563EB;
+  --primary-hover:  #1D4ED8;
+  --primary-light:  rgba(37, 99, 235, 0.08);
+
+  /* ─── Semantic ───────────────────────────── */
+  --success:        #15803D;
+  --success-light:  rgba(21, 128, 61, 0.1);
+  --warning:        #B45309;
+  --warning-light:  rgba(180, 83, 9, 0.1);
+  --danger:         #B91C1C;
+  --danger-light:   rgba(185, 28, 28, 0.1);
+  --info:           #0E7490;
+  --info-light:     rgba(14, 116, 144, 0.1);
+
+  /* ─── Backgrounds ────────────────────────── */
+  --bg:             #F8FAFC;
+  --surface:        #FFFFFF;
+  --surface-2:      #F1F5F9;
+  --surface-3:      #E2E8F0;
+
+  /* ─── Text ───────────────────────────────── */
+  --text:           #0F172A;
+  --text-secondary: #475569;
+  --muted:          #64748B;
+  --disabled:       #94A3B8;
+
+  /* ─── Borders ────────────────────────────── */
+  --border:         #E2E8F0;
+  --border-focus:   #2563EB;
+  --border-error:   #DC2626;
+
+  /* ─── Shadows ────────────────────────────── */
+  --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.07);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.08);
+  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.1);
 }

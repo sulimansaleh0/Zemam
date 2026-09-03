@@ -1,0 +1,67 @@
+const mongoose = require("mongoose");
+const { mainStatus } = require("../data/status");
+const { userRoles } = require("../data/roles");
+
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        trim: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    password: {
+        type: String,
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    provider: {
+        type: String,
+        enum: ["local", "google"],
+        default: "local"
+    },
+    role: {
+        type: String,
+        enum: [userRoles.SUPER_ADMIN, userRoles.ADMIN, userRoles.FLEET_MANAGER, userRoles.DRIVER],
+        default: userRoles.ADMIN
+    },
+    status: {
+        type: String,
+        enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
+        default: mainStatus.ACTIVE
+    },
+
+    phone: {
+        type: String,
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "company",
+    },
+    teamId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "team",
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
+    }
+}, { timestamps: true });
+
+
+userSchema.methods.toJSON = function () {
+    const user = this.toObject();
+    delete user.password;
+    delete user.provider;
+    delete user.__v;
+    return user;
+};
+const User = mongoose.model("user", userSchema);
+module.exports = User;

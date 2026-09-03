@@ -1,6 +1,4 @@
-// الاستخدام: cn('base', condition && 'extra', 'another')
-
-type ClassValue = string | undefined | null | false | ClassValue[];
+export type ClassValue = string | number | boolean | undefined | null | ClassValue[];
 
 export function cn(...inputs: ClassValue[]): string {
   return inputs
