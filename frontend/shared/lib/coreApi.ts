@@ -1,7 +1,9 @@
 import type { ServiceResult } from '../types/api.types';
 import { API_PATHS } from '../constants/apiPaths';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// في المتصفح، الطلبات يجب أن تكون نسبية ('') لتمر عبر Next.js rewrites
+// وبذلك تُحفظ ملفات الـ Cookies على نفس دومين الفرونت إند (Vercel) وتعمل مع الـ Middleware
+const BASE_URL = typeof window !== 'undefined' ? '' : (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '');
 const DEFAULT_TIMEOUT_MS = 10000; // 10 seconds
 
 function fallbackMessage(status: number): string {
