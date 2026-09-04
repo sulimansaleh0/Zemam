@@ -21,6 +21,7 @@ router.get("/statics",
 
 router.get("/:id",
     allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    getTeam,
     listTeam
 )
 
