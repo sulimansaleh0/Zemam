@@ -3,18 +3,18 @@
    ============================================================ */
 
 .zamam-dashboard {
-  --zd-bg: #081323;
-  --zd-surface: #0e1c30;
-  --zd-surface-2: #12243c;
-  --zd-surface-hover: #1b3152;
-  --zd-line: rgba(162, 190, 226, .13);
-  --zd-text: #edf4ff;
-  --zd-muted: #8da1bd;
-  --zd-blue: #3d7bff;
-  --zd-teal: #57d0bf;
-  --zd-amber: #eab66b;
-  --zd-red: #ee6b76;
-  font-family: "IBM Plex Sans Arabic", sans-serif;
+  --zd-bg: var(--bg);
+  --zd-surface: var(--surface);
+  --zd-surface-2: var(--surface-2);
+  --zd-surface-hover: var(--surface-3);
+  --zd-line: var(--border);
+  --zd-text: var(--text);
+  --zd-muted: var(--muted);
+  --zd-blue: var(--primary);
+  --zd-teal: var(--info, #0891B2);
+  --zd-amber: var(--warning, #D97706);
+  --zd-red: var(--danger, #DC2626);
+  font-family: var(--font-sans), "IBM Plex Sans Arabic", sans-serif;
   background: var(--zd-bg);
   color: var(--zd-text);
   min-height: 100dvh;
@@ -24,17 +24,17 @@
 
 [data-theme="light"] .zamam-dashboard,
 [data-theme="light"].zamam-dashboard {
-  --zd-bg: #f3f6fa;
-  --zd-surface: #ffffff;
-  --zd-surface-2: #f1f5f9;
-  --zd-surface-hover: #e2e8f0;
-  --zd-line: rgba(15, 23, 42, .08);
-  --zd-text: #0f172a;
-  --zd-muted: #64748b;
-  --zd-blue: #2563eb;
-  --zd-teal: #0d9488;
-  --zd-amber: #d97706;
-  --zd-red: #e11d48;
+  --zd-bg: var(--bg);
+  --zd-surface: var(--surface);
+  --zd-surface-2: var(--surface-2);
+  --zd-surface-hover: var(--surface-3);
+  --zd-line: var(--border);
+  --zd-text: var(--text);
+  --zd-muted: var(--muted);
+  --zd-blue: var(--primary);
+  --zd-teal: var(--info, #0891B2);
+  --zd-amber: var(--warning, #D97706);
+  --zd-red: var(--danger, #DC2626);
 }
 
 .zamam-dashboard *,
