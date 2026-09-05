@@ -8,6 +8,7 @@ import { calculateTeamVehicleCounts } from '../utils/teamHelpers';
 import { useDriversList, useRemoveDriverFromTeam, getDriverTeamId } from '@/features/drivers';
 import { useVehicles, useRemoveVehicleFromTeam, getVehicleTeamId } from '@/features/vehicles';
 import { useManagers, useDisableManager, type FleetManager } from '@/features/managers';
+import { teamKeys, driverKeys, vehicleKeys, managerKeys } from '@/shared/constants/queryKeys';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.types';
 import type {
@@ -17,13 +18,10 @@ import type {
 } from '../types/team.types';
 
 // ============================================================
-//  Query Keys
+//  Query Keys — إعادة تصدير من المصدر المركزي للتوافق الخلفي
 // ============================================================
 
-export const TEAM_QUERY_KEYS = {
-  all: ['teams'] as const,
-  detail: (id: string) => ['teams', id] as const,
-};
+export const TEAM_QUERY_KEYS = teamKeys;
 
 // ============================================================
 //  Data Hooks
@@ -34,9 +32,8 @@ export const TEAM_QUERY_KEYS = {
  */
 export function useTeams() {
   return useQuery({
-    queryKey: TEAM_QUERY_KEYS.all,
+    queryKey: teamKeys.all,
     queryFn: ({ signal }) => teamService.getTeams(signal),
-    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
 
@@ -45,10 +42,9 @@ export function useTeams() {
  */
 export function useTeamDetail(id: string) {
   return useQuery({
-    queryKey: TEAM_QUERY_KEYS.detail(id),
+    queryKey: teamKeys.detail(id),
     queryFn: ({ signal }) => teamService.getTeamById(id, signal),
     enabled: Boolean(id),
-    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -57,9 +53,9 @@ export function useTeamDetail(id: string) {
  */
 export function useTeamStatics(teamId?: string) {
   return useQuery({
-    queryKey: ['teams', 'statics', teamId || 'all'] as const,
+    queryKey: teamKeys.statics(teamId),
     queryFn: ({ signal }) => teamService.getTeamStatics(teamId, signal),
-    staleTime: 1000 * 60,
+    staleTime: 1000 * 30, // 30 seconds
   });
 }
 
@@ -77,10 +73,10 @@ export function useCreateTeam() {
   return useMutation({
     mutationFn: (payload: CreateTeamInput) => teamService.createTeam(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      queryClient.invalidateQueries({ queryKey: ['managers'] });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
       addToast({
         type: 'success',
         title: 'تم إنشاء الفريق',
@@ -108,7 +104,7 @@ export function useUpdateTeam() {
     mutationFn: ({ teamId, payload }: { teamId: string; payload: UpdateTeamInput }) =>
       teamService.updateTeam(teamId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تم التعديل',
@@ -135,10 +131,10 @@ export function useDeleteTeam() {
   return useMutation({
     mutationFn: (teamId: string) => teamService.deleteTeam(teamId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      queryClient.invalidateQueries({ queryKey: ['managers'] });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
       addToast({
         type: 'success',
         title: 'تم الحذف',
