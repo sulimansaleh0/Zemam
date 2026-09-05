@@ -2,6 +2,15 @@ const mongoose = require("mongoose")
 const { expenseRecordStatus } = require("../data/status")
 
 const maintenanceSchema = new mongoose.Schema({
+    vehicleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "vehicle",
+        required: true
+    },
+    teamId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "team"
+    },
     description: {
         type: String,
         required: true
@@ -27,6 +36,11 @@ const maintenanceSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true
+    },
+    declineReason: String,
+    isDriverFault: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true })
 

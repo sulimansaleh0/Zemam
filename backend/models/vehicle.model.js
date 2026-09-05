@@ -23,6 +23,14 @@ const vehicleSchema = new mongoose.Schema({
         enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
         default: mainStatus.ACTIVE
     },
+    periodicInspectionExpiry: Date,
+    insuranceExpiry: Date,
+    licenseExpiry: Date,
+    lastInspectedAt: Date,
+    lastInspectedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user"
+    },
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",

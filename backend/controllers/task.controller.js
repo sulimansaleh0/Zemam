@@ -130,7 +130,12 @@ exports.acceptTask = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "Task id is required")
     try {
-        const task = await Task.findOne({ _id: id, companyId: user.companyId, teamId: user.teamId })
+        const task = await Task.findOne({
+            _id: id,
+            companyId: user.companyId,
+            teamId: user.teamId,
+            driverId: user._id
+        })
         if (!task) return error(res, 404, "Task not found")
 
         if (!(task.status === taskStatus.PENDING)) return error(res, 400, "Cant accept this task")
@@ -148,7 +153,12 @@ exports.finishTask = async (req, res) => {
     const id = req.params.id || null
     if (!id) return error(res, 400, "Task id is required")
     try {
-        const task = await Task.findOne({ _id: id, companyId: user.companyId, teamId: user.teamId })
+        const task = await Task.findOne({
+            _id: id,
+            companyId: user.companyId,
+            teamId: user.teamId,
+            driverId: user._id
+        })
         if (!task) return error(res, 404, "Task not found")
 
         if (!(task.status === taskStatus.INPROGRESS)) return error(res, 400, "Task is not in progress")
