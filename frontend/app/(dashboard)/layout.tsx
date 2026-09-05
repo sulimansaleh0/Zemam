@@ -31,8 +31,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // إذا لم يكن مسجلاً أو لا يملك شركة، لا يتم عرض أي محتوى من الـ Dashboard أثناء التحويل
-  if (status !== 'authenticated' || !user?.companyId) {
+  // إذا لم يكن المستخدم مسجلاً، توجيهه لصفحة الدخول
+  if (status === 'unauthenticated') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--zd-bg)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-3 border-[var(--zd-blue,#2563eb)] border-t-transparent" />
+          <p className="text-xs text-[var(--zd-muted,#64748b)]">جاري التوجيه لتسجيل الدخول...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // إذا كان مسجلاً لكن لا يملك شركة، توجيهه لإعداد الشركة
+  if (!user?.companyId) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--zd-bg)]">
         <div className="flex flex-col items-center gap-3">
