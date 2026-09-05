@@ -77,7 +77,7 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
           if (typeof ref === 'function') ref(node);
           else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
-        className={cn('google-button-container', fullWidth && 'w-full', className)}
+        className={cn('w-full flex justify-center min-h-[44px] overflow-hidden rounded-xl', fullWidth && 'w-full', className)}
         {...divProps}
       />
     );

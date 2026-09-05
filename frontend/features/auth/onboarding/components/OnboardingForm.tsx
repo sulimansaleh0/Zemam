@@ -11,21 +11,21 @@ export function OnboardingForm() {
 
   return (
     <>
-      <div className="zamam-rise">
+      <div>
         <AuthHeader
           title={userName ? `أهلاً بك، ${userName} 👋` : 'خطوة أخيرة لإعداد حسابك 🎉'}
           subtitle="أدخل اسم شركتك أو مؤسستك لنقوم بتجهيز مساحة العمل الخاصة بك على زمام"
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="auth-form" style={{ marginTop: '2rem' }} noValidate>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full mt-8" noValidate>
         {errors.root && (
-          <div className="auth-form__error-banner" role="alert">
+          <div className="p-3.5 rounded-xl bg-danger/15 border border-danger/30 text-danger text-xs font-semibold" role="alert">
             {errors.root.message}
           </div>
         )}
 
-        <div className="zamam-rise zamam-delay-2 auth-form__field-group">
+        <div>
           <FormField
             id="companyName"
             label="اسم الشركة أو المؤسسة"
@@ -39,26 +39,14 @@ export function OnboardingForm() {
           />
         </div>
 
-        <div
-          className="zamam-rise zamam-delay-3"
-          style={{
-            background: 'var(--surface-subtle, rgba(255, 255, 255, 0.04))',
-            border: '1px solid var(--border, rgba(255, 255, 255, 0.08))',
-            borderRadius: '12px',
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '0.75rem',
-          }}
-        >
-          <Sparkles size={20} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0, marginTop: '2px' }} />
-          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: '1.5' }}>
+        <div className="rounded-xl border border-border bg-surface2/60 p-4 flex items-start gap-3 my-1">
+          <Sparkles size={20} className="text-primary shrink-0 mt-0.5" />
+          <p className="m-0 text-sm text-muted leading-relaxed">
             سيتم إنشاء منظومة متكاملة لأسطولك وسائقيك تابعة لهذا الاسم، ويمكنك تعديل بيانات الشركة لاحقاً من الإعدادات.
           </p>
         </div>
 
-        <div className="zamam-rise zamam-delay-4">
+        <div className="mt-2">
           <Button
             type="submit"
             fullWidth

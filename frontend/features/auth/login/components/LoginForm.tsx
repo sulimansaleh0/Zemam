@@ -19,29 +19,46 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="zamam-rise">
+      <div>
         <AuthHeader
           title="سجّل دخولك إلى زمام"
           subtitle="تابع أسطولك واتخذ قراراتك بثقة، من مكان واحد."
         />
       </div>
 
-      <div className="auth-form" style={{ marginTop: '2rem' }}>
-        <div className="zamam-rise zamam-delay-1">
+      <div className="w-full mt-6">
+        <div>
           <GoogleButton 
             label="المتابعة باستخدام Google" 
             onSuccess={handleGoogleLogin}
             isLoading={isGoogleLoading}
           />
         </div>
-        <div className="auth-form__divider zamam-rise zamam-delay-1">أو باستخدام البريد الإلكتروني</div>
 
-        <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          {resetSuccess   && <div className="auth-form__success-banner" role="status">✓ تم تغيير كلمة المرور، سجّل دخولك الآن</div>}
-          {sessionExpired && <div className="auth-form__error-banner"   role="alert">⚠ انتهت الجلسة، يرجى إعادة تسجيل الدخول</div>}
-          {errors.root    && <div className="auth-form__error-banner"   role="alert">{errors.root.message}</div>}
+        <div className="relative flex items-center justify-center my-6 before:content-[''] before:absolute before:inset-x-0 before:h-px before:bg-border">
+          <span className="relative px-3 bg-bg text-xs text-muted">
+            أو باستخدام البريد الإلكتروني
+          </span>
+        </div>
 
-          <div className="zamam-rise zamam-delay-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full" noValidate>
+          {resetSuccess && (
+            <div className="p-3.5 rounded-xl bg-success/15 border border-success/30 text-success text-xs font-semibold" role="status">
+              ✓ تم تغيير كلمة المرور، سجّل دخولك الآن
+            </div>
+          )}
+          {sessionExpired && (
+            <div className="p-3.5 rounded-xl bg-danger/15 border border-danger/30 text-danger text-xs font-semibold" role="alert">
+              ⚠ انتهت الجلسة، يرجى إعادة تسجيل الدخول
+            </div>
+          )}
+          {errors.root && (
+            <div className="p-3.5 rounded-xl bg-danger/15 border border-danger/30 text-danger text-xs font-semibold" role="alert">
+              {errors.root.message}
+            </div>
+          )}
+
+          <div>
             <FormField
               id="login-email" label="البريد الإلكتروني" type="email"
               placeholder="name@company.com" autoComplete="email" required
@@ -50,16 +67,19 @@ export function LoginForm() {
             />
           </div>
 
-          <div className="zamam-rise zamam-delay-2">
+          <div>
             <FormField
               id="login-password" label="كلمة المرور"
               type={showPassword ? 'text' : 'password'}
               placeholder="أدخل كلمة المرور" autoComplete="current-password" required
               rightIcon={<LockKeyhole size={17} />}
               leftAction={
-                <button type="button" className="form-field__toggle-password"
+                <button
+                  type="button"
+                  className="p-1 text-muted hover:text-text cursor-pointer transition-colors"
                   onClick={togglePassword}
-                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}>
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                >
                   <EyeIcon open={showPassword} />
                 </button>
               }
@@ -67,23 +87,33 @@ export function LoginForm() {
             />
           </div>
 
-          <div className="zamam-rise zamam-delay-3 auth-form__forgot">
-            <label className="auth-form__remember">
-              <input type="checkbox" /> تذكرني
+          <div className="flex items-center justify-between text-xs my-1">
+            <label className="flex items-center gap-2 text-muted cursor-pointer select-none">
+              <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" />
+              <span>تذكرني</span>
             </label>
-            <Link href="/forgot-password" className="auth-form__link zamam-focus">نسيت كلمة المرور؟</Link>
+            <Link href="/forgot-password" className="text-primary hover:underline font-semibold focus-visible:outline-2 focus-visible:outline-primary rounded">
+              نسيت كلمة المرور؟
+            </Link>
           </div>
 
-          <div className="zamam-rise zamam-delay-4">
-            <Button type="submit" fullWidth isLoading={isSubmitting} size="lg"
-              icon={!isSubmitting ? <ArrowLeft size={16} /> : undefined}>
+          <div className="mt-2">
+            <Button
+              type="submit"
+              fullWidth
+              isLoading={isSubmitting}
+              size="lg"
+              icon={!isSubmitting ? <ArrowLeft size={16} /> : undefined}
+            >
               {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
             </Button>
           </div>
 
-          <p className="zamam-rise zamam-delay-4 auth-form__footer">
+          <p className="text-center text-xs text-muted mt-4">
             ليس لديك حساب؟{' '}
-            <Link href="/signup">أنشئ حساباً جديداً</Link>
+            <Link href="/signup" className="text-primary font-bold hover:underline">
+              أنشئ حساباً جديداً
+            </Link>
           </p>
         </form>
       </div>

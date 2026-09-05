@@ -5,11 +5,11 @@
 :root,
 [data-theme="dark"] {
   /* ─── Brand ─────────────────────────────── */
-  --primary:        #2563EB;
-  --primary-hover:  #1D4ED8;
-  --primary-light:  rgba(37, 99, 235, 0.15);
+  --primary:        #0F766E;
+  --primary-hover:  #0B5F59;
+  --primary-light:  #0F766E1A;
   --accent:         #2563EB;
-  --accent-light:   rgba(37, 99, 235, 0.15);
+  --accent-light:   #2563EB14;
 
   /* ─── Semantic ───────────────────────────── */
   --success:        #16A34A;
@@ -36,8 +36,21 @@
 
   /* ─── Borders ────────────────────────────── */
   --border:         #334155;
-  --border-focus:   #2563EB;
+  --border-focus:   #0F766E;
   --border-error:   #DC2626;
+
+  /* ─── Dashboard Token Mappings ───────────── */
+  --zd-bg:             var(--bg);
+  --zd-surface:        var(--surface);
+  --zd-surface-2:      var(--surface-2);
+  --zd-surface-hover:  var(--surface-3);
+  --zd-line:           var(--border);
+  --zd-text:           var(--text);
+  --zd-muted:          var(--muted);
+  --zd-blue:           var(--primary);
+  --zd-teal:           var(--info);
+  --zd-amber:          var(--warning);
+  --zd-red:            var(--danger);
 
   /* ─── Shadows ────────────────────────────── */
   --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.3);
@@ -113,11 +126,11 @@
 
 [data-theme="light"] {
   /* ─── Brand ─────────────────────────────── */
-  --primary:        #2563EB;
-  --primary-hover:  #1D4ED8;
-  --primary-light:  rgba(37, 99, 235, 0.08);
+  --primary:        #0F766E;
+  --primary-hover:  #0B5F59;
+  --primary-light:  #0F766E1A;
   --accent:         #2563EB;
-  --accent-light:   rgba(37, 99, 235, 0.08);
+  --accent-light:   #2563EB14;
 
   /* ─── Semantic ───────────────────────────── */
   --success:        #15803D;
@@ -144,7 +157,7 @@
 
   /* ─── Borders ────────────────────────────── */
   --border:         #E2E8F0;
-  --border-focus:   #2563EB;
+  --border-focus:   #0F766E;
   --border-error:   #DC2626;
 
   /* ─── Shadows ────────────────────────────── */

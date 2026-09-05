@@ -6,10 +6,6 @@
 @source "../shared";
 @source "../styles";
 @import "../styles/tokens.css";
-@import "../styles/auth.css";
-@import "../styles/dashboard.css";
-@import "../styles/drivers.css";
-@import "../styles/landing.css";
 
 /* ============================================
    TAILWIND v4 — Theme & Tokens Binding
@@ -153,6 +149,37 @@ body {
 .animate-fleet-pulse {
   animation: fleetRoutePulse 5.5s ease-in-out infinite;
 }
+
+/* ─── Dashboard & UI Utilities ───────────── */
+.zd-panel {
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s ease;
+}
+
+.zd-grid {
+  background-image:
+    linear-gradient(rgba(15, 118, 110, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.zd-focus:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.zd-rise {
+  animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.zd-d1 { animation-delay: 0.06s; }
+.zd-d2 { animation-delay: 0.12s; }
+.zd-d3 { animation-delay: 0.18s; }
+.zd-d4 { animation-delay: 0.24s; }
+.zd-d5 { animation-delay: 0.30s; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-reveal,
