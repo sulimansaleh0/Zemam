@@ -9,6 +9,7 @@ app.set("trust proxy", 1);
 app.use(express.json());
 
 const allowedOrigins = [
+    "http://localhost:3000",
     process.env.CLIENT_URL,
 ].filter(Boolean);
 
