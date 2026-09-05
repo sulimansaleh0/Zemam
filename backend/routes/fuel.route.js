@@ -3,7 +3,7 @@ const router = require("express").Router()
 // Middlewares
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
-const verifyTeam = require("../middlewares/verifyTeam")
+const getTeam = require("../middlewares/getTeam")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const upload = require("../middlewares/upload")
 const uploadToCloudinary = require("../middlewares/uploadToCloudinary")
@@ -15,8 +15,8 @@ const { userRoles } = require("../data/roles")
 const imageFolder = "fuelRecords"
 
 router.use(verifyToken)
-router.use(verifyTeam)
 router.use(checkSubscription())
+router.use(getTeam)
 
 router.post("/",
     allowedTo(userRoles.DRIVER),
