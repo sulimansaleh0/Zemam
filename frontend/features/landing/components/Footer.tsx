@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { Logo } from "./Navbar";
 import { footerNavLinks } from "../constants/landing-config";
+import twitterIcon from "../assets/twitter.svg";
+import linkedinIcon from "../assets/linkedin.svg";
 
 export function Footer() {
   return (
@@ -29,10 +31,10 @@ export function Footer() {
           <p className="text-muted text-[12px] m-0">© 2026 زمام. جميع الحقوق محفوظة.</p>
           <div className="flex items-center gap-4" aria-label="روابط التواصل">
             <a href="#" className="inline-flex items-center justify-center w-6 h-6 hover:opacity-80 transition-opacity" aria-label="Twitter">
-              <Image src="/figma/landing/twitter.svg" alt="" width={18} height={18} />
+              <Image src={twitterIcon} alt="" width={18} height={18} />
             </a>
             <a href="#" className="inline-flex items-center justify-center w-6 h-6 hover:opacity-80 transition-opacity" aria-label="LinkedIn">
-              <Image src="/figma/landing/linkedin.svg" alt="" width={18} height={18} />
+              <Image src={linkedinIcon} alt="" width={18} height={18} />
             </a>
           </div>
         </div>

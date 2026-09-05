@@ -1,5 +1,6 @@
 import Image from "next/image";
 import React from "react";
+import arrowLeftIcon from "../assets/arrow-left.svg";
 
 type BaseProps = {
   children: React.ReactNode;
@@ -37,7 +38,7 @@ export function PrimaryButton(props: PrimaryButtonProps) {
     <>
       {showArrow && (
         <Image
-          src="/figma/landing/arrow-left.svg"
+          src={arrowLeftIcon}
           alt=""
           width={16}
           height={16}

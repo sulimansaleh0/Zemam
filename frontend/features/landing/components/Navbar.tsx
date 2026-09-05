@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { PrimaryButton } from "./PrimaryButton";
 import { landingNavLinks } from "../constants/landing-config";
+import shieldCheckIcon from "../assets/shield-check.svg";
 
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -19,7 +20,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
         }`}
       >
         <Image
-          src="/figma/landing/shield-check.svg"
+          src={shieldCheckIcon}
           alt=""
           width={compact ? 14 : 20}
           height={compact ? 14 : 20}

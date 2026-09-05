@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { FleetRouteLine } from "./FleetRouteLine";
+import liveDotIcon from "../assets/live-dot.svg";
 
 const insights = [
   {
@@ -34,7 +35,7 @@ export function SmartInsight() {
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold text-[#059669] bg-[#059669]/10 rounded-full border-0">
               تحديث مباشر
-              <Image src="/figma/landing/live-dot.svg" alt="" width={8} height={8} />
+              <Image src={liveDotIcon} alt="" width={8} height={8} />
             </span>
             <h2 className="text-ink text-[16px] font-bold m-0">رؤى الأسطول</h2>
           </div>
