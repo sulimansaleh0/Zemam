@@ -1,7 +1,165 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
+
+@source "../app";
+@source "../shared";
+@source "../styles";
 @import "../styles/tokens.css";
 @import "../styles/auth.css";
 @import "../styles/dashboard.css";
 @import "../styles/drivers.css";
 @import "../styles/landing.css";
+
+/* ============================================
+   TAILWIND v4 — Theme & Tokens Binding
+   ============================================ */
+@theme inline {
+  /* ─── Colors ─────────────────────────────── */
+  --color-primary:       var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-accent:        var(--accent);
+  --color-accent-light:  var(--accent-light);
+  --color-ink:           var(--ink);
+  --color-success:       var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning:       var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-danger:        var(--danger);
+  --color-danger-light:  var(--danger-light);
+  --color-info:          var(--info);
+  --color-info-light:    var(--info-light);
+
+  --color-bg:            var(--bg);
+  --color-surface:       var(--surface);
+  --color-surface2:      var(--surface-2);
+  --color-surface3:      var(--surface-3);
+
+  --color-text:          var(--text);
+  --color-secondary:     var(--text-secondary);
+  --color-muted:         var(--muted);
+  --color-disabled:      var(--disabled);
+  --color-border:        var(--border);
+
+  /* ─── Status — Vehicle ───────────────────── */
+  --color-active:        var(--status-active);
+  --color-maintenance:   var(--status-maintenance);
+  --color-inactive:      var(--status-inactive);
+
+  /* ─── Status — Task ──────────────────────── */
+  --color-pending:       var(--status-pending);
+  --color-in-progress:   var(--status-in-progress);
+  --color-completed:     var(--status-completed);
+  --color-cancelled:     var(--status-cancelled);
+
+  /* ─── Font ───────────────────────────────── */
+  --font-sans: var(--font-sans);
+
+  /* ─── Font Weight ────────────────────────── */
+  --font-weight-normal:   var(--font-normal);
+  --font-weight-medium:   var(--font-medium);
+  --font-weight-semibold: var(--font-semibold);
+  --font-weight-bold:     var(--font-bold);
+
+  /* ─── Radius ─────────────────────────────── */
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-2xl:  var(--radius-2xl);
+  --radius-full: var(--radius-full);
+
+  /* ─── Shadows ────────────────────────────── */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}
+
+/* ─── Base ───────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), Cairo, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  direction: rtl;
+}
+
+/* ─── Scrollbar ──────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ─── Selection ──────────────────────────── */
+::selection { background: var(--primary-light); color: var(--text); }
+
+/* ─── Focus ──────────────────────────────── */
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ─── Animations ─────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+@keyframes landingHeroReveal {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fleetRoutePulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.95; }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+.animate-fade-in {
+  animation: fadeIn 0.7s ease-out forwards;
+}
+.animate-fade-up {
+  animation: fadeUp 0.6s ease-out forwards;
+}
+.animate-pulse-subtle {
+  animation: pulseSubtle 2.5s ease-in-out infinite;
+}
+.animate-hero-reveal {
+  animation: landingHeroReveal 0.56s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fleet-pulse {
+  animation: fleetRoutePulse 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-reveal,
+  .animate-fleet-pulse,
+  .animate-float,
+  .animate-fade-in,
+  .animate-fade-up,
+  .animate-pulse-subtle {
+    animation: none !important;
+  }
+}
