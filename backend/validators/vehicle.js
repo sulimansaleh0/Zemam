@@ -21,6 +21,12 @@ exports.createVehicleSchema = [
         .withMessage("Plate number is required")
         .isNumeric()
         .withMessage("Plate number must be a number"),
+
+    body("initialOdometer")
+        .notEmpty()
+        .withMessage("Initial odometer is required")
+        .isFloat({ min: 0 })
+        .withMessage("Initial odometer must be a non-negative number"),
 ];
 
 exports.updateVehicleStatusSchema = [

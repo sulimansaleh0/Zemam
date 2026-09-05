@@ -14,6 +14,15 @@ const vehicleSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    initialOdometer: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    currentOdometer: {
+        type: Number,
+        min: 0
+    },
     isInTask: {
         type: Boolean,
         default: false

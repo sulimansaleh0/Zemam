@@ -2,8 +2,18 @@ const mongoose = require("mongoose")
 const { expenseRecordStatus } = require("../data/status")
 
 const fuelSchema = new mongoose.Schema({
-    image: {
-        type: String
+    vehicleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "vehicle",
+        required: true
+    },
+    teamId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "team"
+    },
+    images: {
+        type: [String],
+        default: []
     },
     cost: {
         type: Number,
@@ -11,6 +21,16 @@ const fuelSchema = new mongoose.Schema({
     },
     qty: {
         type: Number,
+        required: true,
+        min: 0
+    },
+    odometer: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    isFullTank: {
+        type: Boolean,
         required: true
     },
     status: {
@@ -29,6 +49,8 @@ const fuelSchema = new mongoose.Schema({
         required: true
     }
 }, { timestamps: true })
+
+fuelSchema.index({ vehicleId: 1, createdAt: -1 })
 
 const Fuel = mongoose.model("fuel", fuelSchema)
 module.exports = Fuel
