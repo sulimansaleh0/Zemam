@@ -36,7 +36,8 @@ const taskSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",
         required: true
-    }
+    },
+    declineReason: String
 })
 
 const Task = mongoose.model("task", taskSchema)

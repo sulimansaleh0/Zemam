@@ -1,6 +1,6 @@
 const { body, param } = require("express-validator")
 const { expenseRecordStatus } = require("../data/status")
-
+const { maintenancePriority } = require("../data")
 exports.createMaintenanceSchema = [
     body("vehicleId")
         .trim()
@@ -17,6 +17,9 @@ exports.createMaintenanceSchema = [
         .withMessage("Cost is required")
         .isFloat({ min: 0 })
         .withMessage("Cost must be a non-negative number"),
+    body("priority")
+        .isIn([maintenancePriority.HIGH, maintenancePriority.LOW])
+        .withMessage("Invalid priority")
 ]
 
 exports.verifyMaintenanceSchema = [
@@ -26,6 +29,10 @@ exports.verifyMaintenanceSchema = [
     body("status")
         .isIn([expenseRecordStatus.APPROVED, expenseRecordStatus.DECLINED])
         .withMessage("Status must be approved or declined"),
+    body("cost")
+        .optional()
+        .isNumeric()
+        .withMessage("cost must be a number"),
     body("declineReason")
         .optional()
         .trim()

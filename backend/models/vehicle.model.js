@@ -1,5 +1,4 @@
 const mongoose = require("mongoose")
-const { mainStatus } = require("../data/status")
 
 const vehicleSchema = new mongoose.Schema({
     model: {
@@ -29,17 +28,12 @@ const vehicleSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
-        default: mainStatus.ACTIVE
+        enum: [vehicleStatus.ACTIVE, vehicleStatus.INACTIVE, vehicleStatus.INMAINTENANCE],
+        default: vehicleStatus.ACTIVE
     },
     periodicInspectionExpiry: Date,
     insuranceExpiry: Date,
     licenseExpiry: Date,
-    lastInspectedAt: Date,
-    lastInspectedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "user"
-    },
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",
@@ -56,7 +50,7 @@ const vehicleSchema = new mongoose.Schema({
     isDeleted: {
         type: Boolean,
         default: false
-    }
+    },
 })
 
 const Vehicle = mongoose.model("vehicle", vehicleSchema)
