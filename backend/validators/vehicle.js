@@ -22,11 +22,16 @@ exports.createVehicleSchema = [
         .isNumeric()
         .withMessage("Plate number must be a number"),
 
-    body("initialOdometer")
+    body("currentOdometer")
         .notEmpty()
-        .withMessage("Initial odometer is required")
+        .withMessage("Current odometer is required")
         .isFloat({ min: 0 })
-        .withMessage("Initial odometer must be a non-negative number"),
+        .withMessage("Current odometer must be a non-negative number"),
+
+    body("expectedFuelEfficiency")
+        .notEmpty()
+        .isFloat({ gt: 0 })
+        .withMessage("Expected fuel efficiency must be greater than zero")
 ];
 
 exports.updateVehicleStatusSchema = [

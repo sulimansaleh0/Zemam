@@ -4,10 +4,14 @@ const Task = require("../models/task.model")
 const { userRoles } = require("../data/roles")
 const { mainStatus, taskStatus, expenseRecordStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
+const { calculateFuelMetrics, getFuelIssue } = require("../utils/fuelCalculations")
 
 exports.createFuelRecord = async (req, res) => {
     const user = req.user
-    const { vehicleId, cost, qty, odometer, isFullTank, images = [] } = req.body
+    const { vehicleId, cost, qty, odometer, isFullTank } = req.body
+    const numericOdometer = Number(odometer)
+    const image = req.body.image || req.body.images?.[0]
+    if (!image) return error(res, 400, "A fuel receipt image is required")
     try {
         const vehicleFilters = {
             _id: vehicleId,
@@ -34,28 +38,20 @@ exports.createFuelRecord = async (req, res) => {
         const vehicle = await Vehicle.findOne(vehicleFilters)
         if (!vehicle) return error(res, 404, "Vehicle Not Found")
 
-        const numericOdometer = Number(odometer)
-        const lastOdometer = vehicle.currentOdometer ?? vehicle.initialOdometer
-        if (numericOdometer < lastOdometer) {
+        if (numericOdometer < vehicle.currentOdometer) {
             return error(res, 400, "Odometer cannot be lower than the vehicle's last reading")
         }
-
-        const lastFullFuel = await Fuel.findOne({
-            vehicleId: vehicle._id,
-            isFullTank: true,
-            odometer: { $lte: numericOdometer }
-        }).sort({ odometer: -1, createdAt: -1 })
 
         const record = await Fuel.create({
             vehicleId: vehicle._id,
             cost,
             qty,
             odometer: numericOdometer,
-            isFullTank: Boolean(isFullTank),
-            images,
+            image,
+            isFullTank,
             companyId: user.companyId,
             teamId: vehicle.teamId || null,
-            driverId: user._id
+            userId: user._id
         })
 
         await Vehicle.updateOne(
@@ -72,7 +68,7 @@ exports.createFuelRecord = async (req, res) => {
 
 exports.listFuelRecords = async (req, res) => {
     const user = req.user
-    const { status, vehicleId } = req.query
+    const { status, vehicleId, fuelIssue } = req.query
     try {
         let filters = { companyId: user.companyId }
         if (user.role === userRoles.FLEET_MANAGER)
@@ -83,10 +79,12 @@ exports.listFuelRecords = async (req, res) => {
             filters.status = status
         if (vehicleId)
             filters.vehicleId = vehicleId
+        if (fuelIssue !== undefined)
+            filters.fuelIssue = fuelIssue === "true"
 
         const records = await Fuel.find(filters)
             .populate("vehicleId", "model plateNumber")
-            .populate("driverId", "name email")
+            .populate("userId", "name email")
             .sort({ createdAt: -1 })
         success(res, 200, { records })
     } catch (err) {
@@ -117,6 +115,7 @@ exports.getFuelStats = async (req, res) => {
                     pending: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.PENDING] }, 1, 0] } },
                     approved: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, 1, 0] } },
                     declined: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.DECLINED] }, 1, 0] } },
+                    fuelIssues: { $sum: { $cond: ["$fuelIssue", 1, 0] } },
                     fullTankRecords: { $sum: { $cond: ["$isFullTank", 1, 0] } },
                     efficiencySum: { $sum: { $cond: [{ $ne: ["$fuelEfficiency", null] }, "$fuelEfficiency", 0] } },
                     efficiencyCount: { $sum: { $cond: [{ $ne: ["$fuelEfficiency", null] }, 1, 0] } }
@@ -131,6 +130,7 @@ exports.getFuelStats = async (req, res) => {
                     pending: 1,
                     approved: 1,
                     declined: 1,
+                    fuelIssues: 1,
                     fullTankRecords: 1,
                     averageEfficiency: {
                         $cond: [
@@ -151,6 +151,7 @@ exports.getFuelStats = async (req, res) => {
                 pending: 0,
                 approved: 0,
                 declined: 0,
+                fuelIssues: 0,
                 fullTankRecords: 0,
                 averageEfficiency: 0
             }
@@ -174,13 +175,66 @@ exports.verifyFuelRecord = async (req, res) => {
         if (user.role === userRoles.FLEET_MANAGER)
             filters.teamId = user.teamId
 
-        const fuelRecord = await Fuel.findOneAndUpdate(filters, {
-            status
-        }, { new: true, runValidators: true })
+        const fuelRecord = await Fuel.findOne({ ...filters, status: expenseRecordStatus.PENDING })
+            .populate("vehicleId", "expectedFuelEfficiency")
 
         if (!fuelRecord) return error(res, 404, "Fuel Record Not Found")
 
-        success(res, 200)
+        const vehicleId = fuelRecord.vehicleId._id
+        const update = { status }
+        if (status === expenseRecordStatus.APPROVED && fuelRecord.isFullTank) {
+            const previousFullTank = await Fuel.findOne({
+                vehicleId,
+                companyId: user.companyId,
+                isFullTank: true,
+                status: expenseRecordStatus.APPROVED,
+                odometer: { $lt: fuelRecord.odometer }
+            }).sort({ odometer: -1, createdAt: -1 })
+
+            if (previousFullTank) {
+                const fuelSinceLastFull = await Fuel.aggregate([
+                    {
+                        $match: {
+                            vehicleId,
+                            companyId: user.companyId,
+                            odometer: { $gt: previousFullTank.odometer, $lte: fuelRecord.odometer },
+                            $or: [
+                                { status: expenseRecordStatus.APPROVED },
+                                { _id: fuelRecord._id }
+                            ]
+                        }
+                    },
+                    { $group: { _id: null, total: { $sum: "$qty" } } }
+                ])
+                const totalFuel = fuelSinceLastFull[0]?.total || fuelRecord.qty
+                const metrics = calculateFuelMetrics({
+                    totalFuel,
+                    currentOdometer: fuelRecord.odometer,
+                    previousOdometer: previousFullTank.odometer
+                })
+
+                if (metrics) {
+                    Object.assign(update, metrics, getFuelIssue({
+                        fuelEfficiency: metrics.fuelEfficiency,
+                        expectedFuelEfficiency: fuelRecord.vehicleId.expectedFuelEfficiency
+                    }))
+                }
+            }
+        }
+
+        const result = await Fuel.updateOne(
+            { ...filters, status: expenseRecordStatus.PENDING },
+            update,
+            { runValidators: true }
+        )
+
+        if (!result.modifiedCount) return error(res, 409, "Fuel Record was already verified")
+
+        const updatedRecord = await Fuel.findById(recordId)
+            .populate("vehicleId", "model plateNumber expectedFuelEfficiency")
+            .populate("userId", "name email")
+
+        success(res, 200, { record: updatedRecord })
     } catch (err) {
         console.log(err)
         serverError(res)

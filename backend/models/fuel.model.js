@@ -11,9 +11,9 @@ const fuelSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "team"
     },
-    images: {
-        type: [String],
-        default: []
+    image: {
+        type: String,
+        default: null
     },
     cost: {
         type: Number,
@@ -31,7 +31,40 @@ const fuelSchema = new mongoose.Schema({
     },
     isFullTank: {
         type: Boolean,
-        required: true
+        required: true,
+        default: false
+    },
+    distanceSinceLastFull: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelSinceLastFull: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelEfficiency: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelIssue: {
+        type: Boolean,
+        default: false
+    },
+    fuelIssueType: {
+        type: String,
+        enum: ["high_consumption", "possible_leak", null],
+        default: null
+    },
+    fuelIssueMessage: {
+        type: String,
+        default: null
+    },
+    nextOdoMeter: {
+        type: Number,
+        default: null
     },
     status: {
         type: String,
@@ -43,7 +76,7 @@ const fuelSchema = new mongoose.Schema({
         ref: "company",
         required: true
     },
-    driverId: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true

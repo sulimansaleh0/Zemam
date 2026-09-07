@@ -8,7 +8,7 @@ const { success, error, serverError } = require("../utils/responses")
 exports.createVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { model, year, plateNumber, driverId, initialOdometer } = req.body
+    const { model, year, plateNumber, driverId, currentOdometer, expectedFuelEfficiency } = req.body
     try {
         const existingVehicle = await Vehicle.findOne({
             plateNumber,
@@ -36,8 +36,8 @@ exports.createVehicle = async (req, res) => {
             model,
             year,
             plateNumber,
-            initialOdometer,
-            currentOdometer: initialOdometer,
+            currentOdometer,
+            expectedFuelEfficiency,
             teamId,
             companyId: user.companyId,
             driverId: driver ? driver._id : null
