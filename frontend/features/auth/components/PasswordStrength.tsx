@@ -32,18 +32,23 @@ export function PasswordStrength({ password = '' }: PasswordStrengthProps) {
 
   if (!password) return null;
 
-  const strengthClass =
-    score === 0
-      ? 'empty'
-      : score === 1
-      ? 'weak'
-      : score === 2
-      ? 'fair'
+  const barColor =
+    score <= 2
+      ? 'bg-danger'
       : score === 3
-      ? 'fair'
+      ? 'bg-warning'
       : score === 4
-      ? 'strong'
-      : 'very-strong';
+      ? 'bg-primary'
+      : 'bg-success';
+
+  const textColor =
+    score <= 2
+      ? 'text-danger'
+      : score === 3
+      ? 'text-warning'
+      : score === 4
+      ? 'text-primary'
+      : 'text-success';
 
   const strengthText =
     score === 0
@@ -54,40 +59,38 @@ export function PasswordStrength({ password = '' }: PasswordStrengthProps) {
       ? 'مقبولة'
       : score === 4
       ? 'قوية'
-      : 'ممتازة ';
+      : 'ممتازة ✓';
 
   return (
-    <div className="password-strength" aria-live="polite">
-      <div className="password-strength__bars">
+    <div className="w-full mt-2" aria-live="polite">
+      <div className="flex gap-1.5 my-2">
         {[1, 2, 3, 4, 5].map((index) => (
           <div
             key={index}
-            className={`password-strength__bar ${
-              index <= score
-                ? `password-strength__bar--${strengthClass}`
-                : 'password-strength__bar--empty'
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+              index <= score ? barColor : 'bg-border'
             }`}
           />
         ))}
       </div>
 
-      <div className={`password-strength__label password-strength__label--${strengthClass}`}>
-        {strengthText}
-      </div>
+      {strengthText && (
+        <div className={`text-xs font-bold mb-2.5 ${textColor}`}>
+          {strengthText}
+        </div>
+      )}
 
-      <ul className="password-strength__rules">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 list-none p-0 m-0 text-xs">
         {RULES.map((rule) => {
           const isPassed = passedRules.has(rule.id);
           return (
             <li
               key={rule.id}
-              className={`password-strength__rule ${
-                isPassed
-                  ? 'password-strength__rule--passed'
-                  : 'password-strength__rule--failed'
+              className={`flex items-center gap-1.5 transition-colors ${
+                isPassed ? 'text-success font-medium' : 'text-muted'
               }`}
             >
-              <span>{isPassed ? '✓' : '○'}</span>
+              <span className="shrink-0">{isPassed ? '✓' : '○'}</span>
               <span>{rule.label}</span>
             </li>
           );

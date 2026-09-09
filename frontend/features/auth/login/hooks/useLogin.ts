@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,34 +50,37 @@ export function useLogin() {
     }
   }
 
-  async function handleGoogleLogin(credential: string) {
-    try {
-      setIsGoogleLoading(true);
-      const result = await loginService.googleLogin(credential);
+  const handleGoogleLogin = useCallback(
+    async (credential: string) => {
+      try {
+        setIsGoogleLoading(true);
+        const result = await loginService.googleLogin(credential);
 
-      if (!result.success) {
-        addToast({ type: 'error', title: 'خطأ', message: result.message || 'فشل تسجيل الدخول عبر Google' });
-        return;
+        if (!result.success) {
+          addToast({ type: 'error', title: 'خطأ', message: result.message || 'فشل تسجيل الدخول عبر Google' });
+          return;
+        }
+
+        await checkSession();
+        const sessionResult = await sessionService.getSession();
+        const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+
+        if (hasCompany) {
+          addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });
+          router.push('/dashboard');
+        } else {
+          addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
+          router.push('/onboarding');
+        }
+      } catch (err) {
+        console.error('Google login error:', err);
+        addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء تسجيل الدخول' });
+      } finally {
+        setIsGoogleLoading(false);
       }
-
-      await checkSession();
-      const sessionResult = await sessionService.getSession();
-      const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
-
-      if (hasCompany) {
-        addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });
-        router.push('/dashboard');
-      } else {
-        addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
-        router.push('/onboarding');
-      }
-    } catch (err) {
-      console.error('Google login error:', err);
-      addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء تسجيل الدخول' });
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  }
+    },
+    [checkSession, addToast, router],
+  );
 
   return {
     register,

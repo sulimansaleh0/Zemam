@@ -15,8 +15,12 @@ export function useOnboarding() {
   const { user, status, isLoading, checkSession } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && status === 'authenticated' && user?.companyId) {
-      router.replace('/dashboard');
+    if (!isLoading) {
+      if (status === 'unauthenticated') {
+        router.replace('/login');
+      } else if (status === 'authenticated' && user?.companyId) {
+        router.replace('/dashboard');
+      }
     }
   }, [isLoading, status, user?.companyId, router]);
 

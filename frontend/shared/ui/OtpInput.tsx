@@ -84,7 +84,7 @@ export function OtpInput({
 
   return (
     <div
-      className="otp-input"
+      className="flex items-center justify-center gap-2 sm:gap-3 [direction:ltr] my-2"
       role="group"
       aria-label="رمز التحقق المكون من 6 أرقام"
     >
@@ -103,9 +103,10 @@ export function OtpInput({
           aria-label={`الرقم ${index + 1}`}
           aria-invalid={error}
           className={cn(
-            'otp-input__cell',
-            digit && 'otp-input__cell--filled',
-            error && 'otp-input__cell--error',
+            'w-11 h-13 sm:w-13 sm:h-14 text-center text-xl font-bold bg-surface border border-border text-text rounded-xl',
+            'transition-all duration-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50',
+            digit && 'border-primary/50 bg-surface2',
+            error && 'border-danger text-danger focus:border-danger focus:ring-danger/20',
           )}
           onChange={(e) => handleChange(index, e)}
           onKeyDown={(e) => handleKeyDown(index, e)}

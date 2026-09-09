@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,34 +56,37 @@ export function useSignup() {
     router.push('/login');
   }
 
-  async function handleGoogleSignup(credential: string) {
-    try {
-      setIsGoogleLoading(true);
-      const result = await signupService.googleSignup(credential);
+  const handleGoogleSignup = useCallback(
+    async (credential: string) => {
+      try {
+        setIsGoogleLoading(true);
+        const result = await signupService.googleSignup(credential);
 
-      if (!result.success) {
-        addToast({ type: 'error', title: 'خطأ', message: result.message || 'فشل إنشاء الحساب عبر Google' });
-        return;
+        if (!result.success) {
+          addToast({ type: 'error', title: 'خطأ', message: result.message || 'فشل إنشاء الحساب عبر Google' });
+          return;
+        }
+
+        await checkSession();
+        const sessionResult = await sessionService.getSession();
+        const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+
+        if (hasCompany) {
+          addToast({ type: 'success', title: 'تم إنشاء الحساب بنجاح', message: 'تم تسجيل دخولك بنجاح' });
+          router.push('/dashboard');
+        } else {
+          addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
+          router.push('/onboarding');
+        }
+      } catch (err) {
+        console.error('Google signup error:', err);
+        addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء إنشاء الحساب' });
+      } finally {
+        setIsGoogleLoading(false);
       }
-
-      await checkSession();
-      const sessionResult = await sessionService.getSession();
-      const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
-
-      if (hasCompany) {
-        addToast({ type: 'success', title: 'تم إنشاء الحساب بنجاح', message: 'تم تسجيل دخولك بنجاح' });
-        router.push('/dashboard');
-      } else {
-        addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
-        router.push('/onboarding');
-      }
-    } catch (err) {
-      console.error('Google signup error:', err);
-      addToast({ type: 'error', title: 'خطأ', message: 'حدث خطأ أثناء إنشاء الحساب' });
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  }
+    },
+    [checkSession, addToast, router],
+  );
 
   return {
     register,

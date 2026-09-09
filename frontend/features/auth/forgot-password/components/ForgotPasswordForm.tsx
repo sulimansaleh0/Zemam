@@ -12,17 +12,21 @@ export function ForgotPasswordForm() {
 
   return (
     <>
-      <div className="zamam-rise">
+      <div>
         <AuthHeader
           title="استعادة كلمة المرور"
           subtitle="أدخل بريدك الإلكتروني وسنرسل لك رمز التحقق"
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="auth-form" style={{ marginTop: '2rem' }} noValidate>
-        {errors.root && <div className="auth-form__error-banner" role="alert">{errors.root.message}</div>}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full mt-8" noValidate>
+        {errors.root && (
+          <div className="p-3.5 rounded-xl bg-danger/15 border border-danger/30 text-danger text-xs font-semibold" role="alert">
+            {errors.root.message}
+          </div>
+        )}
 
-        <div className="zamam-rise zamam-delay-2">
+        <div>
           <FormField
             id="fp-email" label="البريد الإلكتروني" type="email"
             placeholder="name@company.com" autoComplete="email" required
@@ -31,17 +35,22 @@ export function ForgotPasswordForm() {
           />
         </div>
 
-        <div className="zamam-rise zamam-delay-3">
-          <Button type="submit" fullWidth isLoading={isSubmitting} size="lg"
-            icon={!isSubmitting ? <ArrowLeft size={16} /> : undefined}>
+        <div className="mt-2">
+          <Button
+            type="submit"
+            fullWidth
+            isLoading={isSubmitting}
+            size="lg"
+            icon={!isSubmitting ? <ArrowLeft size={16} /> : undefined}
+          >
             {isSubmitting ? 'جاري الإرسال...' : 'إرسال رمز التحقق'}
           </Button>
         </div>
 
-        <p className="zamam-rise zamam-delay-4 auth-form__footer">
-          <Link href="/login">
-            <ArrowRight size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: '0.25rem' }} />
-            العودة لتسجيل الدخول
+        <p className="text-center text-xs text-muted mt-4">
+          <Link href="/login" className="inline-flex items-center gap-1 text-primary font-bold hover:underline">
+            <ArrowRight size={14} />
+            <span>العودة لتسجيل الدخول</span>
           </Link>
         </p>
       </form>
