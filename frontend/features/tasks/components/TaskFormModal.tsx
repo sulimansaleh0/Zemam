@@ -188,183 +188,197 @@ export function TaskFormModal({
       title="إنشاء وتعيين مهمة جديدة"
       description="حدد تفاصيل المهمة والمسار مع تخصيص المركبة والسائق التابعين لنفس الفريق"
       icon={PlusCircle}
-      maxWidth="xl"
+      maxWidth="5xl"
     >
-      <form onSubmit={handleFormSubmit} className="space-y-5" dir="rtl">
-        {/* معلومات المهمة الأساسية */}
-        <div className="space-y-3">
-          <label className="text-xs font-semibold text-[var(--zd-text)]">
-            عنوان المهمة <span className="text-[var(--zd-muted)] text-[11px]">(اختياري)</span>
-          </label>
-          <div className="relative">
-            <FileText className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
-            <input
-              type="text"
-              {...register('title')}
-              placeholder="مثال: نقل شحنة بضائع إلى مستودع الرياض"
-              className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-sm text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
-            />
-          </div>
-        </div>
+      <form onSubmit={handleFormSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden" dir="rtl">
+        {/* الجسم القابل للتمرير */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* ── العمود الأول: بيانات وتفاصيل المهمة (5 أعمدة) ── */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* عنوان المهمة */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--zd-text)]">
+                  عنوان المهمة <span className="text-[var(--zd-muted)] text-[11px]">(اختياري)</span>
+                </label>
+                <div className="relative">
+                  <FileText className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <input
+                    type="text"
+                    {...register('title')}
+                    placeholder="مثال: نقل شحنة بضائع إلى مستودع الرياض"
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  />
+                </div>
+              </div>
 
-        {/* وصف المهمة */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-[var(--zd-text)]">
-              وصف المهمة والتعليمات <span className="text-rose-500">*</span>
-            </label>
-            <span
-              className={`text-[11px] font-medium ${
-                descriptionValue.length < 15 ? 'text-amber-500' : 'text-emerald-500'
-              }`}
-            >
-              {descriptionValue.length}/15 حرف كحد أدنى
-            </span>
-          </div>
-          <textarea
-            rows={3}
-            {...register('description')}
-            placeholder="اكتب وصفاً دقيقاً للمهمة (يجب ألا يقل عن 15 حرفاً بحسب معايير النظام)..."
-            className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-3 text-sm text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
-          />
-          {errors.description && (
-            <p className="text-xs text-rose-500">{errors.description.message}</p>
-          )}
-        </div>
+              {/* وصف المهمة */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[var(--zd-text)]">
+                    وصف المهمة والتعليمات <span className="text-rose-500">*</span>
+                  </label>
+                  <span
+                    className={`text-[10px] font-medium ${
+                      descriptionValue.length < 15 ? 'text-amber-500' : 'text-emerald-500'
+                    }`}
+                  >
+                    {descriptionValue.length}/15 حرف كحد أدنى
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  {...register('description')}
+                  placeholder="اكتب وصفاً دقيقاً للمهمة (يجب ألا يقل عن 15 حرفاً بحسب معايير النظام)..."
+                  className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
+                />
+                {errors.description && (
+                  <p className="text-xs text-rose-500">{errors.description.message}</p>
+                )}
+              </div>
 
-        {/* اختيار المركبة والسائق (تطابق الفريق الذكي) */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* المركبة */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[var(--zd-text)]">
-              المركبة المخصصة <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <Truck className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
-              <select
-                value={selectedVehicleId}
-                onChange={handleVehicleChange}
-                className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-sm text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-              >
-                <option value="">اختر المركبة...</option>
-                {activeVehicles.map((v) => (
-                  <option key={v._id} value={v._id}>
-                    {v.model} - لوحة: {v.plateNumber}{' '}
-                    {v.isInTask ? '(في مهمة)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {errors.vehicleId && (
-              <p className="text-xs text-rose-500">{errors.vehicleId.message}</p>
-            )}
-          </div>
-
-          {/* السائق */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[var(--zd-text)]">
-              السائق المسؤول <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <User className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
-              <select
-                {...register('driverId')}
-                disabled={!selectedVehicleId || compatibleDrivers.length === 0}
-                className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-sm text-[var(--zd-text)] disabled:cursor-not-allowed disabled:opacity-50 focus:border-[var(--zd-blue)] focus:outline-none"
-              >
-                {!selectedVehicleId ? (
-                  <option value="">اختر المركبة أولاً لمعاينة سائقي فريقها</option>
-                ) : compatibleDrivers.length === 0 ? (
-                  <option value="">لا يوجد سائقون نشطون في نفس فريق المركبة</option>
-                ) : (
-                  <>
-                    <option value="">اختر السائق...</option>
-                    {compatibleDrivers.map((d) => (
-                      <option key={d._id} value={d._id}>
-                        {d.name || d.email} ({d.phone || 'بدون هاتف'})
+              {/* المركبة المخصصة */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--zd-text)]">
+                  المركبة المخصصة <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Truck className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <select
+                    value={selectedVehicleId}
+                    onChange={handleVehicleChange}
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  >
+                    <option value="">اختر المركبة...</option>
+                    {activeVehicles.map((v) => (
+                      <option key={v._id} value={v._id}>
+                        {v.model} - لوحة: {v.plateNumber}{' '}
+                        {v.isInTask ? '(في مهمة)' : ''}
                       </option>
                     ))}
-                  </>
+                  </select>
+                </div>
+                {errors.vehicleId && (
+                  <p className="text-xs text-rose-500">{errors.vehicleId.message}</p>
                 )}
-              </select>
+              </div>
+
+              {/* السائق المسؤول */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--zd-text)]">
+                  السائق المسؤول <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <select
+                    {...register('driverId')}
+                    disabled={!selectedVehicleId || compatibleDrivers.length === 0}
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] disabled:cursor-not-allowed disabled:opacity-50 focus:border-[var(--zd-blue)] focus:outline-none"
+                  >
+                    {!selectedVehicleId ? (
+                      <option value="">اختر المركبة أولاً لمعاينة سائقي فريقها</option>
+                    ) : compatibleDrivers.length === 0 ? (
+                      <option value="">لا يوجد سائقون نشطون في نفس فريق المركبة</option>
+                    ) : (
+                      <>
+                        <option value="">اختر السائق...</option>
+                        {compatibleDrivers.map((d) => (
+                          <option key={d._id} value={d._id}>
+                            {d.name || d.email} ({d.phone || 'بدون هاتف'})
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
+                {errors.driverId && (
+                  <p className="text-xs text-rose-500">{errors.driverId.message}</p>
+                )}
+              </div>
+
+              {/* تنبيه ذكي لتطابق الفريق */}
+              {selectedVehicleId && (
+                <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-[11px] text-blue-400">
+                  <Info className="h-4 w-4 shrink-0 text-blue-400" />
+                  <span>
+                    {vehicleTeamId
+                      ? 'تم حصر السائقين في نفس فريق المركبة لضمان قبول المهمة.'
+                      : 'تنبيه: هذه المركبة غير مرتبطة بفريق تشغيلي.'}
+                  </span>
+                </div>
+              )}
+
+              {/* موعد الانطلاق */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--zd-text)]">
+                  موعد وتاريخ انطلاق المهمة <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <input
+                    type="datetime-local"
+                    {...register('startTime')}
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  />
+                </div>
+                {errors.startTime && (
+                  <p className="text-xs text-rose-500">{errors.startTime.message}</p>
+                )}
+              </div>
             </div>
-            {errors.driverId && (
-              <p className="text-xs text-rose-500">{errors.driverId.message}</p>
-            )}
+
+            {/* ── العمود الثاني: الخريطة التفاعلية وتحديد المسار (7 أعمدة) ── */}
+            <div className="lg:col-span-7 space-y-3">
+              <TaskRouteMapPicker
+                pickupLocation={pickupLocation}
+                deliveryLocation={deliveryLocation}
+                onPickupChange={handlePickupChange}
+                onDeliveryChange={handleDeliveryChange}
+              />
+
+              {(errors.pickupLocation?.address || errors.deliveryLocation?.address) && (
+                <p className="text-xs text-rose-500 text-center font-medium bg-rose-500/10 border border-rose-500/20 rounded-xl p-2">
+                  {errors.pickupLocation?.address?.message || errors.deliveryLocation?.address?.message}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* تنبيه ذكي لتطابق الفريق */}
-        {selectedVehicleId && (
-          <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs text-blue-400">
-            <Info className="h-4 w-4 shrink-0 text-blue-400" />
-            <span>
-              {vehicleTeamId
-                ? 'تم حصر السائقين المعروضين في نفس فريق المركبة لضمان قبول المهمة بدون تعارض.'
-                : 'تنبيه: هذه المركبة غير مرتبطة بفريق تشغيلي، يُفضل تعيينها لفريق أولاً.'}
-            </span>
+        {/* ── شريط الأزرار الثابت بالأسفل ── */}
+        <div className="shrink-0 border-t border-[var(--zd-line)] bg-[var(--zd-surface-2)]/40 px-6 py-3.5 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+          <div className="text-[11px] text-[var(--zd-muted)] flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5 text-[var(--zd-blue)] shrink-0" />
+            <span>تأكد من إكمال جميع الحقول الإلزامية وتحديد نقطتي المسار على الخريطة</span>
           </div>
-        )}
 
-        {/* موعد الانطلاق */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-[var(--zd-text)]">
-            موعد وتاريخ انطلاق المهمة <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Calendar className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
-            <input
-              type="datetime-local"
-              {...register('startTime')}
-              className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-sm text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-            />
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading || isSubmitting}
+              className="rounded-xl border border-[var(--zd-line)] px-4 py-2 text-xs font-semibold text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)] transition cursor-pointer"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || isSubmitting}
+              className="flex items-center gap-2 rounded-xl bg-[var(--zd-blue)] px-5 py-2 text-xs font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
+              {isLoading || isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>جاري الحفظ...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>إنشاء وتعيين المهمة</span>
+                </>
+              )}
+            </button>
           </div>
-          {errors.startTime && (
-            <p className="text-xs text-rose-500">{errors.startTime.message}</p>
-          )}
-        </div>
-
-        {/* الخريطة المصغرة التفاعلية والبحث وتخطيط المسارات الحقيقية والمسافة */}
-        <TaskRouteMapPicker
-          pickupLocation={pickupLocation}
-          deliveryLocation={deliveryLocation}
-          onPickupChange={handlePickupChange}
-          onDeliveryChange={handleDeliveryChange}
-        />
-
-        {(errors.pickupLocation?.address || errors.deliveryLocation?.address) && (
-          <p className="text-xs text-rose-500 text-center font-medium">
-            {errors.pickupLocation?.address?.message || errors.deliveryLocation?.address?.message}
-          </p>
-        )}
-
-        {/* أزرار الإجراءات */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading || isSubmitting}
-            className="rounded-xl border border-[var(--zd-line)] px-4 py-2.5 text-xs font-semibold text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]"
-          >
-            إلغاء
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading || isSubmitting}
-            className="flex items-center gap-2 rounded-xl bg-[var(--zd-blue)] px-6 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isLoading || isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>جاري الحفظ...</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                <span>إنشاء وتعيين المهمة</span>
-              </>
-            )}
-          </button>
         </div>
       </form>
     </Modal>

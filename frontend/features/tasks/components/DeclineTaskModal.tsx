@@ -32,7 +32,7 @@ export function DeclineTaskModal({
       iconClassName="bg-rose-500/10 text-rose-500"
       maxWidth="md"
     >
-      <div className="space-y-4 text-center" dir="rtl">
+      <div className="p-6 space-y-4 text-center" dir="rtl">
         <p className="text-sm text-[var(--zd-muted)] leading-relaxed">
           هل أنت متأكد من إلغاء المهمة{' '}
           <span className="font-bold text-[var(--zd-text)]">
