@@ -3,8 +3,9 @@ const { userRoles } = require("../data/roles");
 const { serverError, error } = require("../utils/responses")
 
 module.exports = async (req, res, next) => {
-    const user = req.user
-    const teamId = req.body?.teamId || req.params?.id || req.query?.teamId || null
+    const isTeamRoute = req.baseUrl?.endsWith("/team") || req.baseUrl?.endsWith("/teams");
+    const paramTeamId = req.params?.teamId || (isTeamRoute ? req.params?.id : null);
+    const teamId = req.body?.teamId || req.query?.teamId || paramTeamId || null;
     if (user.role === userRoles.FLEET_MANAGER && !user.teamId)
         return error(res, 403, "You are not assigned to any team")
 

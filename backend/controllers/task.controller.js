@@ -44,7 +44,11 @@ exports.createTask = async (req, res) => {
             teamId: effectiveTeamId,
             companyId: user.companyId
         })
-        success(res, 201, { task })
+        const populatedTask = await Task.findById(task._id)
+            .populate("driverId", "name email phone avatar")
+            .populate("vehicleId", "plateNumber model year type status isInTask")
+            .populate("teamId", "name")
+        success(res, 201, { task: populatedTask })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -58,6 +62,10 @@ exports.listTasks = async (req, res) => {
         const filters = { companyId: user.companyId }
         if (teamId) filters.teamId = teamId
         const tasks = await Task.find(filters)
+            .populate("driverId", "name email phone avatar")
+            .populate("vehicleId", "plateNumber model year type status isInTask")
+            .populate("teamId", "name")
+            .sort({ createdAt: -1 })
         success(res, 200, { tasks })
     } catch (err) {
         console.log(err)
@@ -68,7 +76,10 @@ exports.listTasks = async (req, res) => {
 exports.listDriverTasks = async (req, res) => {
     const user = req.user
     try {
-        const tasks = await Task.find({ driverId: user._id, status: taskStatus.PENDING })
+        const tasks = await Task.find({ driverId: user._id })
+            .populate("vehicleId", "plateNumber model year type status isInTask")
+            .populate("teamId", "name")
+            .sort({ createdAt: -1 })
         success(res, 200, { tasks })
     } catch (err) {
         console.log(err)
@@ -84,6 +95,9 @@ exports.listTask = async (req, res) => {
         const filters = { _id: id, companyId: user.companyId }
         if (user.teamId) filters.teamId = user.teamId
         const task = await Task.findOne(filters)
+            .populate("driverId", "name email phone avatar")
+            .populate("vehicleId", "plateNumber model year type status isInTask")
+            .populate("teamId", "name")
         if (!task) return error(res, 404, "Task not found")
         success(res, 200, { task })
     } catch (err) {
@@ -168,7 +182,14 @@ exports.acceptTask = async (req, res) => {
         if (!(task.status === taskStatus.PENDING)) return error(res, 400, "Cant accept this task")
         if (new Date() < task.startTime) return error(res, 400, "You cannot accept this task before its start time")
 
-        await Task.findByIdAndUpdate(id, { status: taskStatus.INPROGRESS, startedAt: new Date() })
+        task.status = taskStatus.INPROGRESS
+        task.startedAt = new Date()
+        await task.save()
+
+        if (task.vehicleId) {
+            await Vehicle.findByIdAndUpdate(task.vehicleId, { isInTask: true })
+        }
+
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -191,7 +212,14 @@ exports.finishTask = async (req, res) => {
 
         if (!(task.status === taskStatus.INPROGRESS)) return error(res, 400, "Task is not in progress")
 
-        await Task.findByIdAndUpdate(id, { status: taskStatus.FINISHED, finishedAt: new Date() })
+        task.status = taskStatus.FINISHED
+        task.finishedAt = new Date()
+        await task.save()
+
+        if (task.vehicleId) {
+            await Vehicle.findByIdAndUpdate(task.vehicleId, { isInTask: false })
+        }
+
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -212,7 +240,13 @@ exports.declineTask = async (req, res) => {
 
         if (task.status === taskStatus.FINISHED) return error(res, 400, "Cant decline a finished task")
 
-        await Task.findByIdAndUpdate(id, { status: taskStatus.DECLINED })
+        task.status = taskStatus.DECLINED
+        await task.save()
+
+        if (task.vehicleId) {
+            await Vehicle.findByIdAndUpdate(task.vehicleId, { isInTask: false })
+        }
+
         success(res, 200)
     } catch (err) {
         console.log(err)
