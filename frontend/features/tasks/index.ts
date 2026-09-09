@@ -39,3 +39,10 @@ export {
   useDeclineTask,
   useTasksPage,
 } from './hooks/useTasks';
+
+// ── Components ─────────────────────────────────────────────
+export { TaskStatsCards } from './components/TaskStatsCards';
+export { TaskFormModal } from './components/TaskFormModal';
+export { TasksTable } from './components/TasksTable';
+export { TaskDetailModal } from './components/TaskDetailModal';
+export { DeclineTaskModal } from './components/DeclineTaskModal';
