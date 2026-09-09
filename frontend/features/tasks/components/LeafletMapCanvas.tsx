@@ -11,6 +11,8 @@ interface LeafletMapCanvasProps {
   deliveryPosition?: [number, number] | null;
   routeCoordinates?: [number, number][];
   onMapClick?: (lat: number, lng: number) => void;
+  onPickupDrag?: (lat: number, lng: number) => void;
+  onDeliveryDrag?: (lat: number, lng: number) => void;
   className?: string;
   readOnly?: boolean;
 }
@@ -68,6 +70,8 @@ export default function LeafletMapCanvas({
   deliveryPosition,
   routeCoordinates,
   onMapClick,
+  onPickupDrag,
+  onDeliveryDrag,
   className = 'h-[360px] w-full',
   readOnly = false,
 }: LeafletMapCanvasProps) {
@@ -76,6 +80,22 @@ export default function LeafletMapCanvas({
   const pickupMarkerRef = useRef<L.Marker | null>(null);
   const deliveryMarkerRef = useRef<L.Marker | null>(null);
   const routePolylineRef = useRef<L.Polyline | null>(null);
+
+  const onMapClickRef = useRef(onMapClick);
+  const onPickupDragRef = useRef(onPickupDrag);
+  const onDeliveryDragRef = useRef(onDeliveryDrag);
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
+
+  useEffect(() => {
+    onPickupDragRef.current = onPickupDrag;
+  }, [onPickupDrag]);
+
+  useEffect(() => {
+    onDeliveryDragRef.current = onDeliveryDrag;
+  }, [onDeliveryDrag]);
 
   // تهيئة الخريطة مرة واحدة
   useEffect(() => {
@@ -92,9 +112,11 @@ export default function LeafletMapCanvas({
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
-    if (!readOnly && onMapClick) {
+    if (!readOnly) {
       map.on('click', (e: L.LeafletMouseEvent) => {
-        onMapClick(e.latlng.lat, e.latlng.lng);
+        if (onMapClickRef.current) {
+          onMapClickRef.current(e.latlng.lat, e.latlng.lng);
+        }
       });
     }
 
@@ -119,10 +141,19 @@ export default function LeafletMapCanvas({
 
     if (pickupPosition) {
       if (!pickupMarkerRef.current) {
-        pickupMarkerRef.current = L.marker(pickupPosition, {
+        const marker = L.marker(pickupPosition, {
           icon: createCustomPin('#10b981', '🟢 الانطلاق A'),
-          interactive: !readOnly,
+          draggable: !readOnly,
         }).addTo(map);
+
+        marker.on('dragend', (e: any) => {
+          const pos = e.target.getLatLng();
+          if (onPickupDragRef.current) {
+            onPickupDragRef.current(pos.lat, pos.lng);
+          }
+        });
+
+        pickupMarkerRef.current = marker;
       } else {
         pickupMarkerRef.current.setLatLng(pickupPosition);
       }
@@ -139,10 +170,19 @@ export default function LeafletMapCanvas({
 
     if (deliveryPosition) {
       if (!deliveryMarkerRef.current) {
-        deliveryMarkerRef.current = L.marker(deliveryPosition, {
+        const marker = L.marker(deliveryPosition, {
           icon: createCustomPin('#2563eb', '🔵 التسليم B'),
-          interactive: !readOnly,
+          draggable: !readOnly,
         }).addTo(map);
+
+        marker.on('dragend', (e: any) => {
+          const pos = e.target.getLatLng();
+          if (onDeliveryDragRef.current) {
+            onDeliveryDragRef.current(pos.lat, pos.lng);
+          }
+        });
+
+        deliveryMarkerRef.current = marker;
       } else {
         deliveryMarkerRef.current.setLatLng(deliveryPosition);
       }

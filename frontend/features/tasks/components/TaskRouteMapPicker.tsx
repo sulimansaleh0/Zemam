@@ -49,6 +49,12 @@ export function TaskRouteMapPicker({
   onRouteCalculated,
 }: TaskRouteMapPickerProps) {
   const [activeTarget, setActiveTarget] = useState<'pickup' | 'delivery'>('pickup');
+  const activeTargetRef = useRef<'pickup' | 'delivery'>('pickup');
+
+  useEffect(() => {
+    activeTargetRef.current = activeTarget;
+  }, [activeTarget]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -121,29 +127,47 @@ export function TaskRouteMapPicker({
     };
   }, [pickupLocation.lat, pickupLocation.lng, deliveryLocation.lat, deliveryLocation.lng]);
 
-  // معالجة النقر على الخريطة لتحديد الموقع الفعلي
+  // معالجة النقر على الخريطة لتحديد الموقع الفعلي بحسب الهدف النشط حالياً
   const handleMapClick = async (lat: number, lng: number) => {
+    const target = activeTargetRef.current;
     const latStr = lat.toFixed(6);
     const lngStr = lng.toFixed(6);
     const address = await reverseGeocodeCoords(lat, lng);
 
-    if (activeTarget === 'pickup') {
+    if (target === 'pickup') {
       onPickupChange({ address, lat: latStr, lng: lngStr });
-      // التحويل التلقائي للهدف التالي لتسهيل تجربة المستخدم
-      if (!hasDelivery) setActiveTarget('delivery');
+      // الانتقال التلقائي للهدف الثاني (B) لتسهيل التدفق
+      setActiveTarget('delivery');
     } else {
       onDeliveryChange({ address, lat: latStr, lng: lngStr });
     }
   };
 
+  // سحب دبوس الانطلاق A
+  const handlePickupDrag = async (lat: number, lng: number) => {
+    const latStr = lat.toFixed(6);
+    const lngStr = lng.toFixed(6);
+    const address = await reverseGeocodeCoords(lat, lng);
+    onPickupChange({ address, lat: latStr, lng: lngStr });
+  };
+
+  // سحب دبوس التسليم B
+  const handleDeliveryDrag = async (lat: number, lng: number) => {
+    const latStr = lat.toFixed(6);
+    const lngStr = lng.toFixed(6);
+    const address = await reverseGeocodeCoords(lat, lng);
+    onDeliveryChange({ address, lat: latStr, lng: lngStr });
+  };
+
   // اختيار من نتائج البحث
   const handleSelectPlace = (place: GeocodingResult) => {
+    const target = activeTargetRef.current;
     const latStr = place.lat.toFixed(6);
     const lngStr = place.lng.toFixed(6);
 
-    if (activeTarget === 'pickup') {
+    if (target === 'pickup') {
       onPickupChange({ address: place.address, lat: latStr, lng: lngStr });
-      if (!hasDelivery) setActiveTarget('delivery');
+      setActiveTarget('delivery');
     } else {
       onDeliveryChange({ address: place.address, lat: latStr, lng: lngStr });
     }
@@ -192,7 +216,7 @@ export function TaskRouteMapPicker({
             onClick={() => setActiveTarget('pickup')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               activeTarget === 'pickup'
-                ? 'bg-emerald-600 text-white shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
                 : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
             }`}
           >
@@ -205,7 +229,7 @@ export function TaskRouteMapPicker({
             onClick={() => setActiveTarget('delivery')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               activeTarget === 'delivery'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40'
                 : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
             }`}
           >
@@ -270,12 +294,28 @@ export function TaskRouteMapPicker({
         )}
       </div>
 
+      {/* ── مؤشر الهدف النشط الحالي ── */}
+      <div className="flex items-center justify-between rounded-xl bg-[var(--zd-surface-2)] px-3 py-2 text-xs">
+        <span className="font-bold flex items-center gap-1.5">
+          {activeTarget === 'pickup' ? (
+            <span className="text-emerald-500">📍 المستهدف حالياً: انقر على الخريطة لتحديد نقطة الانطلاق (A)</span>
+          ) : (
+            <span className="text-blue-500">🏁 المستهدف حالياً: انقر على الخريطة لتحديد نقطة التسليم (B)</span>
+          )}
+        </span>
+        <span className="text-[10px] text-[var(--zd-muted)] hidden sm:inline">
+          (يمكنك سحب الدبابيس 🟢 و 🔵 على الخريطة لتعديل الموقع)
+        </span>
+      </div>
+
       {/* ── لوحة الخريطة التفاعلية ── */}
       <LeafletMapCanvas
         pickupPosition={hasPickup ? [pickupLat, pickupLng] : null}
         deliveryPosition={hasDelivery ? [deliveryLat, deliveryLng] : null}
         routeCoordinates={routeData?.coordinates}
         onMapClick={handleMapClick}
+        onPickupDrag={handlePickupDrag}
+        onDeliveryDrag={handleDeliveryDrag}
         className="h-[300px] w-full shadow-inner"
       />
 
