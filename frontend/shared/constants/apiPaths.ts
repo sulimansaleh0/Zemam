@@ -53,9 +53,11 @@ export const API_PATHS = {
     LIST:        'api/task',
     CREATE:      'api/task',
     DETAIL:      (id: string) => `api/task/${id}`,
+    UPDATE:      (id: string) => `api/task/${id}`,
     DRIVER_LIST: 'api/task/driver',
     ACCEPT:      (id: string) => `api/task/${id}/accept`,
     FINISH:      (id: string) => `api/task/${id}/finish`,
+    DECLINE:     (id: string) => `api/task/${id}/decline`,
   },
 
   USER: {
