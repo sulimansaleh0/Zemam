@@ -1,7 +1,17 @@
 const mongoose = require("mongoose")
 const { expenseRecordStatus } = require("../data/status")
+const { maintenanceCategories, maintenancePriority } = require("../data")
 
 const maintenanceSchema = new mongoose.Schema({
+    vehicleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "vehicle",
+        required: true
+    },
+    teamId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "team"
+    },
     description: {
         type: String,
         required: true
@@ -11,12 +21,21 @@ const maintenanceSchema = new mongoose.Schema({
     },
     cost: {
         type: Number,
+    },
+    category: {
+        type: String,
+        enum: Object.values(maintenanceCategories),
         required: true
     },
     status: {
         type: String,
-        enum: [expenseRecordStatus.PENDING, expenseRecordStatus.APPROVED, expenseRecordStatus.DECLINED],
+        enum: Object.values(expenseRecordStatus),
         default: expenseRecordStatus.PENDING
+    },
+    priority: {
+        type: String,
+        enum: Object.values(maintenancePriority),
+        default: maintenancePriority.LOW
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -27,6 +46,15 @@ const maintenanceSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true
+    },
+    odoMeter: {
+        type: Number,
+        required: true
+    },
+    declineReason: String,
+    isDriverFault: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true })
 
