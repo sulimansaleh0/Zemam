@@ -1,5 +1,6 @@
 const mongoose = require("mongoose")
 const { vehicleStatus } = require("../data/status")
+const { vehicleTypes } = require("../data/vehicleTypes")
 
 const vehicleSchema = new mongoose.Schema({
     model: {
@@ -13,6 +14,11 @@ const vehicleSchema = new mongoose.Schema({
     plateNumber: {
         type: Number,
         required: true
+    },
+    vehicleType: {
+        type: String,
+        enum: Object.values(vehicleTypes),
+        default: vehicleTypes.NORMAL
     },
     currentOdometer: {
         type: Number,

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { mainStatus } = require("../data/status");
 const { userRoles } = require("../data/roles");
+const { vehicleTypes } = require("../data/vehicleTypes");
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -40,6 +41,17 @@ const userSchema = new mongoose.Schema({
 
     phone: {
         type: String,
+    },
+    licenseNumber: {
+        type: String,
+        trim: true
+    },
+    licenseTypes: [{
+        type: String,
+        enum: Object.values(vehicleTypes)
+    }],
+    licenseExpiry: {
+        type: Date
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,

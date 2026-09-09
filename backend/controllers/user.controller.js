@@ -5,6 +5,7 @@ const { userRoles } = require("../data/roles")
 const { mainStatus } = require("../data/status")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
+const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
 
 // User
 exports.me = async (req, res) => {
@@ -23,18 +24,16 @@ exports.me = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     const user = req.user
     if (!user) return error(res, 401, "UnAuthorized")
-    const { name, email, password } = req.body;
+    const { name, email, password, licenseNumber, licenseTypes, licenseExpiry } = req.body;
     try {
-        let newPassword
-        if (password) {
-            newPassword = await bcrypt.hash(password, 9)
-        }
-        await User.findByIdAndUpdate(user._id, {
-            name,
-            email,
-            password: newPassword
-        })
-        success(res, 200)
+        const updates = { name, email }
+        if (password) updates.password = await bcrypt.hash(password, 9)
+        if (licenseNumber !== undefined) updates.licenseNumber = licenseNumber
+        if (licenseTypes !== undefined) updates.licenseTypes = licenseTypes
+        if (licenseExpiry !== undefined) updates.licenseExpiry = licenseExpiry
+        await User.findByIdAndUpdate(user._id, updates)
+        const updatedUser = await User.findById(user._id)
+        success(res, 200, { user: updatedUser })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -216,7 +215,8 @@ exports.removeFleetManager = async (req, res) => {
 exports.createDriver = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { email, name, phone, vehicleId } = req.body
+    const { email, name, phone, vehicleId, licenseNumber, licenseTypes, licenseExpiry } = req.body
+    const selectedLicenseTypes = licenseTypes || []
     try {
         const isFound = await User.findOne({ email })
         if (isFound) return error(res, 400, "Email already in use")
@@ -224,6 +224,9 @@ exports.createDriver = async (req, res) => {
         if (teamId && vehicleId) {
             const vehicle = await Vehicle.findOne({ _id: vehicleId, teamId, companyId: user.companyId, isDeleted: false })
             if (!vehicle) return error(res, 404, "Vehicle not found")
+
+            const eligibilityError = getDriverVehicleEligibilityError({ licenseNumber, licenseTypes: selectedLicenseTypes, licenseExpiry }, vehicle)
+            if (eligibilityError) return error(res, 400, eligibilityError)
         }
 
         const password = "123456789"
@@ -236,7 +239,10 @@ exports.createDriver = async (req, res) => {
             password: passwordHash,
             role: userRoles.DRIVER,
             companyId: user.companyId,
-            teamId
+            teamId,
+            licenseNumber,
+            licenseTypes: selectedLicenseTypes,
+            licenseExpiry
         })
 
         if (teamId && vehicleId) {
@@ -364,6 +370,9 @@ exports.assignDriverToVehicle = async (req, res) => {
 
         if (driver.status !== mainStatus.ACTIVE)
             return error(res, 400, "Driver is not active")
+
+        const eligibilityError = getDriverVehicleEligibilityError(driver, vehicle)
+        if (eligibilityError) return error(res, 400, eligibilityError)
 
         if (vehicle.status !== mainStatus.ACTIVE)
             return error(res, 400, "Vehicle is not active")

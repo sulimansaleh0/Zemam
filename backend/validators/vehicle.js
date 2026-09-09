@@ -1,5 +1,6 @@
 const { body } = require("express-validator");
 const { mainStatus } = require("../data/status");
+const { vehicleTypes } = require("../data/vehicleTypes");
 
 exports.createVehicleSchema = [
     body("model")
@@ -21,6 +22,11 @@ exports.createVehicleSchema = [
         .withMessage("Plate number is required")
         .isNumeric()
         .withMessage("Plate number must be a number"),
+
+    body("vehicleType")
+        .optional()
+        .isIn(Object.values(vehicleTypes))
+        .withMessage("Invalid vehicle type"),
 
     body("currentOdometer")
         .notEmpty()
