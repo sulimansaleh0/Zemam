@@ -22,7 +22,8 @@ import {
   createTaskSchema,
   type CreateTaskFormValues,
 } from '../schemas/task.schema';
-import type { CreateTaskInput } from '../types/task.types';
+import type { CreateTaskInput, LocationPoint } from '../types/task.types';
+import { TaskRouteMapPicker } from './TaskRouteMapPicker';
 
 interface VehicleOption {
   _id: string;
@@ -90,6 +91,16 @@ export function TaskFormModal({
   });
 
   const descriptionValue = watch('description') || '';
+  const pickupLocation = watch('pickupLocation') || { address: '', lat: '', lng: '' };
+  const deliveryLocation = watch('deliveryLocation') || { address: '', lat: '', lng: '' };
+
+  const handlePickupChange = (loc: LocationPoint) => {
+    setValue('pickupLocation', loc, { shouldValidate: true });
+  };
+
+  const handleDeliveryChange = (loc: LocationPoint) => {
+    setValue('deliveryLocation', loc, { shouldValidate: true });
+  };
 
   // تصفية المركبات المتاحة والنشطة
   const activeVehicles = useMemo(() => {
@@ -313,100 +324,19 @@ export function TaskFormModal({
           )}
         </div>
 
-        {/* المسار الجغرافي: الانطلاق والتسليم */}
-        <div className="space-y-4 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[var(--zd-text)]">
-              بيانات المسار الجغرافي (الانطلاق والتسليم)
-            </span>
-            <span className="text-[10px] text-[var(--zd-muted)]">إحداثيات وعناوين دقيقة</span>
-          </div>
+        {/* الخريطة المصغرة التفاعلية والبحث وتخطيط المسارات الحقيقية والمسافة */}
+        <TaskRouteMapPicker
+          pickupLocation={pickupLocation}
+          deliveryLocation={deliveryLocation}
+          onPickupChange={handlePickupChange}
+          onDeliveryChange={handleDeliveryChange}
+        />
 
-          {/* نقطة الانطلاق */}
-          <div className="space-y-2 border-b border-[var(--zd-line)] pb-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-500">
-              <MapPin className="h-4 w-4" /> نقطة الانطلاق (Pickup)
-            </div>
-            <input
-              type="text"
-              {...register('pickupLocation.address')}
-              placeholder="عنوان الانطلاق (مثال: مستودع السلي، الرياض)"
-              className="w-full rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-3 py-2 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                {...register('pickupLocation.lat')}
-                placeholder="خط العرض (Lat) مثل 24.7136"
-                className="w-full rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-3 py-1.5 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-              />
-              <input
-                type="text"
-                {...register('pickupLocation.lng')}
-                placeholder="خط الطول (Lng) مثل 46.6753"
-                className="w-full rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-3 py-1.5 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-              />
-            </div>
-            {errors.pickupLocation?.address && (
-              <p className="text-[11px] text-rose-500">
-                {errors.pickupLocation.address.message}
-              </p>
-            )}
-          </div>
-
-          {/* نقطة التسليم */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-blue-500">
-              <Navigation className="h-4 w-4" /> نقطة التسليم والوصول (Delivery)
-            </div>
-            <input
-              type="text"
-              {...register('deliveryLocation.address')}
-              placeholder="عنوان التسليم (مثال: فرع الملز، الرياض)"
-              className="w-full rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-3 py-2 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                {...register('deliveryLocation.lat')}
-                placeholder="خط العرض (Lat) مثل 24.6644"
-                className="w-full rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-3 py-1.5 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-              />
-              <input
-                type="text"
-                {...register('deliveryLocation.lng')}
-                placeholder="خط الطول (Lng) مثل 46.7321"
-                className="w-full rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-3 py-1.5 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
-              />
-            </div>
-            {errors.deliveryLocation?.address && (
-              <p className="text-[11px] text-rose-500">
-                {errors.deliveryLocation.address.message}
-              </p>
-            )}
-          </div>
-
-          {/* أزرار سريعة لتعبئة مواقع تجريبية سريعة */}
-          <div className="pt-2">
-            <p className="mb-1.5 text-[11px] text-[var(--zd-muted)]">مواقع لوجستية شائعة للتعبئة السريعة:</p>
-            <div className="flex flex-wrap gap-1.5">
-              {SAUDI_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => {
-                    setValue('pickupLocation.address', preset.name);
-                    setValue('pickupLocation.lat', preset.lat);
-                    setValue('pickupLocation.lng', preset.lng);
-                  }}
-                  className="rounded-md border border-[var(--zd-line)] bg-[var(--zd-surface-2)] px-2 py-1 text-[10px] text-[var(--zd-muted)] hover:border-emerald-500 hover:text-emerald-500"
-                >
-                  انطلاق: {preset.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        {(errors.pickupLocation?.address || errors.deliveryLocation?.address) && (
+          <p className="text-xs text-rose-500 text-center font-medium">
+            {errors.pickupLocation?.address?.message || errors.deliveryLocation?.address?.message}
+          </p>
+        )}
 
         {/* أزرار الإجراءات */}
         <div className="flex items-center justify-end gap-3 pt-2">

@@ -1,22 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Calendar,
   CheckCircle2,
   Clock,
+  Compass,
   Eye,
   FileText,
   MapPin,
   Navigation,
   Phone,
+  Route,
   Shield,
+  Timer,
   Truck,
   User,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import { getTaskStatusConfig, formatTaskDateTime } from '../utils/taskHelpers';
+import { fetchDrivingRoute, type RouteData } from '../utils/mapHelpers';
 import type { TaskWithRelations } from '../types/task.types';
+
+const LeafletMapCanvas = dynamic(() => import('./LeafletMapCanvas'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[240px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] text-xs text-[var(--zd-muted)]">
+      <Compass className="h-6 w-6 animate-spin text-[var(--zd-blue)]" />
+      <span>جاري تحميل مسار الخريطة...</span>
+    </div>
+  ),
+});
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -25,6 +40,31 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps) {
+  const [routeData, setRouteData] = useState<RouteData | null>(null);
+
+  const pickupLat = task?.pickupLocation?.lat ? parseFloat(task.pickupLocation.lat) : NaN;
+  const pickupLng = task?.pickupLocation?.lng ? parseFloat(task.pickupLocation.lng) : NaN;
+  const deliveryLat = task?.deliveryLocation?.lat ? parseFloat(task.deliveryLocation.lat) : NaN;
+  const deliveryLng = task?.deliveryLocation?.lng ? parseFloat(task.deliveryLocation.lng) : NaN;
+
+  const hasCoords = !isNaN(pickupLat) && !isNaN(pickupLng) && !isNaN(deliveryLat) && !isNaN(deliveryLng);
+
+  useEffect(() => {
+    if (!task || !hasCoords) {
+      setRouteData(null);
+      return;
+    }
+
+    let isMounted = true;
+    fetchDrivingRoute([pickupLat, pickupLng], [deliveryLat, deliveryLng]).then((res) => {
+      if (isMounted) setRouteData(res);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [task?._id, pickupLat, pickupLng, deliveryLat, deliveryLng, hasCoords]);
+
   if (!task) return null;
 
   const statusConfig = getTaskStatusConfig(task.status);
@@ -139,6 +179,32 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
               </div>
             </div>
           </div>
+
+          {/* خريطة المسار التفاعلية المصغرة */}
+          {hasCoords && (
+            <div className="space-y-2 pt-1">
+              <LeafletMapCanvas
+                pickupPosition={[pickupLat, pickupLng]}
+                deliveryPosition={[deliveryLat, deliveryLng]}
+                routeCoordinates={routeData?.coordinates}
+                className="h-[220px] w-full"
+                readOnly={true}
+              />
+
+              {routeData && (
+                <div className="grid grid-cols-2 gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Route className="h-4 w-4 text-blue-400" />
+                    <span>المسافة الفعلية: <strong className="text-blue-400">{routeData.distanceKm} كم</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Timer className="h-4 w-4 text-emerald-400" />
+                    <span>الوقت المقدر: <strong className="text-emerald-400">{routeData.durationMinutes} دقيقة</strong></span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* التواريخ والأوقات */}
