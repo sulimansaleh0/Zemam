@@ -9,7 +9,8 @@ const { maintenancePriority } = require("../data")
 
 exports.createMaintenanceRecord = async (req, res) => {
     const user = req.user
-    const { vehicleId, description, cost, images, priority } = req.body
+    const { vehicleId, description, cost, images, category, odometer, priority } = req.body
+    const numericOdometer = Number(odometer)
     try {
         const vehicleFilters = {
             _id: vehicleId,
@@ -37,16 +38,27 @@ exports.createMaintenanceRecord = async (req, res) => {
         const vehicle = await Vehicle.findOne(vehicleFilters)
         if (!vehicle) return error(res, 404, "Vehicle Not Found")
 
+        if (numericOdometer < vehicle.currentOdometer) {
+            return error(res, 400, "Odometer cannot be lower than the vehicle's last reading")
+        }
+
         const record = await Maintenance.create({
             vehicleId,
             description,
             cost,
             images,
+            category,
+            odoMeter: numericOdometer,
             companyId: user.companyId,
             teamId: vehicle.teamId || null,
             reportedBy: user._id,
             priority
         })
+
+        await Vehicle.updateOne(
+            { _id: vehicle._id, currentOdometer: { $lte: numericOdometer } },
+            { $set: { currentOdometer: numericOdometer } }
+        )
 
         if (priority === maintenancePriority.HIGH) {
             vehicle.status = vehicleStatus.INMAINTENANCE
@@ -77,7 +89,7 @@ exports.listMaintenanceRecords = async (req, res) => {
 
         const records = await Maintenance.find(filters)
             .populate("vehicleId", "model plateNumber")
-            .populate("reportedBy", "firstName lastName email")
+            .populate("reportedBy", "name email")
             .sort({ createdAt: -1 })
         success(res, 200, { records })
     } catch (err) {
