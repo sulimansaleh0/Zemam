@@ -67,6 +67,13 @@ export const API_PATHS = {
     VERIFY:        (id: string) => `api/maintenance/${id}/verify`,
   },
 
+  FUEL: {
+    LIST:          'api/fuel',
+    CREATE:        'api/fuel',
+    STATS:         'api/fuel/stats',
+    VERIFY:        (id: string) => `api/fuel/${id}/verify`,
+  },
+
   USER: {
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
   },
