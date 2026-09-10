@@ -64,6 +64,14 @@ export function MaintenanceFormModal({
 
   const selectedPriority = watch('priority');
   const selectedCategory = watch('category');
+  const selectedVehicleId = watch('vehicleId');
+  const watchedOdometer = watch('odoMeter');
+
+  const selectedVehicle = vehicles.find((v) => v._id === selectedVehicleId);
+  const isOdometerInvalid =
+    selectedVehicle?.currentOdometer !== undefined &&
+    watchedOdometer !== undefined &&
+    Number(watchedOdometer) < selectedVehicle.currentOdometer;
 
   const handleClose = () => {
     reset();
@@ -215,29 +223,49 @@ export function MaintenanceFormModal({
 
             {/* قراءة العداد الحالية */}
             <div>
-              <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
-                قراءة العداد (كم)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-[var(--zd-text)]">
+                  قراءة العداد (كم) <span className="text-rose-500">*</span>
+                </label>
+                {selectedVehicle?.currentOdometer !== undefined && (
+                  <span className="text-[10px] text-[var(--zd-muted)]">
+                    آخر قراءة: {Number(selectedVehicle.currentOdometer).toLocaleString('ar-EG')} كم
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="number"
                   min="0"
                   step="1"
                   {...register('odoMeter')}
-                  placeholder="مثال: 45000"
-                  className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3 py-2.5 pl-8 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  placeholder={
+                    selectedVehicle?.currentOdometer !== undefined
+                      ? `مثال: ${selectedVehicle.currentOdometer + 10}`
+                      : 'مثال: 45000'
+                  }
+                  className={`w-full rounded-xl border bg-[var(--zd-surface)] px-3 py-2.5 pl-8 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:outline-none ${
+                    isOdometerInvalid
+                      ? 'border-rose-500 focus:border-rose-500'
+                      : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
+                  }`}
                 />
                 <Gauge className="absolute left-2.5 top-3 h-3.5 w-3.5 text-[var(--zd-muted)]" />
               </div>
               {errors.odoMeter && (
                 <p className="mt-1 text-[11px] text-rose-500">{errors.odoMeter.message}</p>
               )}
+              {isOdometerInvalid && (
+                <p className="mt-1 text-[10px] text-rose-400 font-medium">
+                  يجب ألا تقل قراءة العداد عن آخر قراءة مسجلة ({selectedVehicle?.currentOdometer} كم)
+                </p>
+              )}
             </div>
 
             {/* التكلفة التقديرية */}
             <div>
               <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
-                التكلفة التقديرية (ر.س)
+                التكلفة التقديرية (ر.س) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <input

@@ -11,12 +11,14 @@ export const createMaintenanceSchema = z.object({
   cost: z
     .preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-      z.number({ invalid_type_error: 'التكلفة يجب أن تكون رقماً صحيحاً أو عشرياً' }).min(0, 'التكلفة لا يمكن أن تكون بالسالب').optional()
+      z.number({ required_error: 'التكلفة التقديرية مطلوبة', invalid_type_error: 'التكلفة يجب أن تكون رقماً صحيحاً أو عشرياً' })
+        .min(0, 'التكلفة لا يمكن أن تكون بالسالب')
     ),
   odoMeter: z
     .preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-      z.number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' }).min(0, 'قراءة العداد لا يمكن أن تكون سالبة').optional()
+      z.number({ required_error: 'قراءة العداد مطلوبة', invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
+        .min(0, 'قراءة العداد لا يمكن أن تكون سالبة')
     ),
   description: z
     .string()
