@@ -78,10 +78,15 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
   }
 
   try {
+    const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
+    const defaultHeaders: Record<string, string> = isFormData
+      ? { Accept: 'application/json' }
+      : { 'Content-Type': 'application/json', Accept: 'application/json' };
+
     const url = BASE_URL ? `${BASE_URL}/${path}` : `/${path}`;
     const res = await fetch(url, {
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { ...defaultHeaders, ...(fetchOptions.headers as Record<string, string> || {}) },
       ...fetchOptions,
       signal: combinedSignal,
     });
@@ -153,7 +158,12 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
  * دالة مساعدة لطلبات POST
  */
 export function postRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
-  return sendRequest<T>(path, { method: 'POST', body: JSON.stringify(body), ...options });
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  return sendRequest<T>(path, {
+    method: 'POST',
+    body: isFormData ? (body as FormData) : JSON.stringify(body),
+    ...options,
+  });
 }
 
 /**
