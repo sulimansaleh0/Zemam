@@ -240,6 +240,8 @@ exports.declineTask = async (req, res) => {
 
         if (task.status === taskStatus.FINISHED) return error(res, 400, "Cant decline a finished task")
 
+        const { declineReason, reason } = req.body || {}
+        task.declineReason = declineReason || reason || task.declineReason || "تم الإلغاء بواسطة الإدارة"
         task.status = taskStatus.DECLINED
         await task.save()
 

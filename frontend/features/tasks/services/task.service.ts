@@ -59,9 +59,9 @@ export const taskService = {
   },
 
   /**
-   * إلغاء أو رفض المهمة
+   * إلغاء أو رفض المهمة مع حفظ السبب
    */
-  declineTask(id: string): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.TASKS.DECLINE(id), {});
+  declineTask(id: string, declineReason?: string): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.DECLINE(id), { declineReason });
   },
 };

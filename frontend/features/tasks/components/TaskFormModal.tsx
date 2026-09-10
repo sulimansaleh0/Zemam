@@ -13,6 +13,7 @@ import {
   Loader2,
   MapPin,
   Navigation,
+  Pencil,
   PlusCircle,
   Truck,
   User,
@@ -22,7 +23,7 @@ import {
   createTaskSchema,
   type CreateTaskFormValues,
 } from '../schemas/task.schema';
-import type { CreateTaskInput, LocationPoint } from '../types/task.types';
+import type { CreateTaskInput, LocationPoint, TaskWithRelations } from '../types/task.types';
 import { TaskRouteMapPicker } from './TaskRouteMapPicker';
 
 interface VehicleOption {
@@ -51,6 +52,7 @@ interface TaskFormModalProps {
   isLoading: boolean;
   vehicles: VehicleOption[];
   drivers: DriverOption[];
+  initialTask?: TaskWithRelations | null;
 }
 
 const SAUDI_PRESETS = [
@@ -67,6 +69,7 @@ export function TaskFormModal({
   isLoading,
   vehicles,
   drivers,
+  initialTask,
 }: TaskFormModalProps) {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
 
@@ -146,13 +149,53 @@ export function TaskFormModal({
     }
   };
 
-  // إعادة ضبط النموذج عند الإغلاق
+  // ملء النموذج في وضع التعديل، أو إعادة ضبطه عند الإغلاق
   useEffect(() => {
-    if (!isOpen) {
-      reset();
+    if (isOpen && initialTask) {
+      const vId =
+        typeof initialTask.vehicleId === 'object'
+          ? initialTask.vehicleId._id
+          : initialTask.vehicleId;
+      const dId =
+        typeof initialTask.driverId === 'object'
+          ? initialTask.driverId._id
+          : initialTask.driverId || '';
+
+      setSelectedVehicleId(vId);
+
+      let formattedTime = '';
+      if (initialTask.startTime) {
+        try {
+          const d = new Date(initialTask.startTime);
+          const offset = d.getTimezoneOffset() * 60000;
+          formattedTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+        } catch {
+          formattedTime = '';
+        }
+      }
+
+      reset({
+        title: initialTask.title || '',
+        description: initialTask.description || '',
+        vehicleId: vId,
+        driverId: dId,
+        startTime: formattedTime,
+        pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
+        deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
+      });
+    } else if (!isOpen) {
+      reset({
+        title: '',
+        description: '',
+        vehicleId: '',
+        driverId: '',
+        startTime: '',
+        pickupLocation: { address: '', lat: '', lng: '' },
+        deliveryLocation: { address: '', lat: '', lng: '' },
+      });
       setSelectedVehicleId('');
     }
-  }, [isOpen, reset]);
+  }, [isOpen, initialTask, reset]);
 
   const handleFormSubmit = handleSubmit(async (values) => {
     try {
@@ -185,9 +228,13 @@ export function TaskFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="إنشاء وتعيين مهمة جديدة"
-      description="حدد تفاصيل المهمة والمسار مع تخصيص المركبة والسائق التابعين لنفس الفريق"
-      icon={PlusCircle}
+      title={initialTask ? 'تعديل بيانات المهمة' : 'إنشاء وتعيين مهمة جديدة'}
+      description={
+        initialTask
+          ? 'تعديل بيانات المهمة والمسار وتعيين السائق طالما أنها لا تزال قيد الانتظار'
+          : 'حدد تفاصيل المهمة والمسار مع تخصيص المركبة والسائق التابعين لنفس الفريق'
+      }
+      icon={initialTask ? Pencil : PlusCircle}
       maxWidth="5xl"
     >
       <form onSubmit={handleFormSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden" dir="rtl">
@@ -374,7 +421,7 @@ export function TaskFormModal({
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>إنشاء وتعيين المهمة</span>
+                  <span>{initialTask ? 'حفظ التعديلات' : 'إنشاء وتعيين المهمة'}</span>
                 </>
               )}
             </button>

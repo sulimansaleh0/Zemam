@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   Clock,
@@ -97,6 +98,19 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
               <span>موعد الانطلاق: <strong className="text-[var(--zd-text)]">{task.formattedStartTime}</strong></span>
             </div>
           </div>
+
+          {/* تنبيه سبب الإلغاء في حال كانت المهمة ملغاة */}
+          {task.status === 'declined' && (
+            <div className="flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 p-3.5 text-xs text-rose-400">
+              <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5 text-rose-400" />
+              <div className="space-y-1">
+                <p className="font-bold text-rose-300">سبب إلغاء المهمة:</p>
+                <p className="text-[11px] leading-relaxed text-rose-200">
+                  {task.declineReason || 'لم يُحدد سبب عند الإلغاء'}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* ── العمود الأيمن: بيانات المهمة والمركبة والسائق (5 أعمدة) ── */}

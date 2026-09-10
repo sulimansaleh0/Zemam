@@ -10,6 +10,7 @@ import {
   FileText,
   MapPin,
   Navigation,
+  Pencil,
   Phone,
   Plus,
   Search,
@@ -29,6 +30,7 @@ interface TasksTableProps {
   onSearchChange: (query: string) => void;
   onOpenCreate: () => void;
   onViewDetails: (task: TaskWithRelations) => void;
+  onEditTask?: (task: TaskWithRelations) => void;
   onDeclineTask: (task: TaskWithRelations) => void;
 }
 
@@ -49,6 +51,7 @@ export function TasksTable({
   onSearchChange,
   onOpenCreate,
   onViewDetails,
+  onEditTask,
   onDeclineTask,
 }: TasksTableProps) {
   return (
@@ -220,16 +223,27 @@ export function TasksTable({
                           <button
                             onClick={() => onViewDetails(task)}
                             title="عرض تفاصيل المهمة"
-                            className="rounded-lg p-1.5 text-[var(--zd-muted)] hover:bg-[var(--zd-surface)] hover:text-[var(--zd-text)]"
+                            className="rounded-lg p-1.5 text-[var(--zd-muted)] hover:bg-[var(--zd-surface)] hover:text-[var(--zd-text)] cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
+
+                          {/* زر التعديل — متاح حصرياً للمهام المعلقة pending */}
+                          {task.status === 'pending' && onEditTask && (
+                            <button
+                              onClick={() => onEditTask(task)}
+                              title="تعديل المهمة (متاحة في حالة الانتظار)"
+                              className="rounded-lg p-1.5 text-[var(--zd-muted)] hover:bg-[var(--zd-blue)]/10 hover:text-[var(--zd-blue)] transition cursor-pointer"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          )}
 
                           {canDecline && (
                             <button
                               onClick={() => onDeclineTask(task)}
                               title="إلغاء المهمة"
-                              className="rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 hover:text-rose-500"
+                              className="rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
                             >
                               <XCircle className="h-4 w-4" />
                             </button>

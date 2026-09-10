@@ -49,6 +49,7 @@ export interface BackendTask {
   driverId?: string | PopulatedDriver;
   teamId?: string | PopulatedTeam;
   companyId: string;
+  declineReason?: string;
   createdAt: string;
   updatedAt: string;
 }

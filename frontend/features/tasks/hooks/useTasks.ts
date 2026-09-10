@@ -167,7 +167,8 @@ export function useDeclineTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (id: string) => taskService.declineTask(id),
+    mutationFn: ({ id, declineReason }: { id: string; declineReason?: string }) =>
+      taskService.declineTask(id, declineReason),
     onSuccess: (res) => {
       if (res.success) {
         toast.addToast({ type: 'success', message: 'تم إلغاء المهمة بنجاح' });
@@ -198,6 +199,7 @@ export function useTasksPage() {
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<TaskWithRelations | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<TaskWithRelations | null>(null);
   const [selectedTaskForDecline, setSelectedTaskForDecline] = useState<TaskWithRelations | null>(null);
 
@@ -263,6 +265,8 @@ export function useTasksPage() {
 
     isCreateModalOpen,
     setIsCreateModalOpen,
+    taskToEdit,
+    setTaskToEdit,
     selectedTaskForDetails,
     setSelectedTaskForDetails,
     selectedTaskForDecline,

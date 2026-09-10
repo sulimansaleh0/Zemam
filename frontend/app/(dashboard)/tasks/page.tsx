@@ -6,6 +6,7 @@ import { Sidebar, Header } from '@/features/dashboard';
 import {
   useTasksPage,
   useCreateTask,
+  useUpdateTask,
   useDeclineTask,
   TaskStatsCards,
   TasksTable,
@@ -30,6 +31,8 @@ export default function TasksPage() {
     setSearchQuery,
     isCreateModalOpen,
     setIsCreateModalOpen,
+    taskToEdit,
+    setTaskToEdit,
     selectedTaskForDetails,
     setSelectedTaskForDetails,
     selectedTaskForDecline,
@@ -44,15 +47,25 @@ export default function TasksPage() {
   } = useTasksPage();
 
   const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
   const declineTaskMutation = useDeclineTask();
 
-  const handleCreateTask = async (data: any) => {
-    await createTaskMutation.mutateAsync(data);
+  const handleFormSubmit = async (data: any) => {
+    if (taskToEdit) {
+      await updateTaskMutation.mutateAsync({ id: taskToEdit._id, data });
+      setTaskToEdit(null);
+    } else {
+      await createTaskMutation.mutateAsync(data);
+      setIsCreateModalOpen(false);
+    }
   };
 
-  const handleConfirmDecline = async () => {
+  const handleConfirmDecline = async (reason: string) => {
     if (!selectedTaskForDecline) return;
-    await declineTaskMutation.mutateAsync(selectedTaskForDecline._id);
+    await declineTaskMutation.mutateAsync({
+      id: selectedTaskForDecline._id,
+      declineReason: reason,
+    });
     setSelectedTaskForDecline(null);
   };
 
@@ -148,8 +161,12 @@ export default function TasksPage() {
               onTabChange={setActiveTab}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              onOpenCreate={() => setIsCreateModalOpen(true)}
+              onOpenCreate={() => {
+                setTaskToEdit(null);
+                setIsCreateModalOpen(true);
+              }}
               onViewDetails={(task) => setSelectedTaskForDetails(task)}
+              onEditTask={(task) => setTaskToEdit(task)}
               onDeclineTask={(task) => setSelectedTaskForDecline(task)}
             />
           </div>
@@ -158,12 +175,16 @@ export default function TasksPage() {
 
       {/* ── المودالات التفاعلية ── */}
       <TaskFormModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateTask}
-        isLoading={createTaskMutation.isPending}
+        isOpen={isCreateModalOpen || Boolean(taskToEdit)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setTaskToEdit(null);
+        }}
+        onSubmit={handleFormSubmit}
+        isLoading={createTaskMutation.isPending || updateTaskMutation.isPending}
         vehicles={vehicles as any}
         drivers={drivers as any}
+        initialTask={taskToEdit}
       />
 
       <TaskDetailModal
