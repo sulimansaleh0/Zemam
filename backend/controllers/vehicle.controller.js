@@ -4,11 +4,14 @@ const Team = require("../models/team.model")
 const { userRoles } = require("../data/roles")
 const { mainStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
+const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
+const { vehicleTypes } = require("../data/vehicleTypes")
 
 exports.createVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { model, year, plateNumber, driverId, currentOdometer, expectedFuelEfficiency } = req.body
+    const { model, year, plateNumber, vehicleType, driverId, currentOdometer, expectedFuelEfficiency } = req.body
+    const selectedVehicleType = vehicleType || vehicleTypes.NORMAL
     try {
         const existingVehicle = await Vehicle.findOne({
             plateNumber,
@@ -28,6 +31,9 @@ exports.createVehicle = async (req, res) => {
             if (!driver) return error(res, 404, "Driver not found or does not belong to the selected team")
             if (driver.status !== mainStatus.ACTIVE) return error(res, 400, "Driver is not active")
 
+            const eligibilityError = getDriverVehicleEligibilityError(driver, { vehicleType: selectedVehicleType })
+            if (eligibilityError) return error(res, 400, eligibilityError)
+
             // Unlink driver from previous vehicle
             await Vehicle.updateMany({ driverId: driver._id, companyId: user.companyId }, { driverId: null })
         }
@@ -36,6 +42,7 @@ exports.createVehicle = async (req, res) => {
             model,
             year,
             plateNumber,
+            vehicleType: selectedVehicleType,
             currentOdometer,
             expectedFuelEfficiency,
             teamId,

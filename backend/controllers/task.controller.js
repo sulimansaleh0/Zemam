@@ -4,6 +4,7 @@ const User = require("../models/user.model")
 const { success, error, serverError } = require("../utils/responses")
 const { userRoles } = require("../data/roles")
 const { mainStatus, taskStatus } = require("../data/status")
+const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
 
 exports.createTask = async (req, res) => {
     const user = req.user
@@ -30,6 +31,9 @@ exports.createTask = async (req, res) => {
         if (driver.role !== userRoles.DRIVER) return error(res, 400, "User should be a driver")
         if (!driver.teamId || !vehicle.teamId || vehicle.teamId.toString() !== driver.teamId.toString())
             return error(res, 400, "Driver and Vehicle should be in the same team")
+
+        const eligibilityError = getDriverVehicleEligibilityError(driver, vehicle)
+        if (eligibilityError) return error(res, 400, eligibilityError)
 
         const effectiveTeamId = teamId || driver.teamId;
 
@@ -151,6 +155,8 @@ exports.updateTask = async (req, res) => {
         if (!nextDriver.teamId || !nextVehicle.teamId || nextDriver.teamId.toString() !== nextVehicle.teamId.toString())
             return error(res, 400, "Driver and Vehicle should be in the same team")
 
+        const eligibilityError = getDriverVehicleEligibilityError(nextDriver, nextVehicle)
+        if (eligibilityError) return error(res, 400, eligibilityError)
         if (title !== undefined) task.title = title
         if (description !== undefined) task.description = description
         if (startTime !== undefined) task.startTime = startTime
@@ -181,7 +187,6 @@ exports.acceptTask = async (req, res) => {
 
         if (!(task.status === taskStatus.PENDING)) return error(res, 400, "Cant accept this task")
         if (new Date() < task.startTime) return error(res, 400, "You cannot accept this task before its start time")
-
         task.status = taskStatus.INPROGRESS
         task.startedAt = new Date()
         await task.save()
@@ -189,7 +194,6 @@ exports.acceptTask = async (req, res) => {
         if (task.vehicleId) {
             await Vehicle.findByIdAndUpdate(task.vehicleId, { isInTask: true })
         }
-
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -219,7 +223,6 @@ exports.finishTask = async (req, res) => {
         if (task.vehicleId) {
             await Vehicle.findByIdAndUpdate(task.vehicleId, { isInTask: false })
         }
-
         success(res, 200)
     } catch (err) {
         console.log(err)

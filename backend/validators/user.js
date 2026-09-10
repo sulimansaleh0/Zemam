@@ -1,5 +1,6 @@
 const { body } = require("express-validator");
 const { mainStatus } = require("../data/status")
+const { vehicleTypes } = require("../data/vehicleTypes")
 
 exports.loginSchema = [
     body("email")
@@ -65,6 +66,24 @@ exports.updateProfileSchema = [
         .matches(/[a-z]/).withMessage("Password must contain at least one lowercase letter (a-z)")
         .matches(/[0-9]/).withMessage("Password must contain at least one number (0-9)")
         .matches(/[^A-Za-z0-9]/).withMessage("Password must contain at least one special character (!@#$%^&*...)")
+    ,
+    body("licenseNumber")
+        .optional({ values: "falsy" })
+        .trim()
+        .isString()
+        .withMessage("License number must be a string"),
+
+    body("licenseTypes")
+        .optional({ values: "falsy" })
+        .isArray({ min: 1 })
+        .withMessage("License types must be a non-empty array")
+        .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
+        .withMessage("Invalid license type"),
+
+    body("licenseExpiry")
+        .optional({ values: "falsy" })
+        .isISO8601()
+        .withMessage("License expiry must be a valid date"),
 ]
 
 exports.resetPasswordSchema = [
