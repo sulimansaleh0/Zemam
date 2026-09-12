@@ -21,6 +21,7 @@ export interface BackendVehicle {
   model: string;          // اسم وموديل المركبة
   year: number;           // سنة الصنع
   plateNumber: number;    // رقم اللوحة
+  currentOdometer?: number; // قراءة العداد الحالية
   isInTask: boolean;      // هل المركبة في مهمة حالياً
   status: VehicleStatus;  // حالة المركبة (active / inactive)
   teamId?: string | TeamSummary | null;

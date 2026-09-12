@@ -60,6 +60,13 @@ export const API_PATHS = {
     DECLINE:     (id: string) => `api/task/${id}/decline`,
   },
 
+  MAINTENANCE: {
+    LIST:          'api/maintenance',
+    CREATE:        'api/maintenance',
+    STATS:         'api/maintenance/stats',
+    VERIFY:        (id: string) => `api/maintenance/${id}/verify`,
+  },
+
   USER: {
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
   },
