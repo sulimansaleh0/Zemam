@@ -4,165 +4,142 @@
 
 :root,
 [data-theme="dark"] {
-  /* ─── Brand ─────────────────────────────── */
-  --primary:        #0F766E;
-  --primary-hover:  #0B5F59;
-  --primary-light:  #0F766E1A;
-  --accent:         #2563EB;
-  --accent-light:   #2563EB14;
-
-  /* ─── Semantic ───────────────────────────── */
-  --success:        #16A34A;
-  --success-light:  rgba(22, 163, 74, 0.15);
-  --warning:        #D97706;
-  --warning-light:  rgba(217, 119, 6, 0.15);
-  --danger:         #DC2626;
-  --danger-light:   rgba(220, 38, 38, 0.15);
-  --info:           #0891B2;
-  --info-light:     rgba(8, 145, 178, 0.15);
-
-  /* ─── Backgrounds ────────────────────────── */
-  --bg:             #0F172A;
-  --surface:        #1E293B;
-  --surface-2:      #273549;
-  --surface-3:      #2F3F56;
-  --ink:            #F1F5F9;
-
-  /* ─── Text ───────────────────────────────── */
-  --text:           #F1F5F9;
+  --primary: #0F766E;
+  --primary-hover: #0B5F59;
+  --primary-light: #0F766E1A;
+  --accent: #2563EB;
+  --accent-light: #2563EB14;
+  --success: #16A34A;
+  --success-light: rgba(22, 163, 74, 0.15);
+  --warning: #D97706;
+  --warning-light: rgba(217, 119, 6, 0.15);
+  --danger: #DC2626;
+  --danger-light: rgba(220, 38, 38, 0.15);
+  --info: #0891B2;
+  --info-light: rgba(8, 145, 178, 0.15);
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --surface-2: #273549;
+  --surface-3: #2F3F56;
+  --ink: #F1F5F9;
+  --text: #F1F5F9;
   --text-secondary: #CBD5E1;
-  --muted:          #94A3B8;
-  --disabled:       #4B5563;
+  --muted: #94A3B8;
+  --disabled: #4B5563;
+  --border: #334155;
+  --border-focus: #0F766E;
+  --border-error: #DC2626;
+  --zd-bg: var(--bg);
+  --zd-surface: var(--surface);
+  --zd-surface-2: var(--surface-2);
+  --zd-surface-hover: var(--surface-3);
+  --zd-line: var(--border);
+  --zd-text: var(--text);
+  --zd-muted: var(--muted);
+  --zd-blue: var(--primary);
+  --zd-teal: var(--info);
+  --zd-amber: var(--warning);
+  --zd-red: var(--danger);
+  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.6);
 
-  /* ─── Borders ────────────────────────────── */
-  --border:         #334155;
-  --border-focus:   #0F766E;
-  --border-error:   #DC2626;
+  /* ─── Super Admin inherits Zimam landing language ─── */
+  --sa-navy: #10202F;
+  --sa-card: #FFFFFF;
+  --sa-text: #10202F;
+  --sa-text-secondary: #64748B;
+  --sa-brand: #0F766E;
+  --sa-brand-hover: #0B5F59;
+  --sa-brand-light: rgba(15, 118, 110, 0.10);
+  --sa-success: #16A34A;
+  --sa-success-light: rgba(22, 163, 74, 0.12);
+  --sa-warning: #D97706;
+  --sa-warning-light: rgba(217, 119, 6, 0.12);
+  --sa-suspended: #D97706;
+  --sa-suspended-light: rgba(217, 119, 6, 0.12);
+  --sa-purple: #7C3AED;
+  --sa-purple-light: rgba(124, 58, 237, 0.12);
+  --sa-border: rgba(16, 32, 47, 0.12);
+  --sa-bg: #F6F8F7;
 
-  /* ─── Dashboard Token Mappings ───────────── */
-  --zd-bg:             var(--bg);
-  --zd-surface:        var(--surface);
-  --zd-surface-2:      var(--surface-2);
-  --zd-surface-hover:  var(--surface-3);
-  --zd-line:           var(--border);
-  --zd-text:           var(--text);
-  --zd-muted:          var(--muted);
-  --zd-blue:           var(--primary);
-  --zd-teal:           var(--info);
-  --zd-amber:          var(--warning);
-  --zd-red:            var(--danger);
-
-  /* ─── Shadows ────────────────────────────── */
-  --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.3);
-  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.4);
-  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.5);
-  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.6);
-
-  /* ─── Typography ─────────────────────────── */
-  --font-sans:  'Cairo', 'Segoe UI', system-ui, sans-serif;
-  --font-mono:  'Geist Mono', 'Courier New', monospace;
-
-  --text-xs:    0.75rem;
-  --text-sm:    0.875rem;
-  --text-base:  1rem;
-  --text-lg:    1.125rem;
-  --text-xl:    1.25rem;
-  --text-2xl:   1.5rem;
-  --text-3xl:   1.875rem;
-
-  /* ─── Spacing ────────────────────────────── */
-  --space-1:   0.25rem;
-  --space-2:   0.5rem;
-  --space-3:   0.75rem;
-  --space-4:   1rem;
-  --space-5:   1.25rem;
-  --space-6:   1.5rem;
-  --space-8:   2rem;
-  --space-10:  2.5rem;
-  --space-12:  3rem;
-
-  /* ─── Radius ─────────────────────────────── */
-  --radius-sm:   0.375rem;
-  --radius-md:   0.5rem;
-  --radius-lg:   0.75rem;
-  --radius-xl:   1rem;
-  --radius-2xl:  1.5rem;
+  --font-sans: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Courier New', monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
   --radius-full: 9999px;
-
-  /* ─── Transitions ────────────────────────── */
-  --transition-fast:   150ms ease;
+  --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
-  --transition-slow:   400ms ease;
-
-  /* ─── Z-Index ────────────────────────────── */
+  --transition-slow: 400ms ease;
   --z-dropdown: 100;
-  --z-sticky:   200;
-  --z-overlay:  300;
-  --z-modal:    400;
-  --z-toast:    500;
-
-  /* ─── Layout ─────────────────────────────── */
-  --sidebar-width:     260px;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --sidebar-width: 260px;
   --sidebar-collapsed: 64px;
-  --header-height:     64px;
-
-  /* ─── Font Weights ───────────────────────── */
-  --font-normal:   400;
-  --font-medium:   500;
+  --header-height: 64px;
+  --font-normal: 400;
+  --font-medium: 500;
   --font-semibold: 600;
-  --font-bold:     700;
-
-  /* ─── Status — Vehicle ───────────────────── */
-  --status-active:      var(--success);
+  --font-bold: 700;
+  --status-active: var(--success);
   --status-maintenance: var(--warning);
-  --status-inactive:    var(--muted);
-
-  /* ─── Status — Task ──────────────────────── */
-  --status-pending:     var(--warning);
+  --status-inactive: var(--muted);
+  --status-pending: var(--warning);
   --status-in-progress: var(--primary);
-  --status-completed:   var(--success);
-  --status-cancelled:   var(--danger);
+  --status-completed: var(--success);
+  --status-cancelled: var(--danger);
 }
 
 [data-theme="light"] {
-  /* ─── Brand ─────────────────────────────── */
-  --primary:        #0F766E;
-  --primary-hover:  #0B5F59;
-  --primary-light:  #0F766E1A;
-  --accent:         #2563EB;
-  --accent-light:   #2563EB14;
-
-  /* ─── Semantic ───────────────────────────── */
-  --success:        #15803D;
-  --success-light:  rgba(21, 128, 61, 0.1);
-  --warning:        #B45309;
-  --warning-light:  rgba(180, 83, 9, 0.1);
-  --danger:         #B91C1C;
-  --danger-light:   rgba(185, 28, 28, 0.1);
-  --info:           #0E7490;
-  --info-light:     rgba(14, 116, 144, 0.1);
-
-  /* ─── Backgrounds ────────────────────────── */
-  --bg:             #F8FAFC;
-  --surface:        #FFFFFF;
-  --surface-2:      #F1F5F9;
-  --surface-3:      #E2E8F0;
-  --ink:            #0F172A;
-
-  /* ─── Text ───────────────────────────────── */
-  --text:           #0F172A;
+  --primary: #0F766E;
+  --primary-hover: #0B5F59;
+  --primary-light: #0F766E1A;
+  --accent: #2563EB;
+  --accent-light: #2563EB14;
+  --success: #15803D;
+  --success-light: rgba(21, 128, 61, 0.1);
+  --warning: #B45309;
+  --warning-light: rgba(180, 83, 9, 0.1);
+  --danger: #B91C1C;
+  --danger-light: rgba(185, 28, 28, 0.1);
+  --info: #0E7490;
+  --info-light: rgba(14, 116, 128, 0.1);
+  --bg: #F6F8F7;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F3;
+  --surface-3: #E2E8E5;
+  --ink: #10202F;
+  --text: #10202F;
   --text-secondary: #475569;
-  --muted:          #64748B;
-  --disabled:       #94A3B8;
-
-  /* ─── Borders ────────────────────────────── */
-  --border:         #E2E8F0;
-  --border-focus:   #0F766E;
-  --border-error:   #DC2626;
-
-  /* ─── Shadows ────────────────────────────── */
-  --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.05);
-  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.07);
-  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.08);
-  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.1);
+  --muted: #64748B;
+  --disabled: #94A3B8;
+  --border: rgba(16, 32, 47, 0.12);
+  --border-focus: #0F766E;
+  --border-error: #DC2626;
+  --shadow-sm: 0 1px 2px 0 rgba(16,32,47,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(16,32,47,0.07);
+  --shadow-lg: 0 10px 15px -3px rgba(16,32,47,0.08);
+  --shadow-xl: 0 20px 25px -5px rgba(16,32,47,0.1);
 }

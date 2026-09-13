@@ -1,0 +1,3 @@
+'use client';
+import {useEffect,useState,type ReactNode} from 'react';import {usePathname,useRouter} from 'next/navigation';
+export default function SuperAdminLayout({children}:{children:ReactNode}){const pathname=usePathname();const router=useRouter();const[ready,setReady]=useState(pathname==='/super-admin/login');useEffect(()=>{if(pathname==='/super-admin/login'){setReady(true);return}if(window.localStorage.getItem('zimam-super-admin-session')!=='true')router.replace('/super-admin/login');else setReady(true)},[pathname,router]);if(!ready)return <div className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-500">جاري التحقق من الصلاحيات...</div>;return children}
