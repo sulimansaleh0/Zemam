@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @source "../app";
@@ -11,6 +11,25 @@
    TAILWIND v4 — Theme & Tokens Binding
    ============================================ */
 @theme inline {
+  /* ─── Super Admin Console Tokens ─────────── */
+  --color-sa-navy:            var(--sa-navy);
+  --color-sa-card:            var(--sa-card);
+  --color-sa-text:            var(--sa-text);
+  --color-sa-secondary:       var(--sa-text-secondary);
+  --color-sa-brand:           var(--sa-brand);
+  --color-sa-brand-hover:     var(--sa-brand-hover);
+  --color-sa-brand-light:     var(--sa-brand-light);
+  --color-sa-success:         var(--sa-success);
+  --color-sa-success-light:   var(--sa-success-light);
+  --color-sa-warning:         var(--sa-warning);
+  --color-sa-warning-light:   var(--sa-warning-light);
+  --color-sa-suspended:       var(--sa-suspended);
+  --color-sa-suspended-light: var(--sa-suspended-light);
+  --color-sa-purple:          var(--sa-purple);
+  --color-sa-purple-light:    var(--sa-purple-light);
+  --color-sa-border:          var(--sa-border);
+  --color-sa-bg:              var(--sa-bg);
+
   /* ─── Colors ─────────────────────────────── */
   --color-primary:       var(--primary);
   --color-primary-hover: var(--primary-hover);
@@ -50,7 +69,8 @@
   --color-cancelled:     var(--status-cancelled);
 
   /* ─── Font ───────────────────────────────── */
-  --font-sans: var(--font-sans);
+  --font-sans: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-heading: 'Cairo', system-ui, sans-serif;
 
   /* ─── Font Weight ────────────────────────── */
   --font-weight-normal:   var(--font-normal);

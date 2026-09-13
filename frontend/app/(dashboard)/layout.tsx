@@ -1,23 +1,31 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, status, isLoading } = useAuth();
 
+  const isSuperAdminRoute = pathname?.startsWith('/super-admin');
+
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isSuperAdminRoute) {
       if (status === 'unauthenticated') {
         router.replace('/login');
-      } else if (status === 'authenticated' && !user?.companyId) {
+      } else if (status === 'authenticated' && !user?.companyId && user?.role !== 'super_admin') {
         // منع المستخدم من الوصول إلى لوحة التحكم إذا لم يكن لديه companyId حسب بيانات الـ Backend
         router.replace('/onboarding');
       }
     }
-  }, [status, isLoading, user?.companyId, router]);
+  }, [status, isLoading, user?.companyId, user?.role, router, isSuperAdminRoute]);
+
+  // مسار الـ Super Admin لا يحتاج إلى فحوصات شركة العميل
+  if (isSuperAdminRoute) {
+    return <>{children}</>;
+  }
 
   // أثناء تحميل بيانات الجلسة من الـ Backend
   if (isLoading) {
