@@ -131,42 +131,6 @@ exports.listFleetManagers = async (req, res) => {
             isDeleted: false
         }
 
-        exports.getManagerStats = async (req, res) => {
-            const user = req.user
-            try {
-                const manager = await User.findOne({
-                    _id: req.params.id,
-                    companyId: user.companyId,
-                    role: userRoles.FLEET_MANAGER,
-                    isDeleted: false
-                })
-                if (!manager) return error(res, 404, "Manager not found")
-                if (user.role === userRoles.FLEET_MANAGER && manager._id.toString() !== user._id.toString()) {
-                    return error(res, 403, "You can only view your own statistics")
-                }
-                const teamId = manager.teamId
-                if (!teamId) return success(res, 200, { stats: { totalTasks: 0, completedTasks: 0, delayedTasks: 0, fuelCost: 0, maintenanceCost: 0 } })
-                const [taskStats, fuelStats, maintenanceStats] = await Promise.all([
-                    Task.aggregate([{ $match: { teamId } }, { $group: {
-                        _id: null,
-                        totalTasks: { $sum: 1 },
-                        completedTasks: { $sum: { $cond: [{ $eq: ["$status", taskStatus.FINISHED] }, 1, 0] } },
-                        delayedTasks: { $sum: { $cond: ["$isDelayed", 1, 0] } }
-                    } }]),
-                    Fuel.aggregate([{ $match: { teamId, status: expenseRecordStatus.APPROVED } }, { $group: { _id: null, fuelCost: { $sum: "$cost" } } }]),
-                    Maintenance.aggregate([{ $match: { teamId, status: expenseRecordStatus.APPROVED } }, { $group: { _id: null, maintenanceCost: { $sum: "$cost" } } }])
-                ])
-                success(res, 200, { stats: {
-                    ...(taskStats[0] || { totalTasks: 0, completedTasks: 0, delayedTasks: 0 }),
-                    fuelCost: fuelStats[0]?.fuelCost || 0,
-                    maintenanceCost: maintenanceStats[0]?.maintenanceCost || 0,
-                    driverScore: manager.driverScore
-                } })
-            } catch (err) {
-                console.log(err)
-                serverError(res)
-            }
-        }
         if (status)
             filters.status = status
 
@@ -253,6 +217,47 @@ exports.removeFleetManager = async (req, res) => {
     }
 }
 
+exports.getManagerStats = async (req, res) => {
+    const user = req.user
+    try {
+        const manager = await User.findOne({
+            _id: req.params.id,
+            companyId: user.companyId,
+            role: userRoles.FLEET_MANAGER,
+            isDeleted: false
+        })
+        if (!manager) return error(res, 404, "Manager not found")
+        if (user.role === userRoles.FLEET_MANAGER && manager._id.toString() !== user._id.toString()) {
+            return error(res, 403, "You can only view your own statistics")
+        }
+        const teamId = manager.teamId
+        if (!teamId) return success(res, 200, { stats: { totalTasks: 0, completedTasks: 0, delayedTasks: 0, fuelCost: 0, maintenanceCost: 0 } })
+        const [taskStats, fuelStats, maintenanceStats] = await Promise.all([
+            Task.aggregate([{ $match: { teamId } }, {
+                $group: {
+                    _id: null,
+                    totalTasks: { $sum: 1 },
+                    completedTasks: { $sum: { $cond: [{ $eq: ["$status", taskStatus.FINISHED] }, 1, 0] } },
+                    delayedTasks: { $sum: { $cond: ["$isDelayed", 1, 0] } }
+                }
+            }]),
+            Fuel.aggregate([{ $match: { teamId, status: expenseRecordStatus.APPROVED } }, { $group: { _id: null, fuelCost: { $sum: "$cost" } } }]),
+            Maintenance.aggregate([{ $match: { teamId, status: expenseRecordStatus.APPROVED } }, { $group: { _id: null, maintenanceCost: { $sum: "$cost" } } }])
+        ])
+        success(res, 200, {
+            stats: {
+                ...(taskStats[0] || { totalTasks: 0, completedTasks: 0, delayedTasks: 0 }),
+                fuelCost: fuelStats[0]?.fuelCost || 0,
+                maintenanceCost: maintenanceStats[0]?.maintenanceCost || 0,
+                driverScore: manager.driverScore
+            }
+        })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
 // Driver
 exports.createDriver = async (req, res) => {
     const user = req.user
@@ -270,7 +275,7 @@ exports.createDriver = async (req, res) => {
             const eligibilityError = getDriverVehicleEligibilityError({ licenseNumber, licenseTypes: selectedLicenseTypes, licenseExpiry }, vehicle)
             if (eligibilityError) return error(res, 400, eligibilityError)
         }
-        await sendRegisterEmail({ email, password })
+        // await sendRegisterEmail({ email, password })
 
         const password = "123456789"
         const passwordHash = await bcrypt.hash(password, 9)

@@ -133,29 +133,29 @@ exports.teamStatics = async (req, res) => {
         console.log(err)
         serverError(res)
     }
+}
 
-    exports.assignResources = async (req, res) => {
-        const user = req.user
-        const teamId = req.params.id
-        const driverIds = Array.isArray(req.body.driverIds) ? req.body.driverIds : []
-        const vehicleIds = Array.isArray(req.body.vehicleIds) ? req.body.vehicleIds : []
-        try {
-            const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
-            if (!team) return error(res, 404, "Team not found")
-            const operations = []
-            if (driverIds.length) operations.push(User.updateMany(
-                { _id: { $in: driverIds }, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false },
-                { $set: { teamId: team._id } }
-            ))
-            if (vehicleIds.length) operations.push(Vehicle.updateMany(
-                { _id: { $in: vehicleIds }, companyId: user.companyId, isDeleted: false },
-                { $set: { teamId: team._id } }
-            ))
-            await Promise.all(operations)
-            success(res, 200)
-        } catch (err) {
-            console.log(err)
-            serverError(res)
-        }
+exports.assignResources = async (req, res) => {
+    const user = req.user
+    const teamId = req.params.id
+    const driverIds = Array.isArray(req.body.driverIds) ? req.body.driverIds : []
+    const vehicleIds = Array.isArray(req.body.vehicleIds) ? req.body.vehicleIds : []
+    try {
+        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+        if (!team) return error(res, 404, "Team not found")
+        const operations = []
+        if (driverIds.length) operations.push(User.updateMany(
+            { _id: { $in: driverIds }, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false },
+            { $set: { teamId: team._id } }
+        ))
+        if (vehicleIds.length) operations.push(Vehicle.updateMany(
+            { _id: { $in: vehicleIds }, companyId: user.companyId, isDeleted: false },
+            { $set: { teamId: team._id } }
+        ))
+        await Promise.all(operations)
+        success(res, 200)
+    } catch (err) {
+        console.log(err)
+        serverError(res)
     }
 }
