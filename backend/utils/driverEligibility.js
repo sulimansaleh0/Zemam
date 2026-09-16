@@ -20,7 +20,15 @@ exports.getDriverVehicleEligibilityError = (driver, vehicle) => {
     }
 
     const vehicleType = vehicle.vehicleType || vehicleTypes.NORMAL
-    if (!licenseTypes.includes(vehicleType)) {
+    const allowedVehicleTypes = {
+        [vehicleTypes.TRUCK]: Object.values(vehicleTypes),
+        [vehicleTypes.VAN]: [vehicleTypes.VAN, vehicleTypes.NORMAL],
+        [vehicleTypes.NORMAL]: [vehicleTypes.NORMAL]
+    }
+    const canDrive = licenseTypes.some((licenseType) =>
+        (allowedVehicleTypes[licenseType] || []).includes(vehicleType)
+    )
+    if (!canDrive) {
         return `Driver license does not allow driving ${vehicleTypeLabels[vehicleType] || "this vehicle type"}`
     }
 

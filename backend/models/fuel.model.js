@@ -62,6 +62,11 @@ const fuelSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    location: {
+        lat: { type: Number },
+        lng: { type: Number },
+        address: { type: String, trim: true }
+    },
     nextOdoMeter: {
         type: Number,
         default: null

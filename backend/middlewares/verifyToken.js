@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model")
 const { mainStatus } = require("../data/status")
+const { userRoles } = require("../data/roles")
 const { error, serverError } = require("../utils/responses");
 
 module.exports = async (req, res, next) => {
@@ -11,6 +12,9 @@ module.exports = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
         const user = await User.findById(decoded._id)
         if (!user) return error(res, 404, "User Not Found")
+        if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
+            return error(res, 403, "Fleet manager must be assigned to an active team")
+        }
         if (user.status == mainStatus.ACTIVE) {
             req.user = user;
             return next();

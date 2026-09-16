@@ -1,7 +1,7 @@
 const resend = require("../config/email")
 
-const sendEmail = ({ to, subject, html }) => {
-    resend.emails.send({
+const sendEmail = async ({ to, subject, html }) => {
+    return resend.emails.send({
         from: "Zemam <onboarding@resend.dev>",
         to,
         subject,
@@ -9,8 +9,8 @@ const sendEmail = ({ to, subject, html }) => {
     });
 }
 
-exports.sendPasswordResetEmail = ({ email, otp }) => {
-    sendEmail({
+exports.sendPasswordResetEmail = async ({ email, otp }) => {
+    await sendEmail({
         to: email,
         subject: "Your OTP Code",
         html: `
@@ -35,8 +35,8 @@ exports.sendPasswordResetEmail = ({ email, otp }) => {
     });
 };
 
-exports.sendRegisterEmail = ({ email, password }) => {
-    sendEmail({
+exports.sendRegisterEmail = async ({ email, password }) => {
+    await sendEmail({
         to: email,
         subject: `Your Zemam Account`,
         html: `
