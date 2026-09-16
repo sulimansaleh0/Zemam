@@ -8,6 +8,7 @@ const {
     createFleetManager,
     deleteFleetManager,
     listFleetManagers,
+    getManagerStats,
     removeFleetManager,
     assignManager,
     createDriver,
@@ -47,6 +48,10 @@ router.post("/fleet-manager",
 router.get("/fleet-manager",
     allowedTo(userRoles.ADMIN),
     listFleetManagers
+)
+router.get("/managers/:id/stats",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    getManagerStats
 )
 
 // Assign Manager to a Team

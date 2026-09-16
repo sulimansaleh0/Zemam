@@ -9,14 +9,14 @@ const validate = require("../middlewares/validator")
 
 const { createTask, listTask, listTasks, updateTask, acceptTask, finishTask, declineTask, listDriverTasks } = require("../controllers/task.controller")
 
-const { createTaskSchema } = require("../validators/task")
+const { createTaskSchema, finishTaskSchema } = require("../validators/task")
 
 router.use(verifyToken)
 router.use(checkSubscription())
 
 // driver routes
 router.patch("/:id/accept", allowedTo(userRoles.DRIVER), acceptTask)
-router.patch("/:id/finish", allowedTo(userRoles.DRIVER), finishTask)
+router.patch("/:id/finish", allowedTo(userRoles.DRIVER), finishTaskSchema, validate, finishTask)
 router.get("/driver", allowedTo(userRoles.DRIVER), listDriverTasks)
 
 router.use(getTeam)

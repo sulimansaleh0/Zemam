@@ -8,7 +8,7 @@ const { calculateFuelMetrics, getFuelIssue } = require("../utils/fuelCalculation
 
 exports.createFuelRecord = async (req, res) => {
     const user = req.user
-    const { vehicleId, cost, qty, odometer, isFullTank } = req.body
+    const { vehicleId, cost, qty, odometer, isFullTank, location } = req.body
     const numericOdometer = Number(odometer)
     const image = req.body.image || req.body.images?.[0]
     if (!image) return error(res, 400, "A fuel receipt image is required")
@@ -37,6 +37,9 @@ exports.createFuelRecord = async (req, res) => {
 
         const vehicle = await Vehicle.findOne(vehicleFilters)
         if (!vehicle) return error(res, 404, "Vehicle Not Found")
+        if (Number(qty) > vehicle.tankCapacity) {
+            return error(res, 400, "Fuel quantity cannot exceed the vehicle tank capacity")
+        }
 
         if (numericOdometer < vehicle.currentOdometer) {
             return error(res, 400, "Odometer cannot be lower than the vehicle's last reading")
@@ -52,6 +55,7 @@ exports.createFuelRecord = async (req, res) => {
             companyId: user.companyId,
             teamId: vehicle.teamId || null,
             userId: user._id
+            ,location
         })
 
         await Vehicle.updateOne(
@@ -176,9 +180,12 @@ exports.verifyFuelRecord = async (req, res) => {
             filters.teamId = user.teamId
 
         const fuelRecord = await Fuel.findOne({ ...filters, status: expenseRecordStatus.PENDING })
-            .populate("vehicleId", "expectedFuelEfficiency")
+            .populate("vehicleId", "expectedFuelEfficiency tankCapacity")
 
-        if (!fuelRecord) return error(res, 404, "Fuel Record Not Found")
+        if (!fuelRecord || !fuelRecord.vehicleId) return error(res, 404, "Fuel Record or vehicle not found")
+        if (fuelRecord.qty > fuelRecord.vehicleId.tankCapacity) {
+            return error(res, 400, "Fuel quantity cannot exceed the vehicle tank capacity")
+        }
 
         const vehicleId = fuelRecord.vehicleId._id
         const update = { status }

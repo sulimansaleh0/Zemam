@@ -7,7 +7,9 @@ const { success, error, serverError } = require("../utils/responses")
 
 exports.createTeam = async (req, res) => {
     const user = req.user
-    const { name, managerId, driversIds, vehiclesIds } = req.body
+    const { name, managerId, driversIds, vehiclesIds, driverIds, vehicleIds } = req.body
+    const selectedDriverIds = driverIds || driversIds
+    const selectedVehicleIds = vehicleIds || vehiclesIds
     try {
         const trimmedName = name ? name.trim() : ""
         const existingTeam = await Team.findOne({
@@ -33,15 +35,15 @@ exports.createTeam = async (req, res) => {
         })
         if (managerId)
             await User.findByIdAndUpdate(managerId, { teamId: team._id })
-        if (Array.isArray(driversIds) && driversIds.length > 0) {
+        if (Array.isArray(selectedDriverIds) && selectedDriverIds.length > 0) {
             await User.updateMany(
-                { _id: { $in: driversIds }, companyId: user.companyId, role: userRoles.DRIVER },
+                { _id: { $in: selectedDriverIds }, companyId: user.companyId, role: userRoles.DRIVER },
                 { teamId: team._id }
             )
         }
-        if (Array.isArray(vehiclesIds) && vehiclesIds.length > 0) {
+        if (Array.isArray(selectedVehicleIds) && selectedVehicleIds.length > 0) {
             await Vehicle.updateMany(
-                { _id: { $in: vehiclesIds }, companyId: user.companyId },
+                { _id: { $in: selectedVehicleIds }, companyId: user.companyId },
                 { teamId: team._id }
             )
         }
@@ -130,5 +132,30 @@ exports.teamStatics = async (req, res) => {
     } catch (err) {
         console.log(err)
         serverError(res)
+    }
+
+    exports.assignResources = async (req, res) => {
+        const user = req.user
+        const teamId = req.params.id
+        const driverIds = Array.isArray(req.body.driverIds) ? req.body.driverIds : []
+        const vehicleIds = Array.isArray(req.body.vehicleIds) ? req.body.vehicleIds : []
+        try {
+            const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
+            if (!team) return error(res, 404, "Team not found")
+            const operations = []
+            if (driverIds.length) operations.push(User.updateMany(
+                { _id: { $in: driverIds }, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false },
+                { $set: { teamId: team._id } }
+            ))
+            if (vehicleIds.length) operations.push(Vehicle.updateMany(
+                { _id: { $in: vehicleIds }, companyId: user.companyId, isDeleted: false },
+                { $set: { teamId: team._id } }
+            ))
+            await Promise.all(operations)
+            success(res, 200)
+        } catch (err) {
+            console.log(err)
+            serverError(res)
+        }
     }
 }

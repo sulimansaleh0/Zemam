@@ -12,7 +12,8 @@ const vehicleSchema = new mongoose.Schema({
         required: true
     },
     plateNumber: {
-        type: Number,
+        type: String,
+        trim: true,
         required: true
     },
     vehicleType: {
@@ -29,6 +30,25 @@ const vehicleSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 0.1
+    },
+    tankCapacity: {
+        type: Number,
+        required: true,
+        min: 0,
+        default: 50
+    },
+    fuelType: {
+        type: String,
+        enum: ["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"],
+        default: "بنزين 91"
+    },
+    registrationNumber: String,
+    issuingAuthority: String,
+    insuranceNumber: String,
+    insuranceCompany: String,
+    insuranceType: {
+        type: String,
+        enum: ["comprehensive", "third_party"]
     },
     isInTask: {
         type: Boolean,

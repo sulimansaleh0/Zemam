@@ -47,12 +47,20 @@ const maintenanceSchema = new mongoose.Schema({
         ref: "user",
         required: true
     },
+    driverId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user"
+    },
     odoMeter: {
         type: Number,
         required: true
     },
     declineReason: String,
     isDriverFault: {
+        type: Boolean,
+        default: false
+    },
+    driverFaultProcessed: {
         type: Boolean,
         default: false
     }
