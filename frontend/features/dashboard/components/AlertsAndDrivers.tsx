@@ -1,19 +1,46 @@
 'use client';
 
 import { useMemo } from 'react';
-import { AlertTriangle, ChevronDown, ChevronLeft, MoreHorizontal, UsersRound, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronLeft, MoreHorizontal, UsersRound, CheckCircle2, ShieldAlert, Bell, Check } from 'lucide-react';
 import { useDriversList } from '@/features/drivers';
 import { useVehicles } from '@/features/vehicles';
+import { useAlerts, useMarkAlertRead } from '@/features/alerts';
 import { getDriverDisplayName } from '@/features/drivers/utils/driverHelpers';
 
 export function AlertsAndDrivers() {
   const { data: realDrivers = [], isLoading: isLoadingDrivers } = useDriversList();
   const { data: vehiclesList = [] } = useVehicles();
+  const { data: backendAlerts = [] } = useAlerts();
+  const markAlertReadMutation = useMarkAlertRead();
 
-  // Dynamic alert calculation
+  // Dynamic alert calculation + Backend alerts
   const alerts = useMemo(() => {
-    const list: { text: string; time: string; color: string }[] = [];
+    const list: { id?: string; text: string; time: string; color: string; isBackend?: boolean; isRead?: boolean }[] = [];
     const now = new Date();
+
+    // 0. Backend stored alerts
+    backendAlerts.forEach((a) => {
+      let color = '#5d8cff';
+      if (a.severity === 'critical') color = '#ef4444';
+      else if (a.severity === 'high') color = '#f97316';
+      else if (a.severity === 'medium') color = '#eab66b';
+
+      const timeFormatted = new Date(a.createdAt).toLocaleDateString('ar-SA', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      list.push({
+        id: a._id,
+        text: `${a.title}: ${a.message}`,
+        time: timeFormatted,
+        color,
+        isBackend: true,
+        isRead: a.isRead,
+      });
+    });
 
     // 1. Vehicles in maintenance
     vehiclesList.forEach((v) => {
@@ -96,7 +123,7 @@ export function AlertsAndDrivers() {
     }
 
     return list.slice(0, 5);
-  }, [vehiclesList, realDrivers]);
+  }, [backendAlerts, vehiclesList, realDrivers]);
 
   return (
     <>
@@ -105,24 +132,40 @@ export function AlertsAndDrivers() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[14px] font-bold text-[var(--zd-text)]">التنبيهات التشغيلية الذكية</h2>
-            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">إشعارات استهلاك الوقود والتراخيص والصيانة</p>
+            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">إشعارات النظام واستهلاك الوقود والتراخيص</p>
           </div>
           <span className="rounded-full bg-[var(--zd-blue)]/15 px-2 py-1 text-[9px] font-semibold text-[var(--zd-blue)]">
             محدث آنياً
           </span>
         </div>
         <div className="mt-4 space-y-2">
-          {alerts.map(({ text, time, color }, idx) => (
+          {alerts.map(({ id, text, time, color, isBackend, isRead }, idx) => (
             <div
-              key={idx}
-              className="flex gap-3 rounded-xl border px-3 py-3 transition-colors"
+              key={id || idx}
+              className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                isRead ? 'opacity-60' : ''
+              }`}
               style={{ borderColor: `${color}40`, background: `${color}12` }}
             >
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} />
-              <div>
-                <div className="text-[11px] font-medium text-[var(--zd-text)] leading-snug">{text}</div>
-                <div className="mt-1 text-[9px] text-[var(--zd-muted)]">{time}</div>
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} />
+                <div>
+                  <div className="text-[11px] font-medium text-[var(--zd-text)] leading-snug">{text}</div>
+                  <div className="mt-1 text-[9px] text-[var(--zd-muted)]">{time}</div>
+                </div>
               </div>
+
+              {isBackend && id && !isRead && (
+                <button
+                  type="button"
+                  onClick={() => markAlertReadMutation.mutate(id)}
+                  disabled={markAlertReadMutation.isPending}
+                  title="تحديد كمقروء"
+                  className="shrink-0 p-1 rounded-lg text-[var(--zd-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 transition cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           ))}
         </div>
