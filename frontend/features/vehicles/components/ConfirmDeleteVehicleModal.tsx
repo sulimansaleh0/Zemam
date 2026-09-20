@@ -21,7 +21,12 @@ export function ConfirmDeleteVehicleModal({
 
   if (!targetVehicle) return null;
 
+  const isInTask = Boolean(targetVehicle.isInTask);
+  const isMaintenance = targetVehicle.status === 'in_maintenance';
+  const isBlockedFromDelete = isInTask || isMaintenance;
+
   const handleConfirm = async () => {
+    if (isBlockedFromDelete) return;
     try {
       await deleteMutation.mutateAsync(targetVehicle._id);
       onClose();
@@ -42,12 +47,27 @@ export function ConfirmDeleteVehicleModal({
       preventClose={deleteMutation.isPending}
     >
       <div className="p-6 space-y-4">
-        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-700 dark:text-rose-400 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            هل أنت متأكد من رغبتك في حذف هذه المركبة؟ سيتم فك ارتباطها عن السائق والفريق ونقلها إلى سجل المحذوفات.
-          </p>
-        </div>
+        {/* Blocked Alert */}
+        {isBlockedFromDelete ? (
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+            <div className="space-y-1">
+              <p className="font-bold text-sm">لا يمكن حذف هذه المركبة حالياً</p>
+              <p className="leading-relaxed">
+                {isInTask
+                  ? 'المركبة مرتبطة بمهمة تشغيلية نشطة حالياً. يرجى إتمام المهمة أو إلغاؤها أولاً قبل محاولة الحذف.'
+                  : 'المركبة قيد الصيانة حالياً. يرجى إغلاق سجل الصيانة واعتماد اكتمالها قبل الحذف.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-700 dark:text-rose-400 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              هل أنت متأكد من رغبتك في حذف هذه المركبة؟ سيتم فك ارتباطها عن السائق والفريق ونقلها إلى سجل المحذوفات.
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
@@ -56,17 +76,19 @@ export function ConfirmDeleteVehicleModal({
             disabled={deleteMutation.isPending}
             className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-xl transition-colors cursor-pointer disabled:opacity-50"
           >
-            إلغاء
+            {isBlockedFromDelete ? 'إغلاق' : 'إلغاء'}
           </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={deleteMutation.isPending}
-            className="flex items-center gap-2 px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-          >
-            {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>تأكيد الحذف</span>
-          </button>
+          {!isBlockedFromDelete && (
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={deleteMutation.isPending || isBlockedFromDelete}
+              className="flex items-center gap-2 px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>تأكيد الحذف</span>
+            </button>
+          )}
         </div>
       </div>
     </Modal>

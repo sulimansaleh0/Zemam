@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
-import { Car, Building2, User, UserCheck, Unlink, Link2 } from 'lucide-react';
+import { Car, Building2, User, UserCheck, Unlink, Link2, Fuel, FileText, Shield } from 'lucide-react';
 import type { VehicleWithRelations } from '../types/vehicle.types';
 
 interface TeamObject {
@@ -158,6 +158,126 @@ export function VehicleDetailCards({
               لا يوجد سائق معين للمركبة حالياً
             </span>
           )}
+        </div>
+      </div>
+
+      {/* Card 4: Fuel & Odometer Specs */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <Fuel className="w-4 h-4 text-amber-500" />
+          مواصفات الوقود والعداد
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">سعة الخزان:</span>
+            <span className="font-bold text-[var(--text)] font-mono">
+              {vehicle.tankCapacity ? `${vehicle.tankCapacity} لتر` : 'غير محدد'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">نوع الوقود:</span>
+            <span className="font-semibold text-amber-600 dark:text-amber-400">
+              {vehicle.fuelType || 'بنزين 91'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">قراءة العداد:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.currentOdometer ? `${vehicle.currentOdometer.toLocaleString()} كم` : '0 كم'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">الكفاءة المتوقعة:</span>
+            <span className="font-mono text-[var(--text)]">
+              {vehicle.expectedFuelEfficiency ? `${vehicle.expectedFuelEfficiency} كم/لتر` : 'غير محدد'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Card 5: Vehicle Registration / License */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <FileText className="w-4 h-4 text-purple-500" />
+          رخصة السير (الاستمارة)
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">رقم الاستمارة:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.licenseNumber || 'غير مسجل'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">تاريخ الانتهاء:</span>
+            <span className="font-bold text-[var(--text)]">
+              {vehicle.licenseExpiry
+                ? new Date(vehicle.licenseExpiry).toLocaleDateString('ar-EG')
+                : 'غير محدد'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">حالة الاستمارة:</span>
+            {vehicle.licenseExpiry ? (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  new Date(vehicle.licenseExpiry) < new Date()
+                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {new Date(vehicle.licenseExpiry) < new Date() ? 'منتهية الصلاحية' : 'سارية'}
+              </span>
+            ) : (
+              <span className="text-[var(--muted)]">غير مدخل</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Card 6: Insurance Policy */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <Shield className="w-4 h-4 text-emerald-500" />
+          وثيقة التأمين
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">شركة التأمين:</span>
+            <span className="font-semibold text-[var(--text)]">
+              {vehicle.insuranceCompany || 'غير مسجل'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">نوع التأمين:</span>
+            <span className="font-semibold text-[var(--text)]">
+              {vehicle.insuranceType === 'third_party' ? 'ضد الغير (إلزامي)' : 'تأمين شامل'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">تاريخ الانتهاء:</span>
+            <span className="font-bold text-[var(--text)]">
+              {vehicle.insuranceExpiry
+                ? new Date(vehicle.insuranceExpiry).toLocaleDateString('ar-EG')
+                : 'غير محدد'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">حالة التأمين:</span>
+            {vehicle.insuranceExpiry ? (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  new Date(vehicle.insuranceExpiry) < new Date()
+                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {new Date(vehicle.insuranceExpiry) < new Date() ? 'منتهي الصلاحية' : 'ساري'}
+              </span>
+            ) : (
+              <span className="text-[var(--muted)]">غير مدخل</span>
+            )}
+          </div>
         </div>
       </div>
     </div>

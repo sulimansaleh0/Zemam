@@ -20,19 +20,29 @@ export interface BackendVehicle {
   _id: string;
   model: string;          // اسم وموديل المركبة
   year: number;           // سنة الصنع
-  plateNumber: number;    // رقم اللوحة
+  plateNumber: string | number; // رقم اللوحة (يدعم النصوص والأرقام العربية والإنجليزية)
+  vehicleType?: 'normal' | 'van' | 'truck'; // نوع المركبة (خفيف / متوسط / ثقيل)
+  tankCapacity?: number;  // سعة خزان الوقود باللتر
+  fuelType?: string;      // نوع الوقود (بنزين 91، بنزين 95، ديزل، هجين، كهربائي)
   currentOdometer?: number; // قراءة العداد الحالية
+  expectedFuelEfficiency?: number; // كفاءة الوقود المتوقعة (كم/لتر)
   isInTask: boolean;      // هل المركبة في مهمة حالياً
-  status: VehicleStatus;  // حالة المركبة (active / inactive)
+  status: VehicleStatus;  // حالة المركبة (active / inactive / in_maintenance)
+  insuranceNumber?: string; // رقم وثيقة التأمين
+  insuranceCompany?: string; // شركة التأمين
+  insuranceType?: 'comprehensive' | 'third_party'; // نوع التأمين (شامل / ضد الغير)
+  insuranceExpiry?: string; // تاريخ انتهاء التأمين
+  licenseNumber?: string;   // رقم رخصة السير / الاستمارة
+  licenseExpiry?: string;   // تاريخ انتهاء رخصة السير
   teamId?: string | TeamSummary | null;
   companyId: string;
-  driverId?: string | DriverSummary | null;      // معرف أو كائن السائق المعين (إن وجد)
+  driverId?: string | DriverSummary | null; // معرف أو كائن السائق المعين (إن وجد)
   createdAt?: string;
   updatedAt?: string;
 }
 
 /** حالة المركبة المعتمدة في الباك اند */
-export type VehicleStatus = 'active' | 'inactive';
+export type VehicleStatus = 'active' | 'inactive' | 'in_maintenance';
 
 /** واجهة المركبة الموسعة في الفرونت إند مع تفاصيل السائق المدمج */
 export interface VehicleWithRelations extends BackendVehicle {
@@ -49,6 +59,18 @@ export interface CreateVehicleInput {
   year: number;
   plateNumber: number;
   teamId?: string;
+  vehicleType?: 'normal' | 'van' | 'truck';
+  tankCapacity?: number;
+  fuelType?: string;
+  currentOdometer?: number;
+  expectedFuelEfficiency?: number;
+  licenseNumber?: string;
+  licenseExpiry?: string;
+  insuranceCompany?: string;
+  insuranceNumber?: string;
+  insuranceType?: 'comprehensive' | 'third_party';
+  insuranceExpiry?: string;
+  driverId?: string;
 }
 
 /** البيانات المطلوبة لتعيين سائق لمركبة */

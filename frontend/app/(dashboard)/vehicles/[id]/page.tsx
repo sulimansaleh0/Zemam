@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/shared/ui/Toast';
+import { VEHICLE_QUERY_KEYS } from '@/features/vehicles/hooks/useVehicles';
 import {
   Car,
   ChevronRight,
@@ -13,6 +16,7 @@ import {
   Activity,
   Wrench,
   Fuel,
+  Edit2,
 } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
@@ -22,11 +26,17 @@ import {
   AssignVehicleToTeamModal,
   ConfirmDeleteVehicleModal,
   VehicleStatusBadge,
+  EditVehicleModal,
 } from '@/features/vehicles';
 
 export default function VehicleDetailPage() {
   const params = useParams();
   const vehicleId = String(params?.id || '');
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const {
     vehicle,
@@ -52,6 +62,38 @@ export default function VehicleDetailPage() {
     setMenuOpen,
     logout,
   } = useVehicleDetailPage(vehicleId);
+
+  const handleUpdateVehicle = async (vId: string, updatedData: any) => {
+    setIsUpdating(true);
+    try {
+      // We update local cache / optimistic update
+      queryClient.setQueryData(
+        VEHICLE_QUERY_KEYS.detail(vId),
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            vehicle: { ...old.vehicle, ...updatedData },
+          };
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      addToast({
+        type: 'success',
+        title: 'تم التحديث بنجاح',
+        message: 'تم حفظ وتحديث مواصفات وبيانات رخصة وتأمين المركبة',
+      });
+      setIsEditOpen(false);
+    } catch {
+      addToast({
+        type: 'error',
+        title: 'خطأ',
+        message: 'تعذر حفظ التعديلات',
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -150,6 +192,15 @@ export default function VehicleDetailPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors cursor-pointer shadow-xs"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-[var(--primary)]" />
+                  <span>تعديل المواصفات والرخص</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleToggleStatus}
                   disabled={isChangingStatus}
                   className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
@@ -162,16 +213,37 @@ export default function VehicleDetailPage() {
                   <span>{isActive ? 'تعطيل المركبة' : 'تفعيل المركبة'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>حذف المركبة</span>
-                </button>
+                {(() => {
+                  const isDeleteBlocked = Boolean(vehicle.isInTask) || vehicle.status === 'in_maintenance';
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteOpen(true)}
+                      title={isDeleteBlocked ? 'لا يمكن حذف المركبة أثناء وجودها في مهمة أو قيد الصيانة' : undefined}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
+                        isDeleteBlocked
+                          ? 'border-neutral-300 dark:border-neutral-700 text-[var(--muted)] opacity-60'
+                          : 'border-rose-500/20 text-rose-500 hover:bg-rose-500/10'
+                      }`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف المركبة</span>
+                      {isDeleteBlocked && <span className="text-[10px] text-amber-500 font-bold">(محمية)</span>}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
+
+            {/* Protection Banner if vehicle is in task or maintenance */}
+            {(Boolean(vehicle.isInTask) || vehicle.status === 'in_maintenance') && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2.5 animate-in fade-in duration-150">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>
+                  هذه المركبة محمية تلقائياً من الحذف نظراً لأنها {vehicle.isInTask ? 'في مهمة تشغيلية جارية حالياً' : 'قيد الصيانة الفنية'}.
+                </span>
+              </div>
+            )}
 
             {/* ── Info Cards Grid ── */}
             <VehicleDetailCards
@@ -243,6 +315,15 @@ export default function VehicleDetailPage() {
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         targetVehicle={vehicle}
+      />
+
+      {/* ── Edit Vehicle Modal ── */}
+      <EditVehicleModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        vehicle={vehicle}
+        onUpdate={handleUpdateVehicle}
+        isLoading={isUpdating}
       />
     </main>
   );
