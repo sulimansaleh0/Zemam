@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { UserCheck, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
@@ -10,9 +10,12 @@ import {
   DeleteManagerModal,
   AssignManagerTeamModal,
   ManagerStatsCards,
+  ManagerDetailModal,
+  type FleetManager,
 } from '@/features/managers';
 
 export default function ManagersPage() {
+  const [selectedManagerForDetail, setSelectedManagerForDetail] = useState<FleetManager | null>(null);
   const {
     isFleetManager,
     userName,
@@ -154,6 +157,7 @@ export default function ManagersPage() {
                 onAssignTeamClick={(manager) => setSelectedManagerForAssign(manager)}
                 onDisableTeamClick={handleDisableTeam}
                 onToggleStatusClick={handleToggleStatus}
+                onViewDetailClick={(manager) => setSelectedManagerForDetail(manager)}
               />
             </section>
 
@@ -191,6 +195,12 @@ export default function ManagersPage() {
         onClose={() => setSelectedManagerForAssign(null)}
         manager={selectedManagerForAssign}
         teams={teamsList}
+      />
+
+      <ManagerDetailModal
+        isOpen={Boolean(selectedManagerForDetail)}
+        onClose={() => setSelectedManagerForDetail(null)}
+        manager={selectedManagerForDetail}
       />
     </main>
   );

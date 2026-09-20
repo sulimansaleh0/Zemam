@@ -11,6 +11,8 @@ export interface FleetManager {
   updatedAt?: string;
 }
 
+export type BackendFleetManager = FleetManager;
+
 export interface FleetManagersResponse {
   fleetManagers: FleetManager[];
 }
