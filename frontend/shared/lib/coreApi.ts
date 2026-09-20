@@ -34,6 +34,9 @@ async function executeRefreshToken(): Promise<boolean> {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     });
+    if (!res.ok && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:session_expired'));
+    }
     return res.ok;
   } catch {
     return false;
@@ -94,7 +97,14 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
     clearTimeout(timeoutId);
 
     const text = await res.text();
-    const body = text ? JSON.parse(text) : null;
+    let body: any = null;
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = null;
+      }
+    }
 
     if (!res.ok) {
       const isAuthEndpoint =
@@ -113,9 +123,40 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
         if (refreshed) {
           return sendRequest<T>(path, { ...options, _retry: true });
         }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:session_expired'));
+        }
       }
 
-      const msg = body?.msg ?? fallbackMessage(res.status);
+      // استخراج رسالة الخطأ التفصيلية من الباك إند
+      let msg = '';
+      if (body) {
+        if (typeof body.msg === 'string' && body.msg.trim()) {
+          msg = body.msg.trim();
+        } else if (typeof body.message === 'string' && body.message.trim()) {
+          msg = body.message.trim();
+        } else if (typeof body.error === 'string' && body.error.trim()) {
+          msg = body.error.trim();
+        } else if (typeof body.error === 'object' && body.error?.message) {
+          msg = String(body.error.message).trim();
+        } else if (Array.isArray(body.errors) && body.errors.length > 0) {
+          msg = body.errors
+            .map((e: any) => (typeof e === 'string' ? e : e.msg || e.message || JSON.stringify(e)))
+            .filter(Boolean)
+            .join(', ');
+        } else if (typeof body.errors === 'string' && body.errors.trim()) {
+          msg = body.errors.trim();
+        }
+      }
+
+      if (!msg && text && !text.trim().startsWith('<') && text.trim().length < 300) {
+        msg = text.trim();
+      }
+
+      if (!msg) {
+        msg = fallbackMessage(res.status);
+      }
+
       return { 
         success: false, 
         status: res.status, 
@@ -171,6 +212,18 @@ export function postRequest<T>(path: string, body: unknown, options?: RequestOpt
  */
 export function patchRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
   return sendRequest<T>(path, { method: 'PATCH', body: JSON.stringify(body), ...options });
+}
+
+/**
+ * دالة مساعدة لطلبات PUT
+ */
+export function putRequest<T>(path: string, body: unknown, options?: RequestOptions): Promise<ServiceResult<T>> {
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  return sendRequest<T>(path, {
+    method: 'PUT',
+    body: isFormData ? (body as FormData) : JSON.stringify(body),
+    ...options,
+  });
 }
 
 /**
