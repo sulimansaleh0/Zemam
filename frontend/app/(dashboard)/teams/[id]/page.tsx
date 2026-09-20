@@ -201,8 +201,17 @@ export default function TeamDetailPage() {
 
             {/* ── Complete Team Statistics (Admin View) ── */}
             {(() => {
-              const totalFuelCost = statics?.FuelRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
-              const totalMaintenanceCost = statics?.maintenanceRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
+              const totalFuelCost = typeof statics?.FuelRecordsCost === 'number'
+                ? statics.FuelRecordsCost
+                : Array.isArray(statics?.FuelRecordsCost)
+                ? (statics.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+                : 0;
+
+              const totalMaintenanceCost = typeof statics?.maintenanceRecordsCost === 'number'
+                ? statics.maintenanceRecordsCost
+                : Array.isArray(statics?.maintenanceRecordsCost)
+                ? (statics.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+                : 0;
 
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

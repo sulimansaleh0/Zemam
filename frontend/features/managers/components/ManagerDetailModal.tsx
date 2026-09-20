@@ -20,6 +20,7 @@ import {
 import { Modal } from '@/shared/ui/Modal';
 import { useQuery } from '@tanstack/react-query';
 import { teamService } from '@/features/teams/services/team.service';
+import { managerService } from '../services/manager.service';
 import { useVehicles } from '@/features/vehicles';
 import { useDriversList } from '@/features/drivers';
 import type { FleetManager } from '../types/manager.types';
@@ -46,6 +47,16 @@ export function ManagerDetailModal({
     typeof manager?.teamId === 'object' && manager?.teamId !== null
       ? (manager?.teamId as any).name
       : null;
+
+  // Fetch direct manager stats from backend
+  const { data: managerStats, isLoading: isLoadingManagerStats } = useQuery({
+    queryKey: ['manager-stats', manager?._id],
+    queryFn: async () => {
+      if (!manager?._id) return null;
+      return await managerService.getManagerStats(manager._id);
+    },
+    enabled: Boolean(isOpen && manager?._id),
+  });
 
   // Fetch team stats if manager has a team
   const { data: teamStats, isLoading: isLoadingStats } = useQuery({
@@ -76,8 +87,22 @@ export function ManagerDetailModal({
   const inTaskVehicles = managerVehicles.filter((v) => v.isInTask).length;
   const activeDrivers = managerDrivers.filter((d) => d.status === 'active').length;
 
-  const fuelCost = teamStats?.FuelRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
-  const maintenanceCost = teamStats?.maintenanceRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
+  const teamFuelCost = typeof teamStats?.FuelRecordsCost === 'number'
+    ? teamStats.FuelRecordsCost
+    : Array.isArray(teamStats?.FuelRecordsCost)
+    ? (teamStats.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+    : 0;
+  const fuelCost = managerStats?.fuelCost ?? teamFuelCost;
+
+  const teamMaintenanceCost = typeof teamStats?.maintenanceRecordsCost === 'number'
+    ? teamStats.maintenanceRecordsCost
+    : Array.isArray(teamStats?.maintenanceRecordsCost)
+    ? (teamStats.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+    : 0;
+  const maintenanceCost = managerStats?.maintenanceCost ?? teamMaintenanceCost;
+  const totalTasks = managerStats?.totalTasks ?? (teamStats?.totalTasks ?? 0);
+  const completedTasks = managerStats?.completedTasks ?? (teamStats?.finishedTasks ?? 0);
+  const delayedTasks = managerStats?.delayedTasks ?? 0;
 
   return (
     <Modal
@@ -187,15 +212,16 @@ export function ManagerDetailModal({
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
               </div>
               <div className="text-lg font-bold text-[var(--text)]">
-                {teamStats?.finishedTasks ?? 0}
+                {completedTasks}
                 <span className="text-[10px] text-[var(--muted)] font-normal mr-1">
-                  / {teamStats?.totalTasks ?? 0}
+                  / {totalTasks}
                 </span>
               </div>
-              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                {teamStats?.totalTasks
-                  ? `${Math.round(((teamStats.finishedTasks || 0) / teamStats.totalTasks) * 100)}% إتمام`
-                  : 'لا توجد مهام'}
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center justify-between">
+                <span>{totalTasks ? `${Math.round((completedTasks / totalTasks) * 100)}% إتمام` : 'لا توجد مهام'}</span>
+                {delayedTasks > 0 && (
+                  <span className="text-rose-500 font-normal">({delayedTasks} متأخرة)</span>
+                )}
               </div>
             </div>
 

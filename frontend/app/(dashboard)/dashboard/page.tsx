@@ -80,8 +80,17 @@ export default function DashboardPage() {
   const activeVehiclesCount = displayedVehicles.filter((v) => v.status === 'active').length;
   const activeDriversCount = displayedDrivers.filter((d) => d.status === 'active').length;
 
-  const fleetFuelCost = teamStatics?.FuelRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
-  const fleetMaintenanceCost = teamStatics?.maintenanceRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
+  const fleetFuelCost = typeof teamStatics?.FuelRecordsCost === 'number'
+    ? teamStatics.FuelRecordsCost
+    : Array.isArray(teamStatics?.FuelRecordsCost)
+    ? (teamStatics.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+    : 0;
+
+  const fleetMaintenanceCost = typeof teamStatics?.maintenanceRecordsCost === 'number'
+    ? teamStatics.maintenanceRecordsCost
+    : Array.isArray(teamStatics?.maintenanceRecordsCost)
+    ? (teamStatics.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+    : 0;
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">

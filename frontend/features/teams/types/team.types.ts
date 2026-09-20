@@ -40,12 +40,12 @@ export interface TeamStatics {
   totalVehicles: number;
   activeVehicles: number;
   availableVehicles: number;
-  FuelRecordsCost: { totalCost: number }[];
+  FuelRecordsCost: number | { totalCost: number }[];
   FuelRecords: number;
   approvedFuelRecords: number;
   declinedFuelRecords: number;
   pendingFuelRecords: number;
-  maintenanceRecordsCost: { totalCost: number }[];
+  maintenanceRecordsCost: number | { totalCost: number }[];
   maintenanceRecords: number;
   approvedMaintenanceRecords: number;
   declinedMaintenanceRecords: number;
@@ -54,3 +54,9 @@ export interface TeamStatics {
 
 export type TeamSortOrder = 'newest' | 'oldest' | 'name';
 export type TeamFilterStatus = 'all' | 'assigned' | 'unassigned';
+
+export interface AssignTeamResourcesInput {
+  driverIds?: string[];
+  vehicleIds?: string[];
+}
+
