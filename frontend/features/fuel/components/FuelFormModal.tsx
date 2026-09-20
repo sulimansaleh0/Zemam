@@ -18,6 +18,7 @@ import {
   Truck,
   UploadCloud,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import {
@@ -48,6 +49,7 @@ export function FuelFormModal({
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -121,6 +123,7 @@ export function FuelFormModal({
     setImageError(null);
     setGpsLocation(null);
     setLocationError(null);
+    setFormError(null);
     onClose();
   };
 
@@ -143,16 +146,22 @@ export function FuelFormModal({
       setImageError('صورة إيصال أو فاتورة الوقود مطلوبة إجبارياً');
       return;
     }
+    setFormError(null);
 
-    await onSubmit({
-      vehicleId: values.vehicleId,
-      cost: values.cost,
-      qty: values.qty,
-      odometer: values.odometer,
-      isFullTank: values.isFullTank,
-      image: selectedFile,
-    });
-    handleClose();
+    try {
+      await onSubmit({
+        vehicleId: values.vehicleId,
+        cost: values.cost,
+        qty: values.qty,
+        odometer: values.odometer,
+        isFullTank: values.isFullTank,
+        image: selectedFile,
+        location: gpsLocation ? { lat: gpsLocation.lat, lng: gpsLocation.lng } : undefined,
+      });
+      handleClose();
+    } catch (err: any) {
+      setFormError(err?.message || 'تعذر توثيق إيصال الوقود، يرجى التحقق من البيانات والمحاولة مجدداً');
+    }
   };
 
   return (
@@ -165,6 +174,12 @@ export function FuelFormModal({
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col flex-1 min-h-0" dir="rtl">
+        {formError && (
+          <div className="mx-5 mt-4 sm:mx-6 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* الجسم القابل للتمرير */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           {/* اختيار المركبة */}

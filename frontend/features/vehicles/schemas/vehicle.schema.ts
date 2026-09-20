@@ -17,10 +17,10 @@ export const vehicleFormSchema = z.object({
     .min(1900, 'سنة الصنع يجب أن تكون بعد عام 1900')
     .max(new Date().getFullYear() + 1, 'سنة الصنع لا تتجاوز العام القادم'),
 
-  plateNumber: z.coerce
-    .number({ invalid_type_error: 'رقم اللوحة يجب أن يكون رقماً' })
-    .int('رقم اللوحة يجب أن يكون عدداً صحيحاً')
-    .positive('رقم اللوحة يجب أن يكون أكبر من صفر'),
+  plateNumber: z
+    .string()
+    .trim()
+    .min(1, 'رقم اللوحة مطلوب'),
 
   vehicleType: z.enum(['normal', 'van', 'truck']).default('normal'),
   tankCapacity: z.coerce

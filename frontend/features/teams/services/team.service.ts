@@ -76,4 +76,14 @@ export const teamService = {
     }
     return result.data?.statics ?? null;
   },
+
+  /**
+   * تعيين موارد (سائقين ومركبات) دفعة واحدة للفريق
+   */
+  async assignResources(teamId: string, payload: { driverIds?: string[]; vehicleIds?: string[] }): Promise<void> {
+    const result = await patchRequest<void>(API_PATHS.TEAMS.ASSIGN_RESOURCES(teamId), payload);
+    if (!result.success) {
+      throw new Error(result.message || 'فشل في تعيين الموارد للفريق');
+    }
+  },
 };

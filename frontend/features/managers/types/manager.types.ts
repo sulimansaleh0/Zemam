@@ -34,3 +34,17 @@ export interface ChangeManagerStatusInput {
 
 export type ManagerFilterStatus = 'all' | 'active' | 'inactive';
 export type ManagerSortOrder = 'newest' | 'oldest' | 'name';
+
+export interface ManagerStats {
+  totalTasks: number;
+  completedTasks: number;
+  delayedTasks: number;
+  fuelCost: number;
+  maintenanceCost: number;
+  driverScore?: number;
+}
+
+export interface ManagerStatsResponse {
+  stats: ManagerStats;
+}
+

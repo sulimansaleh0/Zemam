@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserPlus, Mail, Users, Key, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Users, Key, Loader2, AlertCircle } from 'lucide-react';
 import {
   createManagerSchema,
   CreateManagerFormValues,
@@ -25,6 +25,7 @@ export function CreateManagerModal({
   teams,
   initialTeamId,
 }: CreateManagerModalProps) {
+  const [formError, setFormError] = useState<string | null>(null);
   const createManagerMutation = useCreateManager();
 
   const {
@@ -44,6 +45,7 @@ export function CreateManagerModal({
 
   useEffect(() => {
     if (isOpen) {
+      setFormError(null);
       reset({
         name: '',
         phone: '',
@@ -57,6 +59,7 @@ export function CreateManagerModal({
 
   const onSubmit = async (values: CreateManagerFormValues) => {
     if (isPending) return;
+    setFormError(null);
     try {
       await createManagerMutation.mutateAsync({
         email: values.email.trim(),
@@ -65,8 +68,8 @@ export function CreateManagerModal({
         teamId: values.teamId,
       });
       onClose();
-    } catch {
-      // Handled by Toast in hook
+    } catch (err: any) {
+      setFormError(err?.message || 'تعذر إضافة مدير الأسطول، حاول مرة أخرى');
     }
   };
 
@@ -82,6 +85,12 @@ export function CreateManagerModal({
       preventClose={isPending}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        {formError && (
+          <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* Name */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-[var(--text)] block">

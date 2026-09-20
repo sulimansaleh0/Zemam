@@ -70,15 +70,17 @@ export function useCreateTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: CreateTaskInput) => taskService.createTask(data),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم إنشاء المهمة وتعيينها بنجاح' });
-        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل إنشاء المهمة' });
+    mutationFn: async (data: CreateTaskInput) => {
+      const res = await taskService.createTask(data);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل إنشاء المهمة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم إنشاء المهمة وتعيينها بنجاح' });
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
@@ -94,16 +96,17 @@ export function useUpdateTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTaskInput }) =>
-      taskService.updateTask(id, data),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم تحديث بيانات المهمة بنجاح' });
-        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل تعديل المهمة' });
+    mutationFn: async ({ id, data }: { id: string; data: UpdateTaskInput }) => {
+      const res = await taskService.updateTask(id, data);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل تعديل المهمة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم تحديث بيانات المهمة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
@@ -119,15 +122,17 @@ export function useAcceptTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (id: string) => taskService.acceptTask(id),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم قبول وبدء تنفيذ المهمة بنجاح' });
-        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل قبول المهمة' });
+    mutationFn: async (id: string) => {
+      const res = await taskService.acceptTask(id);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل قبول المهمة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم قبول وبدء تنفيذ المهمة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
@@ -143,15 +148,17 @@ export function useFinishTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (id: string) => taskService.finishTask(id),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم إنهاء وتسليم المهمة بنجاح' });
-        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل إنهاء المهمة' });
+    mutationFn: async (id: string) => {
+      const res = await taskService.finishTask(id);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل إنهاء المهمة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم إنهاء وتسليم المهمة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
@@ -167,16 +174,17 @@ export function useDeclineTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: ({ id, declineReason }: { id: string; declineReason?: string }) =>
-      taskService.declineTask(id, declineReason),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم إلغاء المهمة بنجاح' });
-        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل إلغاء المهمة' });
+    mutationFn: async ({ id, declineReason }: { id: string; declineReason?: string }) => {
+      const res = await taskService.declineTask(id, declineReason);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل إلغاء المهمة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم إلغاء المهمة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });

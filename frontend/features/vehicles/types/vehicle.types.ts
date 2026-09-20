@@ -57,7 +57,7 @@ export interface VehicleWithRelations extends BackendVehicle {
 export interface CreateVehicleInput {
   model: string;
   year: number;
-  plateNumber: number;
+  plateNumber: string | number;
   teamId?: string;
   vehicleType?: 'normal' | 'van' | 'truck';
   tankCapacity?: number;
@@ -82,3 +82,37 @@ export interface AssignDriverInput {
 export interface ChangeVehicleStatusInput {
   status: VehicleStatus;
 }
+
+/** البيانات المطلوبة لتعديل بيانات مركبة */
+export interface UpdateVehicleInput {
+  model?: string;
+  year?: number;
+  plateNumber?: string | number;
+  vehicleType?: 'normal' | 'van' | 'truck';
+  tankCapacity?: number;
+  fuelType?: string;
+  currentOdometer?: number;
+  expectedFuelEfficiency?: number;
+  registrationNumber?: string;
+  licenseNumber?: string;
+  licenseExpiry?: string;
+  issuingAuthority?: string;
+  insuranceCompany?: string;
+  insuranceNumber?: string;
+  insuranceType?: 'comprehensive' | 'third_party';
+  insuranceExpiry?: string;
+}
+
+/** إحصائيات تشغيل المركبة من الباك إند */
+export interface VehicleStats {
+  distance: number;
+  totalFuel: number;
+  totalFuelCost: number;
+  totalMaintenanceCost: number;
+  fuelEfficiency: number;
+}
+
+export interface VehicleStatsResponse {
+  stats: VehicleStats;
+}
+

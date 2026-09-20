@@ -15,6 +15,7 @@ import {
   UploadCloud,
   Wrench,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import {
@@ -41,6 +42,7 @@ export function MaintenanceFormModal({
 }: MaintenanceFormModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -77,6 +79,7 @@ export function MaintenanceFormModal({
     reset();
     setSelectedFiles([]);
     setFilePreviews([]);
+    setFormError(null);
     onClose();
   };
 
@@ -101,16 +104,21 @@ export function MaintenanceFormModal({
   };
 
   const onFormSubmit = async (values: CreateMaintenanceFormValues) => {
-    await onSubmit({
-      vehicleId: values.vehicleId,
-      description: values.description,
-      category: values.category,
-      priority: values.priority,
-      cost: values.cost,
-      odoMeter: values.odoMeter,
-      images: selectedFiles,
-    });
-    handleClose();
+    setFormError(null);
+    try {
+      await onSubmit({
+        vehicleId: values.vehicleId,
+        description: values.description,
+        category: values.category,
+        priority: values.priority,
+        cost: values.cost,
+        odoMeter: values.odoMeter,
+        images: selectedFiles,
+      });
+      handleClose();
+    } catch (err: any) {
+      setFormError(err?.message || 'تعذر توثيق طلب الصيانة، يرجى التحقق من البيانات والمحاولة مجدداً');
+    }
   };
 
   return (
@@ -123,6 +131,12 @@ export function MaintenanceFormModal({
       maxWidth="3xl"
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col flex-1 min-h-0" dir="rtl">
+        {formError && (
+          <div className="mx-5 mt-4 sm:mx-6 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* الجسم القابل للتمرير */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           {/* تحذير الأولوية العالية */}

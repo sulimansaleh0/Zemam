@@ -151,6 +151,36 @@ export function useDeleteTeam() {
   });
 }
 
+/**
+ * Hook to assign resources (drivers and vehicles) to a team
+ */
+export function useAssignResources() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ teamId, payload }: { teamId: string; payload: { driverIds?: string[]; vehicleIds?: string[] } }) =>
+      teamService.assignResources(teamId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      addToast({
+        type: 'success',
+        title: 'تم تعيين الموارد',
+        message: 'تم تعيين الموارد المحددة للفريق بنجاح',
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'خطأ في التعيين',
+        message: err.message || 'تعذر تعيين الموارد للفريق',
+      });
+    },
+  });
+}
+
 // ============================================================
 //  Page Hooks
 // ============================================================

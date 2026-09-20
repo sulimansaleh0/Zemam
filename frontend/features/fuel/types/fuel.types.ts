@@ -20,6 +20,12 @@ export interface PopulatedUser {
   email: string;
 }
 
+export interface FuelLocation {
+  lat?: number;
+  lng?: number;
+  address?: string;
+}
+
 export interface BackendFuelRecord {
   _id: string;
   vehicleId: string | PopulatedVehicle;
@@ -38,6 +44,7 @@ export interface BackendFuelRecord {
   fuelIssueType?: FuelIssueType;
   fuelIssueMessage?: string | null;
   nextOdoMeter?: number | null;
+  location?: FuelLocation;
   status: FuelStatus;
   createdAt: string;
   updatedAt: string;
@@ -60,6 +67,7 @@ export interface CreateFuelInput {
   odometer: number;
   isFullTank: boolean;
   image: File; // صورة فاتورة الوقود مطلوبة إجبارياً
+  location?: FuelLocation;
 }
 
 export interface VerifyFuelInput {

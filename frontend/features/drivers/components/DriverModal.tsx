@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Building,
+  AlertCircle,
 } from 'lucide-react';
 import { createDriverSchema, type CreateDriverFormValues } from '../schemas/driver.schema';
 import { useTeams } from '@/features/teams';
@@ -46,6 +47,7 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
   const [selectedLicenseTypes, setSelectedLicenseTypes] = useState<('normal' | 'van' | 'truck')[]>([
     'normal',
   ]);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
@@ -95,6 +97,7 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
 
   const onSubmit = handleSubmit(async (data) => {
     if (isLoading || isSubmitting) return;
+    setFormError(null);
     try {
       await onSave({
         email: data.email.trim(),
@@ -106,10 +109,12 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
         licenseTypes: selectedLicenseTypes,
         licenseExpiry: data.licenseExpiry || undefined,
       });
-    } catch (error) {
-      setError('email', {
-        message: error instanceof Error ? error.message : 'حدث خطأ، حاول مرة أخرى',
-      });
+    } catch (error: any) {
+      const msg = error instanceof Error ? error.message : 'حدث خطأ، حاول مرة أخرى';
+      setFormError(msg);
+      if (msg.toLowerCase().includes('email') || msg.includes('البريد')) {
+        setError('email', { message: msg });
+      }
     }
   });
 
@@ -126,6 +131,12 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
       aria-labelledby="add-driver-title"
     >
       <form onSubmit={onSubmit} noValidate className="p-6 space-y-5">
+        {formError && (
+          <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* Section 1: Personal and Account info */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">

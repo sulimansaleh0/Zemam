@@ -27,6 +27,8 @@ export const API_PATHS = {
     LIST:          'api/vehicle',
     DETAIL:        (id: string) => `api/vehicle/${id}`,
     CREATE:        'api/vehicle',
+    UPDATE:        (id: string) => `api/vehicle/${id}`,
+    STATS:         (id: string) => `api/vehicle/${id}/stats`,
     DELETE:        (id: string) => `api/vehicle/${id}`,
     CHANGE_STATUS: (id: string) => `api/vehicle/${id}/status`,
     ASSIGN_TEAM:   (vehicleId: string) => `api/vehicle/${vehicleId}/assign-to-team`,
@@ -34,10 +36,11 @@ export const API_PATHS = {
   },
 
   TEAMS: {
-    LIST:    'api/team',
-    CREATE:  'api/team',
-    BY_ID:   (id: string) => `api/team/${id}`,
-    STATICS: 'api/team/statics',
+    LIST:             'api/team',
+    CREATE:           'api/team',
+    BY_ID:            (id: string) => `api/team/${id}`,
+    STATICS:          'api/team/statics',
+    ASSIGN_RESOURCES: (id: string) => `api/team/${id}/resources`,
   },
 
   MANAGERS: {
@@ -47,6 +50,7 @@ export const API_PATHS = {
     ASSIGN:        (id: string) => `api/user/fleet-manager/${id}/assign-to-team`,
     DISABLE:       (id: string) => `api/user/fleet-manager/${id}/remove-from-team`,
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
+    STATS:         (id: string) => `api/user/managers/${id}/stats`,
   },
 
   TASKS: {
@@ -72,6 +76,11 @@ export const API_PATHS = {
     CREATE:        'api/fuel',
     STATS:         'api/fuel/stats',
     VERIFY:        (id: string) => `api/fuel/${id}/verify`,
+  },
+
+  ALERTS: {
+    LIST:          'api/alert',
+    MARK_READ:     (id: string) => `api/alert/${id}/read`,
   },
 
   USER: {

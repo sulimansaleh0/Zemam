@@ -41,6 +41,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
     user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
   const [activeTab, setActiveTab] = useState<TabType>('basic');
+  const [formError, setFormError] = useState<string | null>(null);
   const { data: teamsList = [], isLoading: isLoadingTeams } = useTeams();
   const { drivers: availableDrivers = [], isLoading: isLoadingDrivers } = useAvailableDrivers();
   const createVehicleMutation = useCreateVehicle();
@@ -70,7 +71,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
     defaultValues: {
       model: '',
       year: new Date().getFullYear(),
-      plateNumber: '' as unknown as number,
+      plateNumber: '',
       vehicleType: 'normal',
       tankCapacity: 60,
       fuelType: 'بنزين 91',
@@ -94,10 +95,11 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
   useEffect(() => {
     if (isOpen) {
       setActiveTab('basic');
+      setFormError(null);
       reset({
         model: '',
         year: new Date().getFullYear(),
-        plateNumber: '' as unknown as number,
+        plateNumber: '',
         vehicleType: 'normal',
         tankCapacity: 60,
         fuelType: 'بنزين 91',
@@ -126,13 +128,14 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
 
   const onSubmit = async (values: VehicleFormValues) => {
     if (isPending) return;
+    setFormError(null);
     try {
       const assignedTeamId = isFleetManager && userTeamId ? userTeamId : (values.teamId || undefined);
 
       const newVehicle = await createVehicleMutation.mutateAsync({
         model: values.model.trim(),
         year: Number(values.year),
-        plateNumber: Number(values.plateNumber),
+        plateNumber: String(values.plateNumber).trim(),
         vehicleType: values.vehicleType,
         tankCapacity: values.tankCapacity ? Number(values.tankCapacity) : undefined,
         fuelType: values.fuelType,
@@ -158,8 +161,8 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
       }
 
       onClose();
-    } catch {
-      // Handled by mutation toast
+    } catch (err: any) {
+      setFormError(err?.message || 'تعذر تسجيل المركبة، يرجى التحقق من البيانات والمحاولة مجدداً');
     }
   };
 
@@ -176,6 +179,12 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
       aria-labelledby="vehicle-modal-title"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+        {formError && (
+          <div className="mx-6 mt-4 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* Navigation Tabs */}
         <div className="flex border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-6 pt-3 gap-2 overflow-x-auto text-xs font-semibold">
           <button

@@ -16,6 +16,7 @@ import {
   Activity,
   Wrench,
   Fuel,
+  Gauge,
   Edit2,
 } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
@@ -36,12 +37,13 @@ export default function VehicleDetailPage() {
   const { addToast } = useToast();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
 
   const {
     vehicle,
     teamObj,
     isActive,
+    vehicleStats,
+    isLoadingStats,
     isLoading,
     isError,
     error,
@@ -51,10 +53,12 @@ export default function VehicleDetailPage() {
     setIsAssignTeamOpen,
     isDeleteOpen,
     setIsDeleteOpen,
+    isUpdating,
     isChangingStatus,
     isRemovingTeam,
     isUnassigningDriver,
     handleToggleStatus,
+    handleUpdateVehicle: updateVehicleOnBackend,
     handleRemoveTeam,
     handleUnassignDriver,
     userName,
@@ -64,34 +68,11 @@ export default function VehicleDetailPage() {
   } = useVehicleDetailPage(vehicleId);
 
   const handleUpdateVehicle = async (vId: string, updatedData: any) => {
-    setIsUpdating(true);
     try {
-      // We update local cache / optimistic update
-      queryClient.setQueryData(
-        VEHICLE_QUERY_KEYS.detail(vId),
-        (old: any) => {
-          if (!old) return old;
-          return {
-            ...old,
-            vehicle: { ...old.vehicle, ...updatedData },
-          };
-        }
-      );
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      addToast({
-        type: 'success',
-        title: 'تم التحديث بنجاح',
-        message: 'تم حفظ وتحديث مواصفات وبيانات رخصة وتأمين المركبة',
-      });
+      await updateVehicleOnBackend(updatedData);
       setIsEditOpen(false);
     } catch {
-      addToast({
-        type: 'error',
-        title: 'خطأ',
-        message: 'تعذر حفظ التعديلات',
-      });
-    } finally {
-      setIsUpdating(false);
+      // Toast is handled by hook
     }
   };
 
@@ -259,25 +240,25 @@ export default function VehicleDetailPage() {
 
             {/* ── Operational Status Overview ── */}
             <div className="p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-[var(--text)]">السجلات التشغيلية للمركبة</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[var(--text)]">السجلات التشغيلية للمركبة (بيانات حية)</h3>
+                {isLoadingStats && (
+                  <span className="text-[10px] text-[var(--muted)] flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    جارٍ جلب السجلات...
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                     <Activity className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[var(--muted)] block">المهام المنجزة</span>
-                    <span className="text-lg font-bold text-[var(--text)]">—</span>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                    <Wrench className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-[var(--muted)] block">سجلات الصيانة</span>
-                    <span className="text-lg font-bold text-[var(--text)]">—</span>
+                    <span className="text-[11px] text-[var(--muted)] block">المسافة التشغيلية المقطوعة</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats ? `${vehicleStats.distance.toLocaleString('ar-SA')} كم` : '0 كم'}
+                    </span>
                   </div>
                 </div>
 
@@ -286,8 +267,41 @@ export default function VehicleDetailPage() {
                     <Fuel className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[var(--muted)] block">سجلات الوقود</span>
-                    <span className="text-lg font-bold text-[var(--text)]">—</span>
+                    <span className="text-[11px] text-[var(--muted)] block">إجمالي استهلاك الوقود</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats ? `${vehicleStats.totalFuel.toLocaleString('ar-SA')} لتر` : '0 لتر'}
+                    </span>
+                    {vehicleStats && vehicleStats.totalFuelCost > 0 && (
+                      <span className="text-[10px] text-[var(--muted)] block">
+                        ({vehicleStats.totalFuelCost.toLocaleString('ar-SA')} ر.س)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-[var(--muted)] block">مصروفات الصيانة المعتمدة</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats ? `${vehicleStats.totalMaintenanceCost.toLocaleString('ar-SA')} ر.س` : '0 ر.س'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                    <Gauge className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-[var(--muted)] block">معدل كفاءة الوقود المحققة</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats && vehicleStats.fuelEfficiency > 0
+                        ? `${vehicleStats.fuelEfficiency.toFixed(1)} كم/لتر`
+                        : '—'}
+                    </span>
                   </div>
                 </div>
               </div>

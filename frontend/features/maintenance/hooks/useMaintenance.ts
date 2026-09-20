@@ -88,16 +88,17 @@ export function useCreateMaintenance() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: CreateMaintenanceInput) =>
-      maintenanceService.createMaintenanceRecord(data),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم توثيق طلب الصيانة بنجاح' });
-        queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل توثيق طلب الصيانة' });
+    mutationFn: async (data: CreateMaintenanceInput) => {
+      const res = await maintenanceService.createMaintenanceRecord(data);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل توثيق طلب الصيانة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم توثيق طلب الصيانة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
@@ -113,16 +114,17 @@ export function useVerifyMaintenance() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: VerifyMaintenanceInput) =>
-      maintenanceService.verifyMaintenanceRecord(data),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم تحديث حالة طلب الصيانة بنجاح' });
-        queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل تحديث حالة الصيانة' });
+    mutationFn: async (data: VerifyMaintenanceInput) => {
+      const res = await maintenanceService.verifyMaintenanceRecord(data);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل تحديث حالة الصيانة');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم تحديث حالة طلب الصيانة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
