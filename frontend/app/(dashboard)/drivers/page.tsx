@@ -1,18 +1,16 @@
 'use client';
 
-import { useMemo } from 'react';
+import React from 'react';
 import { AlertCircle, FileDown, Loader2, Plus, RefreshCw, UsersRound } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
-  DetailPanel,
-  DriverDeleteModal,
   DriverMetrics,
+  DriversTable,
   DriverModal,
+  DriverDeleteModal,
   AssignVehicleModal,
   AssignDriverToTeamModal,
-  DriversList,
   useDriversPage,
-  getDriverTeamName,
 } from '@/features/drivers';
 import { useTeams } from '@/features/teams';
 
@@ -20,8 +18,6 @@ export default function DriversPage() {
   const {
     // Data
     drivers,
-    filteredDrivers,
-    selectedDriver,
     metrics,
     // Query state
     isLoading,
@@ -32,18 +28,10 @@ export default function DriversPage() {
     // Mutations state
     isCreating,
     isDeleting,
-    isChangingStatus,
     isAssigningVehicle,
-    isUnassigningVehicle,
     // UI state
-    selectedId,
-    setSelectedId,
     searchQuery,
     setSearchQuery,
-    statusFilter,
-    setStatusFilter,
-    sortOrder,
-    setSortOrder,
     menuOpen,
     setMenuOpen,
     modal,
@@ -63,9 +51,6 @@ export default function DriversPage() {
   } = useDriversPage();
 
   const { data: teamsList = [] } = useTeams();
-  const currentTeamName = useMemo(() => {
-    return getDriverTeamName(selectedDriver?.teamId, teamsList);
-  }, [selectedDriver?.teamId, teamsList]);
 
   return (
     <main className="zamam-drivers zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -96,132 +81,120 @@ export default function DriversPage() {
             userName={userName}
           />
 
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
+          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
             {/* ── Page Hero ── */}
-            <section className="zd-rise mb-7 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--zd-muted)]">
-                  <UsersRound className="h-3.5 w-3.5" /> مساحة التشغيل
-                  <span className="opacity-40">/</span> إدارة السائقين
+                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--primary)] mb-1">
+                  <UsersRound className="w-4 h-4" />
+                  <span>مساحة التشغيل والكوادر</span>
                 </div>
-                <h1 className="text-[26px] font-bold tracking-[-.04em] text-[var(--zd-text)] sm:text-[32px]">
-                  السائقون{' '}
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                  سجل السائقين والكوادر{' '}
                   {!isLoading && (
-                    <span className="mr-1 font-manrope text-[18px] font-semibold text-[var(--zd-blue)]">
+                    <span className="mr-1 font-manrope text-lg font-semibold text-[var(--primary)]">
                       {drivers.length}
                     </span>
                   )}
                 </h1>
-                <p className="mt-1 max-w-[560px] text-[12px] leading-6 text-[var(--zd-muted)]">
-                  تابع فريق السائقين، راقب حالة كل حساب، وأضف أعضاء جدد بسرعة.
+                <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
+                  متابعة أداء السائقين، فئات رخص القيادة والاعتماد، تعيين المركبات والفرق الميدانية
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => refetch()}
                   disabled={isRefetching || isLoading}
-                  className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3.5 py-2.5 text-[11px] font-semibold text-[var(--zd-text)] shadow-xs transition-colors hover:border-[var(--zd-blue)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                   title="تحديث البيانات"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
                   <span>تحديث</span>
                 </button>
                 <button
+                  type="button"
                   onClick={handleExportCSV}
                   disabled={isLoading || drivers.length === 0}
-                  className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-4 py-2.5 text-[11px] font-semibold text-[var(--zd-text)] shadow-xs transition-colors hover:border-[var(--zd-blue)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  <FileDown className="h-4 w-4" /> تصدير (CSV)
+                  <FileDown className="w-4 h-4" />
+                  <span>تصدير (CSV)</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setModal({ type: 'create' })}
-                  className="zd-focus flex items-center gap-2 rounded-xl bg-[var(--zd-blue)] px-5 py-2.5 text-[11px] font-semibold text-white shadow-[0_9px_22px_rgba(37,99,235,.2)] transition-opacity hover:opacity-95"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
                 >
-                  <Plus className="h-4 w-4" /> إضافة سائق
+                  <Plus className="w-4 h-4" />
+                  <span>إضافة سائق</span>
                 </button>
               </div>
-            </section>
-
-            {/* ── Loading State ── */}
-            {isLoading && (
-              <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-[var(--zd-muted)]">
-                <Loader2 className="h-8 w-8 animate-spin text-[var(--zd-blue)]" />
-                <p className="text-[12px]">جارٍ تحميل بيانات السائقين...</p>
-              </div>
-            )}
+            </div>
 
             {/* ── Error State ── */}
             {isError && !isLoading && (
-              <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--zd-red)]/25 bg-[var(--zd-red)]/5 p-8 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--zd-red)]/10 text-[var(--zd-red)]">
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-[15px] font-bold text-[var(--zd-text)]">
-                    تعذّر تحميل السائقين
+                  <h2 className="text-sm font-bold text-[var(--text)]">
+                    تعذّر تحميل بيانات السائقين
                   </h2>
-                  <p className="mt-1 text-[11px] text-[var(--zd-muted)]">
-                    {error instanceof Error ? error.message : 'خطأ في الاتصال بالخادم'}
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    {error instanceof Error ? error.message : 'خطأ أثناء الاتصال بالخادم'}
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => refetch()}
-                  className="zd-focus flex items-center gap-2 rounded-xl border border-[var(--zd-line)] px-4 py-2 text-[11px] font-semibold text-[var(--zd-text)] transition-colors hover:bg-[var(--zd-surface-2)] cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> إعادة المحاولة
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>إعادة المحاولة</span>
                 </button>
+              </div>
+            )}
+
+            {/* ── Loading Skeleton ── */}
+            {isLoading && (
+              <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-[var(--muted)]">
+                <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+                <p className="text-xs">جارٍ تحميل كادر السائقين...</p>
               </div>
             )}
 
             {/* ── Main Content ── */}
             {!isLoading && !isError && (
               <>
+                {/* Stats Cards */}
                 <DriverMetrics metrics={metrics} />
 
-                <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(400px,.85fr)]">
-                  <DriversList
-                    filtered={filteredDrivers}
-                    totalCount={drivers.length}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    query={searchQuery}
-                    setQuery={setSearchQuery}
-                    statusFilter={statusFilter}
-                    setStatusFilter={setStatusFilter}
-                    sortOrder={sortOrder}
-                    setSortOrder={setSortOrder}
-                    onAdd={() => setModal({ type: 'create' })}
-                    onShowAll={() => {
-                      setSearchQuery('');
-                      setStatusFilter('all');
-                    }}
-                  />
-
-                  <DetailPanel
-                    driver={selectedDriver}
-                    teamName={currentTeamName}
-                    onToggleStatus={handleToggleStatus}
-                    onDelete={(driver) => setModal({ type: 'delete', driver })}
-                    onAssignVehicle={(driver) => setModal({ type: 'assign-vehicle', driver })}
-                    onUnassignVehicle={handleUnassignVehicle}
-                    onAssignTeam={handleAssignTeam}
-                    onUnassignTeam={handleUnassignTeam}
-                    isChangingStatus={isChangingStatus}
-                    isUnassigningVehicle={isUnassigningVehicle}
-                  />
-                </div>
+                {/* Unified Full-Width Drivers Table */}
+                <DriversTable
+                  driversData={drivers}
+                  teamsList={teamsList}
+                  isLoadingDrivers={isLoading}
+                  onAddDriverClick={() => setModal({ type: 'create' })}
+                  onToggleStatusClick={handleToggleStatus}
+                  onDeleteDriverClick={(driver) => setModal({ type: 'delete', driver })}
+                  onAssignVehicleClick={(driver) => setModal({ type: 'assign-vehicle', driver })}
+                  onUnassignVehicleClick={handleUnassignVehicle}
+                  onAssignTeamClick={handleAssignTeam}
+                  onUnassignTeamClick={handleUnassignTeam}
+                />
               </>
             )}
 
             {/* ── Footer ── */}
-            <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--zd-line)] pt-5 text-[10px] text-[var(--zd-muted)] transition-colors">
-              <span>زمام لإدارة الأساطيل · إدارة السائقين والعمليات</span>
+            <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-5 text-[10px] text-[var(--muted)] transition-colors">
+              <span>زمام لإدارة الأساطيل · إدارة السائقين والعمليات اللوجستية</span>
               <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--zd-teal)]" />
-                البيانات مباشرة من الخادم
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                البيانات متصلة مباشرة بالخادم
               </span>
             </footer>
           </div>
