@@ -21,6 +21,8 @@ import {
   Shield,
   Clock,
   CheckCheck,
+  Fuel,
+  Wrench,
 } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
@@ -197,44 +199,87 @@ export default function TeamDetailPage() {
               </div>
             </div>
 
-            {/* ── Quick Statics ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                  <span className="text-xs font-semibold">إجمالي السائقين</span>
-                  <Users className="w-4 h-4 text-blue-500" />
-                </div>
-                <div className="text-2xl font-bold text-[var(--text)]">{teamDrivers.length}</div>
-              </div>
+            {/* ── Complete Team Statistics (Admin View) ── */}
+            {(() => {
+              const totalFuelCost = statics?.FuelRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
+              const totalMaintenanceCost = statics?.maintenanceRecordsCost?.reduce((acc, c) => acc + (c.totalCost || 0), 0) ?? 0;
 
-              <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                  <span className="text-xs font-semibold">إجمالي المركبات</span>
-                  <Truck className="w-4 h-4 text-emerald-500" />
-                </div>
-                <div className="text-2xl font-bold text-[var(--text)]">{teamVehicles.length}</div>
-              </div>
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                      <span className="text-xs font-semibold">إجمالي السائقين</span>
+                      <Users className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{teamDrivers.length}</div>
+                    <div className="text-[10px] text-[var(--muted)] mt-1">كادر الفريق</div>
+                  </div>
 
-              <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                  <span className="text-xs font-semibold">المهام المنجزة</span>
-                  <CheckCheck className="w-4 h-4 text-teal-500" />
-                </div>
-                <div className="text-2xl font-bold text-[var(--text)]">
-                  {statics?.finishedTasks ?? 0}
-                </div>
-              </div>
+                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                      <span className="text-xs font-semibold">إجمالي المركبات</span>
+                      <Truck className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{teamVehicles.length}</div>
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">
+                      {statics?.activeVehicles ?? teamVehicles.length} نشطة
+                    </div>
+                  </div>
 
-              <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                  <span className="text-xs font-semibold">المهام قيد التنفيذ</span>
-                  <Clock className="w-4 h-4 text-amber-500" />
+                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                      <span className="text-xs font-semibold">المهام المنجزة</span>
+                      <CheckCheck className="w-4 h-4 text-teal-500" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">
+                      {statics?.finishedTasks ?? 0}
+                    </div>
+                    <div className="text-[10px] text-teal-600 dark:text-teal-400 mt-1">
+                      من أصل {statics?.totalTasks ?? 0} مهمة
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                      <span className="text-xs font-semibold">مهام جارية</span>
+                      <Clock className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">
+                      {statics?.inProgressTasks ?? 0}
+                    </div>
+                    <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                      {statics?.pendingTasks ?? 0} قيد الانتظار
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                      <span className="text-xs font-semibold">مصروفات الوقود</span>
+                      <Fuel className="w-4 h-4 text-sky-500" />
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-[var(--text)] truncate">
+                      {totalFuelCost.toLocaleString('ar-SA')} ر.س
+                    </div>
+                    <div className="text-[10px] text-[var(--muted)] mt-1">
+                      {statics?.FuelRecords ?? 0} سجل وقود
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                      <span className="text-xs font-semibold">مصروفات الصيانة</span>
+                      <Wrench className="w-4 h-4 text-rose-500" />
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-[var(--text)] truncate">
+                      {totalMaintenanceCost.toLocaleString('ar-SA')} ر.س
+                    </div>
+                    <div className="text-[10px] text-[var(--muted)] mt-1">
+                      {statics?.maintenanceRecords ?? 0} أمر صيانة
+                    </div>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-[var(--text)]">
-                  {statics?.inProgressTasks ?? 0}
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* ── Manager Card ── */}
             <div className="p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">

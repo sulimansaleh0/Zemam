@@ -303,25 +303,17 @@ export function TeamsTable({
 
                             {/* Quick Manager Actions */}
                             <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
-                              <button
-                                type="button"
-                                onClick={() => onAssignManagerClick(team)}
-                                title="تغيير مدير الفريق"
-                                className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                              >
-                                <UserPlus className="w-3.5 h-3.5" />
-                              </button>
-
-                              {onRemoveManagerClick && managerId && (
+                              {onRemoveManagerClick && managerId ? (
                                 <button
                                   type="button"
                                   onClick={() => onRemoveManagerClick(managerId, team.name)}
-                                  title="إلغاء تعيين / تعطيل المدير"
-                                  className="p-1 rounded-md text-[var(--muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="فك ارتباط المدير عن الفريق أولاً لتتمكن من تعيين مدير آخر"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition-colors cursor-pointer"
                                 >
                                   <UserMinus className="w-3.5 h-3.5" />
+                                  <span>فك الارتباط</span>
                                 </button>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         ) : (
