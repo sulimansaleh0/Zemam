@@ -88,6 +88,7 @@ export function TaskFormModal({
       vehicleId: '',
       driverId: '',
       startTime: '',
+      expectedEndTime: '',
       pickupLocation: { address: '', lat: '', lng: '' },
       deliveryLocation: { address: '', lat: '', lng: '' },
     },
@@ -174,12 +175,24 @@ export function TaskFormModal({
         }
       }
 
+      let formattedEndTime = '';
+      if (initialTask.expectedEndTime) {
+        try {
+          const d = new Date(initialTask.expectedEndTime);
+          const offset = d.getTimezoneOffset() * 60000;
+          formattedEndTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+        } catch {
+          formattedEndTime = '';
+        }
+      }
+
       reset({
         title: initialTask.title || '',
         description: initialTask.description || '',
         vehicleId: vId,
         driverId: dId,
         startTime: formattedTime,
+        expectedEndTime: formattedEndTime,
         pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
         deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
       });
@@ -190,6 +203,7 @@ export function TaskFormModal({
         vehicleId: '',
         driverId: '',
         startTime: '',
+        expectedEndTime: '',
         pickupLocation: { address: '', lat: '', lng: '' },
         deliveryLocation: { address: '', lat: '', lng: '' },
       });
@@ -205,6 +219,7 @@ export function TaskFormModal({
         vehicleId: values.vehicleId,
         driverId: values.driverId || undefined,
         startTime: new Date(values.startTime).toISOString(),
+        expectedEndTime: values.expectedEndTime ? new Date(values.expectedEndTime).toISOString() : undefined,
         pickupLocation: {
           address: values.pickupLocation.address.trim(),
           lat: values.pickupLocation.lat.trim(),
@@ -370,6 +385,24 @@ export function TaskFormModal({
                 </div>
                 {errors.startTime && (
                   <p className="text-xs text-rose-500">{errors.startTime.message}</p>
+                )}
+              </div>
+
+              {/* موعد التسليم المتوقع */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--zd-text)]">
+                  الوقت المتوقع للتسليم <span className="text-[var(--zd-muted)] text-[11px]">(اختياري)</span>
+                </label>
+                <div className="relative">
+                  <Clock className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <input
+                    type="datetime-local"
+                    {...register('expectedEndTime')}
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  />
+                </div>
+                {errors.expectedEndTime && (
+                  <p className="text-xs text-rose-500">{errors.expectedEndTime.message}</p>
                 )}
               </div>
             </div>

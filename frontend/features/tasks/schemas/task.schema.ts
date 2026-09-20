@@ -16,6 +16,7 @@ export const createTaskSchema = z.object({
   vehicleId: z.string().min(1, 'يرجى اختيار المركبة'),
   driverId: z.string().optional().or(z.literal('')),
   startTime: z.string().min(1, 'يرجى تحديد موعد انطلاق المهمة'),
+  expectedEndTime: z.string().optional(),
   pickupLocation: locationPointSchema,
   deliveryLocation: locationPointSchema,
 });

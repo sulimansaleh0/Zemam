@@ -41,6 +41,7 @@ export interface BackendTask {
   description: string;
   status: TaskStatus;
   startTime: string;
+  expectedEndTime?: string;
   startedAt?: string;
   finishedAt?: string;
   pickupLocation: LocationPoint;
@@ -69,6 +70,7 @@ export interface CreateTaskInput {
   vehicleId: string;
   driverId?: string;
   startTime: string;
+  expectedEndTime?: string;
   pickupLocation: LocationPoint;
   deliveryLocation: LocationPoint;
 }
@@ -79,6 +81,7 @@ export interface UpdateTaskInput {
   vehicleId?: string;
   driverId?: string;
   startTime?: string;
+  expectedEndTime?: string;
   pickupLocation?: LocationPoint;
   deliveryLocation?: LocationPoint;
 }
