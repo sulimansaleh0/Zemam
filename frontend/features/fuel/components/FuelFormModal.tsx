@@ -12,6 +12,8 @@ import {
   Gauge,
   Info,
   Loader2,
+  MapPin,
+  Navigation,
   Receipt,
   Truck,
   UploadCloud,
@@ -43,6 +45,9 @@ export function FuelFormModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -75,16 +80,47 @@ export function FuelFormModal({
     watchedOdometer !== undefined &&
     Number(watchedOdometer) < selectedVehicle.currentOdometer;
 
+  const isQtyExceedingCapacity = Boolean(
+    selectedVehicle?.tankCapacity &&
+    watchedQty &&
+    Number(watchedQty) > selectedVehicle.tankCapacity
+  );
+
   const pricePerLiter =
     watchedCost && watchedQty && Number(watchedQty) > 0
       ? (Number(watchedCost) / Number(watchedQty)).toFixed(2)
       : null;
+
+  const handleGetLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setLocationError('خدمة تحديد الموقع الجغرافي (GPS) غير متوفرة في هذا المتصفح.');
+      return;
+    }
+    setIsGettingLocation(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setIsGettingLocation(false);
+      },
+      (err) => {
+        setLocationError('تعذر تحديد الموقع الجغرافي. يرجى تفعيل إذن الوصول للموقع.');
+        setIsGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleClose = () => {
     reset();
     setSelectedFile(null);
     setFilePreview(null);
     setImageError(null);
+    setGpsLocation(null);
+    setLocationError(null);
     onClose();
   };
 
@@ -241,6 +277,19 @@ export function FuelFormModal({
             </div>
           </div>
 
+          {/* تنبيه تجاوز سعة الخزان */}
+          {isQtyExceedingCapacity && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-400 flex items-start gap-2.5 animate-in fade-in duration-200">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+              <div>
+                <p className="font-bold">تنبيه: كمية الوقود تتجاوز سعة خزان المركبة</p>
+                <p className="text-[11px] text-amber-300 mt-0.5 leading-relaxed">
+                  الكمية المدخلة ({watchedQty} لتر) تتجاوز سعة خزان المركبة المعتمدة ({selectedVehicle?.tankCapacity} لتر). يرجى مراجعة الكمية المسجلة بالفاتورة.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* معاينة سعر اللتر المحسوب تلقائياً */}
           {pricePerLiter && (
             <div className="flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs text-cyan-400">
@@ -267,6 +316,51 @@ export function FuelFormModal({
                 </p>
               </div>
             </label>
+          </div>
+
+          {/* تحديد موقع محطة الوقود (GPS) */}
+          <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-[var(--zd-blue)]" />
+                <span className="text-xs font-bold text-[var(--zd-text)]">موقع محطة الوقود (GPS)</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={isGettingLocation}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--zd-blue)]/10 text-[var(--zd-blue)] hover:bg-[var(--zd-blue)]/20 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              >
+                {isGettingLocation ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Navigation className="h-3.5 w-3.5" />
+                )}
+                <span>{gpsLocation ? 'تحديث الموقع' : 'تحديد موقع المحطة الحالي'}</span>
+              </button>
+            </div>
+            {gpsLocation ? (
+              <div className="flex items-center justify-between text-xs rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-emerald-400">
+                <div className="flex items-center gap-2 font-mono" dir="ltr">
+                  <span>📍 الإحداثيات: {gpsLocation.lat.toFixed(5)}, {gpsLocation.lng.toFixed(5)}</span>
+                </div>
+                <a
+                  href={`https://www.google.com/maps?q=${gpsLocation.lat},${gpsLocation.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-bold text-emerald-400 hover:underline"
+                >
+                  معاينة على خرائط Google ↗
+                </a>
+              </div>
+            ) : (
+              <p className="text-[11px] text-[var(--zd-muted)]">
+                يمكنك توثيق إحداثيات محطة الوقود الحالية لضمان دقة الرقابة الجغرافية وتطابق مسار الرحلة.
+              </p>
+            )}
+            {locationError && (
+              <p className="text-[11px] text-rose-500">{locationError}</p>
+            )}
           </div>
 
           {/* رفع صورة إيصال الدفع */}
@@ -334,7 +428,7 @@ export function FuelFormModal({
 
           <button
             type="submit"
-            disabled={isLoading || Boolean(isOdometerInvalid)}
+            disabled={isLoading || Boolean(isOdometerInvalid) || Boolean(isQtyExceedingCapacity)}
             className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-600 transition disabled:opacity-50 cursor-pointer"
           >
             {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
