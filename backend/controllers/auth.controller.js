@@ -8,6 +8,7 @@ const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
 const { mainStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
+const { userRoles } = require("../data/roles")
 
 // helpers
 const generateToken = async (user) => {
@@ -46,6 +47,9 @@ exports.login = async (req, res) => {
         // Check Password
         const isMatched = await bcrypt.compare(password, user.password)
         if (!isMatched) return error(res, 400, "Check Email or Password")
+        if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
+            return error(res, 403, "Fleet manager must be assigned to an active team")
+        }
 
         // Generate and Store Token
         const token = await generateToken(user)

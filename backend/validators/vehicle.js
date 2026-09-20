@@ -20,8 +20,16 @@ exports.createVehicleSchema = [
         .trim()
         .notEmpty()
         .withMessage("Plate number is required")
-        .isNumeric()
-        .withMessage("Plate number must be a number"),
+        .isString()
+        .withMessage("Plate number must be a string"),
+    body("tankCapacity")
+        .optional()
+        .isFloat({ gt: 0 })
+        .withMessage("Tank capacity must be greater than zero"),
+    body("fuelType")
+        .optional()
+        .isIn(["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"])
+        .withMessage("Invalid fuel type"),
 
     body("vehicleType")
         .optional()

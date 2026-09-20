@@ -53,6 +53,22 @@ const userSchema = new mongoose.Schema({
     licenseExpiry: {
         type: Date
     },
+    driverScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 100
+    },
+    scoreHistory: [{
+        pointsChange: { type: Number, required: true },
+        reason: { type: String, required: true },
+        category: { type: String, required: true },
+        relatedId: { type: mongoose.Schema.Types.ObjectId },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    totalTasksCompleted: { type: Number, default: 0 },
+    delayedTasksCount: { type: Number, default: 0 },
+    faultIncidentsCount: { type: Number, default: 0 },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",
