@@ -1,32 +1,31 @@
 const Team = require("../models/team.model");
 const { userRoles } = require("../data/roles");
-const { serverError, error } = require("../utils/responses")
+const { serverError, error } = require("../utils/responses");
+const { mainStatus } = require("../data/status");
 
 module.exports = async (req, res, next) => {
     const user = req.user;
     if (!user) return error(res, 401, "Unauthorized");
-
-    const isTeamRoute = req.baseUrl?.endsWith("/team") || req.baseUrl?.endsWith("/teams");
-    const paramTeamId = req.params?.teamId || (isTeamRoute ? req.params?.id : null);
-    const teamId = req.body?.teamId || req.query?.teamId || paramTeamId || null;
-    if (user.role === userRoles.FLEET_MANAGER && !user.teamId)
-        return error(res, 403, "You are not assigned to any team")
-
+    let teamId = null
     try {
-        if (user.teamId || teamId) {
-            let filters = { companyId: user.companyId, isDeleted: false }
-            if (user.teamId)
-                filters._id = user.teamId
-            else if (teamId)
-                filters._id = teamId
+        const teamFilters = { companyId: user.companyId, status: mainStatus.ACTIVE, isDeleted: false }
 
-            const team = await Team.findOne(filters);
+        if (user.role === userRoles.FLEET_MANAGER || user.role === userRoles.DRIVER) {
+            if (!user.teamId) return error(res, 403, "You are not assigned to any team")
+            const team = await Team.findOne({ ...teamFilters, _id: user.teamId })
             if (!team) return error(res, 404, "Team not found")
-
-            req.teamId = team._id
-            return next()
+            teamId = team._id
         }
-        req.teamId = null
+
+        if (user.role === userRoles.ADMIN) {
+            const _id = req.params.id || req.body.teamId || req.query.teamId || null
+            if (_id) {
+                const team = await Team.findOne({ ...teamFilters, _id })
+                if (!team) return error(res, 404, "Team not found")
+                teamId = team._id
+            }
+        }
+        req.teamId = teamId
         next()
     } catch (err) {
         console.log(err)

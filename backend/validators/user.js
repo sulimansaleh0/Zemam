@@ -123,7 +123,7 @@ exports.assignManagerSchema = [
         .withMessage("Invalid Team Id")
 ]
 
-exports.createUserSchema = [
+exports.createFleetManagerSchema = [
     body("email")
         .trim()
         .normalizeEmail()
@@ -139,4 +139,22 @@ exports.createUserSchema = [
     body("phone")
         .optional({ values: "falsy" })
         .trim(),
-];
+]
+
+exports.createDriverSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
+    body("name")
+        .optional({ values: "falsy" })
+        .trim()
+        .isString()
+        .withMessage("Name must be a string"),
+    body("phone")
+        .optional({ values: "falsy" })
+        .trim(),
+]

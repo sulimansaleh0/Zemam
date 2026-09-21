@@ -46,7 +46,7 @@ exports.updateProfile = async (req, res) => {
 }
 
 exports.changeUserStatus = async (req, res) => {
-    const { _id, companyId, role } = req.user
+    const { companyId, role } = req.user
     const teamId = req.teamId
     const userId = req.params.userId || null
     if (!userId) return error(res, 400, "User Id is required")
@@ -56,9 +56,7 @@ exports.changeUserStatus = async (req, res) => {
         if (role === userRoles.ADMIN) allowedRoles = [userRoles.FLEET_MANAGER, userRoles.DRIVER]
         if (role === userRoles.FLEET_MANAGER) allowedRoles = [userRoles.DRIVER]
 
-        const filters = { _id: userId, companyId }
-        if (teamId)
-            filters.teamId = teamId
+        const filters = { _id: userId, companyId, teamId }
 
         const user = await User.findOne(filters)
         if (!user) return error(res, 404, "User not found")
