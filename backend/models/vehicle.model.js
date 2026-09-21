@@ -1,6 +1,7 @@
 const mongoose = require("mongoose")
 const { vehicleStatus } = require("../data/status")
 const { vehicleTypes } = require("../data/vehicleTypes")
+const { fuelTypes } = require("../data")
 
 const vehicleSchema = new mongoose.Schema({
     model: {
@@ -39,10 +40,10 @@ const vehicleSchema = new mongoose.Schema({
     },
     fuelType: {
         type: String,
-        enum: ["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"],
-        default: "بنزين 91"
+        enum: fuelTypes,
+        default: fuelTypes[0]
     },
-    registrationNumber: String,
+    licenseNumber: String,
     issuingAuthority: String,
     insuranceNumber: String,
     insuranceCompany: String,
@@ -50,6 +51,8 @@ const vehicleSchema = new mongoose.Schema({
         type: String,
         enum: ["comprehensive", "third_party"]
     },
+    insuranceExpiry: Date,
+    licenseExpiry: Date,
     isInTask: {
         type: Boolean,
         default: false
@@ -59,8 +62,6 @@ const vehicleSchema = new mongoose.Schema({
         enum: [vehicleStatus.ACTIVE, vehicleStatus.INACTIVE, vehicleStatus.INMAINTENANCE],
         default: vehicleStatus.ACTIVE
     },
-    insuranceExpiry: Date,
-    licenseExpiry: Date,
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "team",
