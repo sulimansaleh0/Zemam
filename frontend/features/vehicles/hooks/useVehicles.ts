@@ -14,8 +14,10 @@ import type {
   BackendVehicle,
   VehicleWithRelations,
   CreateVehicleInput,
+  UpdateVehicleInput,
   AssignDriverInput,
   ChangeVehicleStatusInput,
+  VehicleStats,
 } from '../types/vehicle.types';
 
 // ============================================================
@@ -109,6 +111,53 @@ export function useCreateVehicle() {
         message: error.message,
       });
     },
+  });
+}
+
+/**
+ * Mutation لتعديل بيانات المركبة
+ */
+export function useUpdateVehicle() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateVehicleInput }) => {
+      const result = await vehicleService.updateVehicle(id, data);
+      if (!result.success) throw new Error(result.message);
+      return result.data.vehicle;
+    },
+    onSuccess: (updatedVehicle) => {
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      addToast({
+        type: 'success',
+        title: 'تم التحديث',
+        message: 'تم حفظ وتحديث بيانات المركبة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل التحديث',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Hook لجلب إحصائيات تشغيل المركبة (مسافة، وقود، صيانة، كفاءة)
+ */
+export function useVehicleStats(vehicleId: string) {
+  return useQuery({
+    queryKey: ['vehicle', vehicleId, 'stats'],
+    queryFn: async ({ signal }) => {
+      if (!vehicleId) return null;
+      const res = await vehicleService.getVehicleStats(vehicleId, signal);
+      if (!res.success) return null;
+      return res.data.stats;
+    },
+    enabled: Boolean(vehicleId),
   });
 }
 
@@ -410,8 +459,10 @@ export function useVehicleDetailPage(vehicleId: string) {
   // Queries
   const { data: vehicles = [], isLoading, isError, error } = useVehicles();
   const { data: teamsList = [] } = useTeams();
+  const { data: vehicleStats, isLoading: isLoadingStats } = useVehicleStats(vehicleId);
 
   // Mutations
+  const updateVehicleMutation = useUpdateVehicle();
   const changeStatusMutation = useChangeVehicleStatus();
   const removeTeamMutation = useRemoveVehicleFromTeam();
   const unassignDriverMutation = useUnassignDriver();
@@ -444,6 +495,11 @@ export function useVehicleDetailPage(vehicleId: string) {
     await changeStatusMutation.mutateAsync({ id: vehicle._id, status: newStatus });
   }, [vehicle, isActive, changeStatusMutation]);
 
+  const handleUpdateVehicle = useCallback(async (updatedData: UpdateVehicleInput) => {
+    if (!vehicle) return;
+    await updateVehicleMutation.mutateAsync({ id: vehicle._id, data: updatedData });
+  }, [vehicle, updateVehicleMutation]);
+
   const handleRemoveTeam = useCallback(async () => {
     if (!vehicle) return;
     await removeTeamMutation.mutateAsync(vehicle._id);
@@ -469,6 +525,8 @@ export function useVehicleDetailPage(vehicleId: string) {
     vehicle,
     teamObj,
     isActive,
+    vehicleStats,
+    isLoadingStats,
 
     // Query states
     isLoading,
@@ -484,6 +542,7 @@ export function useVehicleDetailPage(vehicleId: string) {
     setIsDeleteOpen,
 
     // Mutation pending states
+    isUpdating: updateVehicleMutation.isPending,
     isChangingStatus: changeStatusMutation.isPending,
     isRemovingTeam: removeTeamMutation.isPending,
     isUnassigningDriver: unassignDriverMutation.isPending,
@@ -491,6 +550,7 @@ export function useVehicleDetailPage(vehicleId: string) {
 
     // Action handlers
     handleToggleStatus,
+    handleUpdateVehicle,
     handleRemoveTeam,
     handleUnassignDriver,
     handleDelete,

@@ -18,7 +18,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
-import { getTaskStatusConfig } from '../utils/taskHelpers';
+import { getTaskStatusConfig, formatTaskDateTime } from '../utils/taskHelpers';
 import type { TaskStatus, TaskWithRelations } from '../types/task.types';
 
 interface TasksTableProps {
@@ -194,6 +194,12 @@ export function TasksTable({
                           <Calendar className="h-3 w-3 text-[var(--zd-muted)]" />
                           <span>{task.formattedStartTime}</span>
                         </div>
+                        {task.expectedEndTime && (
+                          <div className="flex items-center gap-1 text-[10px] text-[var(--zd-muted)] mt-0.5">
+                            <Clock className="h-2.5 w-2.5 text-blue-400" />
+                            <span>التسليم: {formatTaskDateTime(task.expectedEndTime)}</span>
+                          </div>
+                        )}
                       </td>
 
                       {/* المسار */}

@@ -8,6 +8,7 @@ export type {
   CreateDriverInput,
   ChangeDriverStatusInput,
   AssignVehicleInput,
+  ScoreAuditItem,
 } from './types/driver.types';
 
 // ── Schema ─────────────────────────────────────────────────
@@ -61,5 +62,6 @@ export { DriverModal } from './components/DriverModal';
 export { DriverDeleteModal } from './components/DriverDeleteModal';
 export { AssignVehicleModal } from './components/AssignVehicleModal';
 export { AssignDriverToTeamModal } from './components/AssignDriverToTeamModal';
+export { DriversTable } from './components/DriversTable';
 
 

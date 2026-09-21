@@ -37,6 +37,10 @@ export const driverService = {
       ...(data.name && data.name.trim() ? { name: data.name.trim() } : {}),
       ...(data.phone && data.phone.trim() ? { phone: data.phone.trim() } : {}),
       ...(data.teamId && data.teamId.trim() ? { teamId: data.teamId.trim() } : {}),
+      ...(data.vehicleId && data.vehicleId.trim() ? { vehicleId: data.vehicleId.trim() } : {}),
+      ...(data.licenseNumber && data.licenseNumber.trim() ? { licenseNumber: data.licenseNumber.trim() } : {}),
+      ...(data.licenseTypes && data.licenseTypes.length > 0 ? { licenseTypes: data.licenseTypes } : {}),
+      ...(data.licenseExpiry ? { licenseExpiry: data.licenseExpiry } : {}),
     };
     return postRequest<null>(API_PATHS.DRIVERS.CREATE, payload);
   },

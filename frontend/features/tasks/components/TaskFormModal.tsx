@@ -17,6 +17,7 @@ import {
   PlusCircle,
   Truck,
   User,
+  AlertCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import {
@@ -72,6 +73,7 @@ export function TaskFormModal({
   initialTask,
 }: TaskFormModalProps) {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
@@ -88,6 +90,7 @@ export function TaskFormModal({
       vehicleId: '',
       driverId: '',
       startTime: '',
+      expectedEndTime: '',
       pickupLocation: { address: '', lat: '', lng: '' },
       deliveryLocation: { address: '', lat: '', lng: '' },
     },
@@ -174,12 +177,24 @@ export function TaskFormModal({
         }
       }
 
+      let formattedEndTime = '';
+      if (initialTask.expectedEndTime) {
+        try {
+          const d = new Date(initialTask.expectedEndTime);
+          const offset = d.getTimezoneOffset() * 60000;
+          formattedEndTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+        } catch {
+          formattedEndTime = '';
+        }
+      }
+
       reset({
         title: initialTask.title || '',
         description: initialTask.description || '',
         vehicleId: vId,
         driverId: dId,
         startTime: formattedTime,
+        expectedEndTime: formattedEndTime,
         pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
         deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
       });
@@ -190,14 +205,17 @@ export function TaskFormModal({
         vehicleId: '',
         driverId: '',
         startTime: '',
+        expectedEndTime: '',
         pickupLocation: { address: '', lat: '', lng: '' },
         deliveryLocation: { address: '', lat: '', lng: '' },
       });
       setSelectedVehicleId('');
     }
+    setFormError(null);
   }, [isOpen, initialTask, reset]);
 
   const handleFormSubmit = handleSubmit(async (values) => {
+    setFormError(null);
     try {
       const payload: CreateTaskInput = {
         title: values.title?.trim() || undefined,
@@ -205,6 +223,7 @@ export function TaskFormModal({
         vehicleId: values.vehicleId,
         driverId: values.driverId || undefined,
         startTime: new Date(values.startTime).toISOString(),
+        expectedEndTime: values.expectedEndTime ? new Date(values.expectedEndTime).toISOString() : undefined,
         pickupLocation: {
           address: values.pickupLocation.address.trim(),
           lat: values.pickupLocation.lat.trim(),
@@ -219,8 +238,8 @@ export function TaskFormModal({
 
       await onSubmit(payload);
       onClose();
-    } catch (err) {
-      console.error('Error submitting task:', err);
+    } catch (err: any) {
+      setFormError(err?.message || 'حدث خطأ أثناء حفظ المهمة');
     }
   });
 
@@ -238,6 +257,12 @@ export function TaskFormModal({
       maxWidth="5xl"
     >
       <form onSubmit={handleFormSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden" dir="rtl">
+        {formError && (
+          <div className="mx-5 mt-4 sm:mx-6 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* الجسم القابل للتمرير */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -370,6 +395,24 @@ export function TaskFormModal({
                 </div>
                 {errors.startTime && (
                   <p className="text-xs text-rose-500">{errors.startTime.message}</p>
+                )}
+              </div>
+
+              {/* موعد التسليم المتوقع */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--zd-text)]">
+                  الوقت المتوقع للتسليم <span className="text-[var(--zd-muted)] text-[11px]">(اختياري)</span>
+                </label>
+                <div className="relative">
+                  <Clock className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <input
+                    type="datetime-local"
+                    {...register('expectedEndTime')}
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  />
+                </div>
+                {errors.expectedEndTime && (
+                  <p className="text-xs text-rose-500">{errors.expectedEndTime.message}</p>
                 )}
               </div>
             </div>

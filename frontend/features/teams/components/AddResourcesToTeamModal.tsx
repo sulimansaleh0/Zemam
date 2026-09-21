@@ -10,6 +10,7 @@ import { driverKeys, vehicleKeys, teamKeys } from '@/shared/constants/queryKeys'
 import type { Team } from '../types/team.types';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { BackendVehicle } from '@/features/vehicles/types/vehicle.types';
+import { useAssignResources } from '../hooks/useTeams';
 import { Modal } from '@/shared/ui/Modal';
 
 interface AddResourcesToTeamModalProps {
@@ -30,6 +31,8 @@ export function AddResourcesToTeamModal({
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const assignResourcesMutation = useAssignResources();
 
   // Fetch available drivers (without team)
   const { data: availableDrivers = [], isLoading: isLoadingDrivers } = useQuery({
@@ -60,6 +63,7 @@ export function AddResourcesToTeamModal({
       setSelectedDrivers([]);
       setSelectedVehicles([]);
       setIsSubmitting(false);
+      setFormError(null);
       setActiveTab('drivers');
     }
   }, [isOpen, team]);
@@ -106,49 +110,19 @@ export function AddResourcesToTeamModal({
     }
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
-      const promises: Promise<any>[] = [];
-
-      // Assign selected drivers
-      selectedDrivers.forEach((driverId) => {
-        promises.push(driverService.assignTeam(driverId, team._id));
+      await assignResourcesMutation.mutateAsync({
+        teamId: team._id,
+        payload: {
+          driverIds: selectedDrivers.length > 0 ? selectedDrivers : undefined,
+          vehicleIds: selectedVehicles.length > 0 ? selectedVehicles : undefined,
+        },
       });
-
-      // Assign selected vehicles
-      selectedVehicles.forEach((vehicleId) => {
-        promises.push(vehicleService.assignTeam(vehicleId, team._id));
-      });
-
-      const results = await Promise.allSettled(promises);
-      const successful = results.filter((r) => r.status === 'fulfilled').length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
-
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: driverKeys.all });
-      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
-      queryClient.invalidateQueries({ queryKey: teamKeys.all });
-
-      if (failed === 0) {
-        addToast({
-          type: 'success',
-          title: 'تمت الإضافة بنجاح',
-          message: `تم تعيين ${selectedDrivers.length} سائقين و ${selectedVehicles.length} مركبات لفريق ${team.name}`,
-        });
-      } else {
-        addToast({
-          type: 'info',
-          title: 'تم إنجاز جزئي',
-          message: `نجحت إضافة ${successful} موارد وفشلت ${failed}`,
-        });
-      }
 
       onClose();
     } catch (err: any) {
-      addToast({
-        type: 'error',
-        title: 'خطأ',
-        message: err.message || 'حدث خطأ أثناء إضافة الموارد',
-      });
+      setFormError(err?.message || 'حدث خطأ أثناء إضافة الموارد للفريق');
     } finally {
       setIsSubmitting(false);
     }
@@ -168,6 +142,12 @@ export function AddResourcesToTeamModal({
       preventClose={isSubmitting}
     >
       <div className="flex flex-col max-h-[75vh]">
+        {formError && (
+          <div className="mx-6 mt-4 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150 shrink-0">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            <p className="font-medium leading-relaxed">{formError}</p>
+          </div>
+        )}
         {/* Tab switcher */}
         <div className="flex items-center border-b border-[var(--border)] px-6 pt-3 bg-[var(--surface-2)]/20 shrink-0 gap-2">
           <button

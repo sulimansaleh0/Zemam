@@ -8,3 +8,4 @@ export * from './components/ManagersTable';
 export * from './components/CreateManagerModal';
 export * from './components/DeleteManagerModal';
 export * from './components/AssignManagerTeamModal';
+export * from './components/ManagerDetailModal';

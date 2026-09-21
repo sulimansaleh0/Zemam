@@ -112,15 +112,17 @@ export function useCreateFuel() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: CreateFuelInput) => fuelService.createFuelRecord(data),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم توثيق إيصال الوقود بنجاح' });
-        queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل توثيق إيصال الوقود' });
+    mutationFn: async (data: CreateFuelInput) => {
+      const res = await fuelService.createFuelRecord(data);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل توثيق إيصال الوقود');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم توثيق إيصال الوقود بنجاح' });
+      queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
@@ -136,15 +138,17 @@ export function useVerifyFuel() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: (data: VerifyFuelInput) => fuelService.verifyFuelRecord(data),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.addToast({ type: 'success', message: 'تم تحديث حالة إيصال الوقود بنجاح' });
-        queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      } else {
-        toast.addToast({ type: 'error', message: res.message || 'فشل مراجعة الإيصال' });
+    mutationFn: async (data: VerifyFuelInput) => {
+      const res = await fuelService.verifyFuelRecord(data);
+      if (!res.success) {
+        throw new Error(res.message || 'فشل مراجعة الإيصال');
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.addToast({ type: 'success', message: 'تم تحديث حالة إيصال الوقود بنجاح' });
+      queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (err: Error) => {
       toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });

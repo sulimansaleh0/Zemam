@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Car, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Car, Loader2, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import type { Driver } from '../types/driver.types';
 import { useVehicles } from '@/features/vehicles';
 import { getDriverDisplayName, getDriverTeamId } from '../utils/driverHelpers';
+import { checkDriverVehicleEligibility, VEHICLE_TYPE_LABELS } from '../utils/licenseEligibility';
 import { Modal } from '@/shared/ui/Modal';
 
 interface AssignVehicleModalProps {
@@ -36,6 +37,11 @@ export function AssignVehicleModal({
     return Boolean(vTeamId && driverTeamId && String(vTeamId) === String(driverTeamId));
   });
 
+  const selectedVehicle = vehicles.find((v) => v._id === selectedVehicleId);
+  const eligibility = selectedVehicle
+    ? checkDriverVehicleEligibility(driver, selectedVehicle)
+    : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hasTeam) {
@@ -46,6 +52,12 @@ export function AssignVehicleModal({
       setErrorMsg('يرجى اختيار مركبة من القائمة');
       return;
     }
+
+    if (selectedVehicle && eligibility && !eligibility.eligible) {
+      setErrorMsg(eligibility.reason || 'رخصة السائق لا تؤهله لقيادة هذه الفئة من المركبات');
+      return;
+    }
+
     setErrorMsg(null);
     try {
       await onAssign(selectedVehicleId);
@@ -127,20 +139,43 @@ export function AssignVehicleModal({
                       : undefined;
                   const isCurrentlyAssignedToThis = vDriverId === driver._id;
                   const isAssignedToOther = Boolean(vDriverId) && !isCurrentlyAssignedToThis;
+                  const vEligibility = checkDriverVehicleEligibility(driver, v);
 
                   return (
                     <option key={v._id} value={v._id}>
                       {v.model} ({v.year}) — لوحة: {v.plateNumber}{' '}
-                      {isCurrentlyAssignedToThis
+                      [{VEHICLE_TYPE_LABELS[v.vehicleType || 'normal']}]{' '}
+                      {!vEligibility.eligible
+                        ? '⛔ (غير متوافق مع الرخصة)'
+                        : isCurrentlyAssignedToThis
                         ? '✓ (معينة له حالياً)'
                         : isAssignedToOther
                         ? '⚠️ (معينة لسائق آخر)'
-                        : '• (متاحة)'}
+                        : '• (مؤهل ومتاح)'}
                     </option>
                   );
                 })}
               </select>
             </div>
+
+            {/* License Ineligibility Alert */}
+            {selectedVehicle && eligibility && !eligibility.eligible && (
+              <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-700 dark:text-rose-400 flex items-start gap-2 animate-in fade-in duration-200">
+                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+                <div className="space-y-0.5">
+                  <p className="font-bold">مخالفة معايير رخصة القيادة العربية</p>
+                  <p className="text-[11px] leading-relaxed">{eligibility.reason}</p>
+                </div>
+              </div>
+            )}
+
+            {/* License Compatibility Success */}
+            {selectedVehicle && eligibility && eligibility.eligible && (
+              <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                <span>رخصة السائق متوافقة وقانونية لقيادة هذه الفئة من المركبات.</span>
+              </div>
+            )}
 
             {hasTeam && teamVehicles.length === 0 && !isLoadingVehicles && (
               <p className="mt-2 text-xs text-[var(--muted)] p-2.5 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)]">

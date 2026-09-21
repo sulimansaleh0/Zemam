@@ -16,6 +16,7 @@ import {
   UserX,
   Link2,
   Unlink,
+  BarChart2,
 } from 'lucide-react';
 import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
 import type { FleetManager, ManagerFilterStatus, ManagerSortOrder } from '../types/manager.types';
@@ -34,6 +35,7 @@ interface ManagersTableProps {
   onAssignTeamClick?: (manager: FleetManager) => void;
   onDisableTeamClick?: (manager: FleetManager) => void;
   onToggleStatusClick?: (manager: FleetManager) => void;
+  onViewDetailClick?: (manager: FleetManager) => void;
 }
 
 const SORT_CYCLE: ManagerSortOrder[] = ['newest', 'oldest', 'name'];
@@ -53,6 +55,7 @@ export function ManagersTable({
   onAssignTeamClick,
   onDisableTeamClick,
   onToggleStatusClick,
+  onViewDetailClick,
 }: ManagersTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ManagerFilterStatus>('all');
@@ -367,6 +370,15 @@ export function ManagersTable({
                           {/* Kebab Action Menu */}
                           {(() => {
                             const menuItems: ActionMenuItem[] = [];
+
+                            if (onViewDetailClick) {
+                              menuItems.push({
+                                label: 'عرض الإحصائيات والأداء',
+                                icon: BarChart2,
+                                variant: 'primary',
+                                onClick: () => onViewDetailClick(manager),
+                              });
+                            }
 
                             if (teamName && onDisableTeamClick) {
                               menuItems.push({

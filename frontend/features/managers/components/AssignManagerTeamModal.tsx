@@ -46,8 +46,8 @@ export function AssignManagerTeamModal({
         teamId: selectedTeamId,
       });
       onClose();
-    } catch {
-      // Handled by toast
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'تعذر تعيين مدير الأسطول للفريق');
     }
   };
 

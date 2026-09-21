@@ -4,7 +4,18 @@ import { NextResponse, type NextRequest } from 'next/server';
 //  Next.js Middleware — Protected Routes & URL Token Reset Guards
 // ============================================================
 
-const PROTECTED_ROUTES = ['/dashboard', '/vehicles', '/drivers', '/teams', '/managers', '/settings', '/profile'];
+const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/vehicles',
+  '/drivers',
+  '/teams',
+  '/managers',
+  '/tasks',
+  '/fuel',
+  '/maintenance',
+  '/settings',
+  '/profile',
+];
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
 
 export function proxy(request: NextRequest) {
@@ -12,25 +23,37 @@ export function proxy(request: NextRequest) {
     const { pathname, searchParams } = request.nextUrl;
 
     const accessToken = request.cookies.get('token')?.value || request.cookies.get('access_token')?.value;
+    const refreshToken = request.cookies.get('refreshToken')?.value;
     const resetCookieToken =
       request.cookies.get('resetPasswordToken')?.value ||
       request.cookies.get('reset_token')?.value ||
       request.cookies.get('reset_session')?.value;
 
-    const isAuthenticated = Boolean(accessToken);
+    const hasSession = Boolean(accessToken || refreshToken);
+    const isSessionExpiredParam = searchParams.get('session') === 'expired';
+
     const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
     const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-    // إذا كان المسار محمياً أو onboarding والمستخدم غير مسجل -> يوجه للـ login
-    if ((isProtectedRoute || pathname.startsWith('/onboarding')) && !isAuthenticated) {
+    // إذا كان المسار محمياً أو onboarding والمستخدم لا يملك كوكيز جلسة -> يوجه لصفحة الدخول
+    if ((isProtectedRoute || pathname.startsWith('/onboarding')) && !hasSession) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    // إذا كان المستخدم مسجلاً وحاول فتح صفحات auth (login/signup)
-    if (isAuthRoute && isAuthenticated) {
+    // إذا تم التوجيه لصفحة الدخول بسبب انتهاء الجلسة، نحذف الكوكيز ونسمح بعرض صفحة الدخول
+    if (isAuthRoute && isSessionExpiredParam) {
+      const response = NextResponse.next();
+      response.cookies.delete('token');
+      response.cookies.delete('access_token');
+      response.cookies.delete('refreshToken');
+      return response;
+    }
+
+    // إذا كان المستخدم لديه جلسة وحاول فتح صفحات auth (login/signup) بشكل طبيعي دون انتهاء الجلسة
+    if (isAuthRoute && hasSession) {
       const dashboardUrl = request.nextUrl.clone();
       dashboardUrl.pathname = '/dashboard';
       dashboardUrl.search = '';

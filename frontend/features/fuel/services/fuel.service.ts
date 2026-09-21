@@ -83,6 +83,12 @@ export const fuelService = {
       formData.append('image', data.image);
     }
 
+    if (data.location) {
+      if (data.location.lat !== undefined) formData.append('location[lat]', String(data.location.lat));
+      if (data.location.lng !== undefined) formData.append('location[lng]', String(data.location.lng));
+      if (data.location.address) formData.append('location[address]', data.location.address);
+    }
+
     return postRequest<CreateFuelResponse>(API_PATHS.FUEL.CREATE, formData);
   },
 

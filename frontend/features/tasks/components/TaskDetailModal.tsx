@@ -172,6 +172,16 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
               {/* التواريخ والأوقات */}
               <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3 text-[11px] text-[var(--zd-muted)] space-y-1.5">
                 <div className="flex justify-between">
+                  <span>موعد الانطلاق:</span>
+                  <span className="text-[var(--zd-text)] font-medium">{formatTaskDateTime(task.startTime)}</span>
+                </div>
+                {task.expectedEndTime && (
+                  <div className="flex justify-between">
+                    <span>الوقت المتوقع للتسليم:</span>
+                    <span className="text-[var(--zd-text)] font-medium">{formatTaskDateTime(task.expectedEndTime)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
                   <span>تاريخ الإنشاء:</span>
                   <span className="text-[var(--zd-text)]">{formatTaskDateTime(task.createdAt)}</span>
                 </div>

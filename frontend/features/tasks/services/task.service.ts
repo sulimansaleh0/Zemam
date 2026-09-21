@@ -52,10 +52,10 @@ export const taskService = {
   },
 
   /**
-   * إنهاء وتسليم المهمة (بواسطة السائق)
+   * إنهاء وتسليم المهمة (بواسطة السائق) مع توثيق قراءة العداد النهائية
    */
-  finishTask(id: string): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.TASKS.FINISH(id), {});
+  finishTask(id: string, endOdometer?: number): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.FINISH(id), endOdometer !== undefined ? { endOdometer } : {});
   },
 
   /**

@@ -63,6 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void checkSession();
   }, [checkSession]);
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setState({ user: null, status: 'unauthenticated', error: 'انتهت الجلسة، يرجى إعادة تسجيل الدخول' });
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:session_expired', handleSessionExpired);
+      return () => {
+        window.removeEventListener('auth:session_expired', handleSessionExpired);
+      };
+    }
+  }, []);
+
   const setAuthUser = useCallback((user: AuthUser) => {
     setState({
       user,

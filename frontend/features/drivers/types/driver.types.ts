@@ -2,6 +2,14 @@
 //  Driver Types — aligned with backend User model (driver role)
 // ============================================================
 
+export interface ScoreAuditItem {
+  pointsChange: number;
+  reason: string;
+  category: 'maintenance' | 'task' | 'fuel' | 'manual';
+  date: string;
+  relatedId?: string;
+}
+
 /** شكل بيانات السائق كما يرجعها الباك اند */
 export interface BackendDriver {
   _id: string;
@@ -11,6 +19,14 @@ export interface BackendDriver {
   role?: string;
   roles?: string[];
   status: DriverStatus;
+  licenseNumber?: string; // رقم رخصة القيادة
+  licenseTypes?: ('normal' | 'van' | 'truck')[]; // فئات رخصة القيادة المصرح له بها
+  licenseExpiry?: string; // تاريخ انتهاء رخصة القيادة
+  driverScore?: number;   // تقييم السائق التراكمي (0 - 100)
+  scoreHistory?: ScoreAuditItem[]; // سجل الشفافية للتقييم
+  totalTasksCompleted?: number;
+  delayedTasksCount?: number;
+  faultIncidentsCount?: number;
   companyId: string;
   teamId?: string | { _id: string; name: string } | null;
   isDeleted: boolean;
@@ -29,7 +45,8 @@ export interface Driver extends BackendDriver {
     _id: string;
     model: string;
     year: number;
-    plateNumber: number;
+    plateNumber: string | number;
+    vehicleType?: 'normal' | 'van' | 'truck';
   };
 }
 
@@ -50,6 +67,10 @@ export interface CreateDriverInput {
   name?: string;
   phone?: string;
   teamId?: string;
+  vehicleId?: string;
+  licenseNumber?: string;
+  licenseTypes?: ('normal' | 'van' | 'truck')[];
+  licenseExpiry?: string;
 }
 
 /** البيانات المرسلة لتغيير حالة سائق */

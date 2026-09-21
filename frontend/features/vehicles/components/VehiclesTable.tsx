@@ -31,6 +31,9 @@ import {
   Link2,
   Unlink,
   Trash2,
+  Fuel,
+  Gauge,
+  Edit2,
 } from 'lucide-react';
 import type { VehicleWithRelations, VehicleStatus } from '../types/vehicle.types';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
@@ -49,6 +52,7 @@ interface VehiclesTableProps {
   onRemoveTeamClick?: (selectedVehicle: VehicleWithRelations) => void;
   onUnassignDriverClick?: (selectedVehicle: VehicleWithRelations) => void;
   onDeleteVehicleClick?: (selectedVehicle: VehicleWithRelations) => void;
+  onEditVehicleClick?: (selectedVehicle: VehicleWithRelations) => void;
 }
 
 export function VehiclesTable({
@@ -61,6 +65,7 @@ export function VehiclesTable({
   onRemoveTeamClick,
   onUnassignDriverClick,
   onDeleteVehicleClick,
+  onEditVehicleClick,
 }: VehiclesTableProps) {
   const { user } = useAuth();
   const isFleetManager =
@@ -134,10 +139,35 @@ export function VehiclesTable({
         accessorKey: 'plateNumber',
         header: 'رقم اللوحة',
         cell: ({ row }) => (
-          <div className="font-mono text-xs font-bold text-[var(--text)] bg-[var(--surface-2)]/60 px-2.5 py-1 rounded-lg border border-[var(--border)] w-fit" dir="ltr">
-            {row.original.plateNumber}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] font-mono font-bold text-xs shadow-xs tracking-wider" dir="ltr">
+            <span className="text-[10px] text-[var(--muted)] font-sans border-r border-[var(--border)] pr-1.5">لوحة</span>
+            <span className="text-[var(--text)]">{row.original.plateNumber}</span>
           </div>
         ),
+      },
+      {
+        id: 'specs',
+        header: 'المواصفات والوقود',
+        cell: ({ row }) => {
+          const vehicle = row.original;
+          return (
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-1.5 text-[var(--text)] font-semibold">
+                <Fuel className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                <span>{vehicle.fuelType || 'بنزين 91'}</span>
+                {vehicle.tankCapacity ? (
+                  <span className="text-[10px] text-[var(--muted)] font-mono">({vehicle.tankCapacity}L)</span>
+                ) : null}
+              </div>
+              {vehicle.currentOdometer !== undefined && (
+                <div className="flex items-center gap-1 text-[10px] text-[var(--muted)] font-mono">
+                  <Gauge className="w-3 h-3 text-[var(--muted)] shrink-0" />
+                  <span>{Number(vehicle.currentOdometer).toLocaleString()} كم</span>
+                </div>
+              )}
+            </div>
+          );
+        },
       },
       {
         accessorKey: 'teamId',
@@ -250,6 +280,15 @@ export function VehiclesTable({
               {(() => {
                 const menuItems: ActionMenuItem[] = [];
 
+                if (onEditVehicleClick) {
+                  menuItems.push({
+                    label: 'تعديل المواصفات والرخصة',
+                    icon: Edit2,
+                    variant: 'primary',
+                    onClick: () => onEditVehicleClick(vehicle),
+                  });
+                }
+
                 if (hasTeam && onRemoveTeamClick) {
                   menuItems.push({
                     label: 'فك الارتباط عن الفريق',
@@ -311,6 +350,7 @@ export function VehiclesTable({
       onRemoveTeamClick,
       onUnassignDriverClick,
       onDeleteVehicleClick,
+      onEditVehicleClick,
       teamsList,
     ]
   );
