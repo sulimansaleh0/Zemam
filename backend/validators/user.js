@@ -139,6 +139,11 @@ exports.createFleetManagerSchema = [
     body("phone")
         .optional({ values: "falsy" })
         .trim(),
+    body("teamId")
+        .optional({ values: "falsy" })
+        .trim()
+        .isMongoId()
+        .withMessage("Invalid Team Id")
 ]
 
 exports.createDriverSchema = [
@@ -157,4 +162,21 @@ exports.createDriverSchema = [
     body("phone")
         .optional({ values: "falsy" })
         .trim(),
+    body("licenseNumber")
+        .trim()
+        .notEmpty()
+        .withMessage("License number is required")
+        .isString()
+        .withMessage("License number must be a string"),
+    body("licenseTypes")
+        .isArray({ min: 1 })
+        .withMessage("License types are required and must be a non-empty array")
+        .bail()
+        .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
+        .withMessage("Invalid license type"),
+    body("licenseExpiry")
+        .notEmpty()
+        .withMessage("License expiry is required")
+        .isISO8601()
+        .withMessage("License expiry must be a valid date"),
 ]

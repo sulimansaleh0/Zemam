@@ -26,7 +26,7 @@ const checkSubscription = require("../middlewares/CheckSubscription")
 const getTeam = require("../middlewares/getTeam")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createUserSchema, updateUserStatusSchema, assignManagerSchema } = require("../validators/user")
+const { updateProfileSchema, createDriverSchema, createFleetManagerSchema, updateUserStatusSchema, assignManagerSchema } = require("../validators/user")
 
 router.use(verifyToken)
 
@@ -38,7 +38,7 @@ router.use(checkSubscription())
 // create Fleet Manager
 router.post("/fleet-manager",
     allowedTo(userRoles.ADMIN),
-    createUserSchema,
+    createFleetManagerSchema,
     validate,
     getTeam,
     createFleetManager
@@ -49,13 +49,20 @@ router.get("/fleet-manager",
     allowedTo(userRoles.ADMIN),
     listFleetManagers
 )
+
 router.get("/managers/:id/stats",
     allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
     getManagerStats
 )
 
 // Assign Manager to a Team
-router.patch("/fleet-manager/:id/assign-to-team", allowedTo(userRoles.ADMIN), assignManagerSchema, validate, assignManager)
+router.patch("/fleet-manager/:id/assign-to-team",
+    allowedTo(userRoles.ADMIN),
+    assignManagerSchema,
+    validate,
+    getTeam,
+    assignManager
+)
 
 // Delete Manager from a Team
 router.patch("/fleet-manager/:id/remove-from-team",
@@ -82,7 +89,7 @@ router.use(getTeam)
 
 // Create Driver
 router.post("/driver",
-    createUserSchema,
+    createDriverSchema,
     validate,
     createDriver
 )
