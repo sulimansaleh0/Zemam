@@ -30,7 +30,7 @@ router.use(allowedTo(userRoles.ADMIN))
 router.post("/", createTeamSchema, validate, createTeam)
 router.get("/", listTeams)
 router.patch("/:id", updateTeam)
-router.patch("/:id/resources", assignResources)
+router.patch("/:id/resources", getTeam, assignResources)
 router.delete("/:id", deleteTeam)
-
+    
 module.exports = router
