@@ -54,8 +54,8 @@ exports.createFuelRecord = async (req, res) => {
             isFullTank,
             companyId: user.companyId,
             teamId: vehicle.teamId || null,
-            userId: user._id
-            ,location
+            userId: user._id,
+            location
         })
 
         await Vehicle.updateOne(

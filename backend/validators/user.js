@@ -123,7 +123,7 @@ exports.assignManagerSchema = [
         .withMessage("Invalid Team Id")
 ]
 
-exports.createUserSchema = [
+exports.createFleetManagerSchema = [
     body("email")
         .trim()
         .normalizeEmail()
@@ -139,4 +139,44 @@ exports.createUserSchema = [
     body("phone")
         .optional({ values: "falsy" })
         .trim(),
-];
+    body("teamId")
+        .optional({ values: "falsy" })
+        .trim()
+        .isMongoId()
+        .withMessage("Invalid Team Id")
+]
+
+exports.createDriverSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
+    body("name")
+        .optional({ values: "falsy" })
+        .trim()
+        .isString()
+        .withMessage("Name must be a string"),
+    body("phone")
+        .optional({ values: "falsy" })
+        .trim(),
+    body("licenseNumber")
+        .trim()
+        .notEmpty()
+        .withMessage("License number is required")
+        .isString()
+        .withMessage("License number must be a string"),
+    body("licenseTypes")
+        .isArray({ min: 1 })
+        .withMessage("License types are required and must be a non-empty array")
+        .bail()
+        .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
+        .withMessage("Invalid license type"),
+    body("licenseExpiry")
+        .notEmpty()
+        .withMessage("License expiry is required")
+        .isISO8601()
+        .withMessage("License expiry must be a valid date"),
+]

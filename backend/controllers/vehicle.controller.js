@@ -1,6 +1,5 @@
 const Vehicle = require("../models/vehicle.model")
 const User = require("../models/user.model")
-const Team = require("../models/team.model")
 const Maintenance = require("../models/maintenance.model")
 const Task = require("../models/task.model")
 const Fuel = require("../models/fuel.model")
@@ -14,7 +13,7 @@ exports.createVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
     const { model, year, plateNumber, vehicleType, driverId, currentOdometer, expectedFuelEfficiency,
-        tankCapacity, fuelType, registrationNumber, licenseExpiry, issuingAuthority,
+        tankCapacity, fuelType, licenseNumber, licenseExpiry, issuingAuthority,
         insuranceNumber, insuranceCompany, insuranceType, insuranceExpiry } = req.body
     const selectedVehicleType = vehicleType || vehicleTypes.NORMAL
     try {
@@ -28,9 +27,8 @@ exports.createVehicle = async (req, res) => {
         }
 
         let driver = null
-        if (driverId) {
-            let driverFilters = { _id: driverId, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false }
-            if (teamId) driverFilters.teamId = teamId
+        if (teamId && driverId) {
+            let driverFilters = { _id: driverId, teamId, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false }
 
             driver = await User.findOne(driverFilters)
             if (!driver) return error(res, 404, "Driver not found or does not belong to the selected team")
@@ -52,7 +50,7 @@ exports.createVehicle = async (req, res) => {
             expectedFuelEfficiency,
             tankCapacity,
             fuelType,
-            registrationNumber,
+            licenseNumber,
             licenseExpiry,
             issuingAuthority,
             insuranceNumber,
@@ -132,7 +130,7 @@ exports.updateVehicle = async (req, res) => {
     const user = req.user
     const updates = {}
     const allowedFields = ["model", "year", "plateNumber", "vehicleType", "currentOdometer",
-        "expectedFuelEfficiency", "tankCapacity", "fuelType", "registrationNumber",
+        "expectedFuelEfficiency", "tankCapacity", "fuelType", "licenseNumber",
         "licenseExpiry", "issuingAuthority", "insuranceNumber", "insuranceCompany",
         "insuranceType", "insuranceExpiry"]
     for (const field of allowedFields) {
@@ -217,23 +215,20 @@ exports.getVehicleStats = async (req, res) => {
 
 exports.setVehicleToTeam = async (req, res) => {
     const { companyId } = req.user
-    const teamId = req.teamId
+    const team = req.team
     const vehicleId = req.params.id
     if (!vehicleId) return error(res, 400, "Vehicle Id is required")
-    if (!teamId) return error(res, 400, "Team Id is required")
+    if (!team) return error(res, 400, "Team is required")
     try {
-        const team = await Team.findOne({ _id: teamId, companyId, isDeleted: false })
-        if (!team) return error(res, 404, "Team not found")
-
-        const vehicle = await Vehicle.findOne({ _id: vehicleId, companyId, isDeleted: false })
+        const vehicle = await Vehicle.findOne({ _id: vehicleId, companyId, isDeleted: false, status: mainStatus.ACTIVE })
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
         // If vehicle changes team, clear assigned driver if driver was from old team
-        if (vehicle.teamId && vehicle.teamId.toString() !== teamId.toString()) {
+        if (vehicle.teamId && vehicle.teamId.toString() !== team._id.toString()) {
             vehicle.driverId = null
         }
 
-        vehicle.teamId = teamId
+        vehicle.teamId = team._id
         await vehicle.save()
         success(res, 200)
     } catch (err) {

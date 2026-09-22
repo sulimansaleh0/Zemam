@@ -3,13 +3,12 @@ const User = require("../models/user.model")
 const Vehicle = require("../models/vehicle.model")
 const getStatics = require("../utils/getStatics")
 const { userRoles } = require("../data/roles")
+const { mainStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
 
 exports.createTeam = async (req, res) => {
     const user = req.user
-    const { name, managerId, driversIds, vehiclesIds, driverIds, vehicleIds } = req.body
-    const selectedDriverIds = driverIds || driversIds
-    const selectedVehicleIds = vehicleIds || vehiclesIds
+    const { name, managerId, driversIds, vehiclesIds } = req.body
     try {
         const trimmedName = name ? name.trim() : ""
         const existingTeam = await Team.findOne({
@@ -18,7 +17,7 @@ exports.createTeam = async (req, res) => {
             isDeleted: false
         })
         if (existingTeam) {
-            return error(res, 400, "اسم الفريق مسجل بالفعل في شركتك")
+            return error(res, 400, "Team name already exists")
         }
 
         if (managerId) {
@@ -28,26 +27,32 @@ exports.createTeam = async (req, res) => {
             const isInTeam = await Team.findOne({ managerId, companyId: user.companyId, isDeleted: false })
             if (isInTeam) return error(res, 400, "Already in a team")
         }
+
         const team = await Team.create({
             name: trimmedName,
             managerId,
             companyId: user.companyId
         })
+
         if (managerId)
             await User.findByIdAndUpdate(managerId, { teamId: team._id })
-        if (Array.isArray(selectedDriverIds) && selectedDriverIds.length > 0) {
+
+        if (Array.isArray(driversIds) && driversIds.length > 0) {
             await User.updateMany(
-                { _id: { $in: selectedDriverIds }, companyId: user.companyId, role: userRoles.DRIVER },
+                { _id: { $in: driversIds }, companyId: user.companyId, role: userRoles.DRIVER },
                 { teamId: team._id }
             )
         }
-        if (Array.isArray(selectedVehicleIds) && selectedVehicleIds.length > 0) {
+
+        if (Array.isArray(vehiclesIds) && vehiclesIds.length > 0) {
             await Vehicle.updateMany(
-                { _id: { $in: selectedVehicleIds }, companyId: user.companyId },
+                { _id: { $in: vehiclesIds }, companyId: user.companyId },
                 { teamId: team._id }
             )
         }
+
         const createdTeam = await Team.findById(team._id).populate("managerId", "name email status phone")
+
         success(res, 201, { team: createdTeam })
     } catch (err) {
         console.log(err)
@@ -92,7 +97,7 @@ exports.updateTeam = async (req, res) => {
     const teamId = req.params.id || null
     if (!teamId) return error(res, 400, "team Id is required")
     try {
-        const team = await Team.findOneAndUpdate({ _id: teamId, companyId: user.companyId }, { name })
+        const team = await Team.findOneAndUpdate({ _id: teamId, companyId: user.companyId, isDeleted: false }, { name })
         if (!team) return error(res, 404, "Team not found")
         success(res, 200)
     } catch (err) {
@@ -127,7 +132,7 @@ exports.teamStatics = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
     try {
-        const statics = await getStatics({ teamId, companyId: user.companyId })
+        const statics = await getStatics({ teamId, companyId: user.companyId, isDeleted: false })
         success(res, 200, { statics })
     } catch (err) {
         console.log(err)
@@ -137,21 +142,25 @@ exports.teamStatics = async (req, res) => {
 
 exports.assignResources = async (req, res) => {
     const user = req.user
-    const teamId = req.params.id
-    const driverIds = Array.isArray(req.body.driverIds) ? req.body.driverIds : []
-    const vehicleIds = Array.isArray(req.body.vehicleIds) ? req.body.vehicleIds : []
+    const teamId = req.teamId
+    const driversIds = Array.isArray(req.body.driversIds) ? req.body.driversIds : []
+    const vehiclesIds = Array.isArray(req.body.vehiclesIds) ? req.body.vehiclesIds : []
     try {
-        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
-        if (!team) return error(res, 404, "Team not found")
         const operations = []
-        if (driverIds.length) operations.push(User.updateMany(
-            { _id: { $in: driverIds }, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false },
-            { $set: { teamId: team._id } }
-        ))
-        if (vehicleIds.length) operations.push(Vehicle.updateMany(
-            { _id: { $in: vehicleIds }, companyId: user.companyId, isDeleted: false },
-            { $set: { teamId: team._id } }
-        ))
+
+        const filters = { companyId: user.companyId, status: mainStatus.ACTIVE, isDeleted: false }
+        if (driversIds.length)
+            operations.push(User.updateMany(
+                { _id: { $in: driversIds }, ...filters, role: userRoles.DRIVER },
+                { $set: { teamId } }
+            ))
+
+        if (vehiclesIds.length)
+            operations.push(Vehicle.updateMany(
+                { _id: { $in: vehiclesIds }, ...filters },
+                { $set: { teamId } }
+            ))
+
         await Promise.all(operations)
         success(res, 200)
     } catch (err) {
