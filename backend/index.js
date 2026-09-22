@@ -29,13 +29,11 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
-const PORT = process.env.PORT || 3001;
+const http = require("http");
+const { initSocket } = require("./services/socket.service");
 
-connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server Running at port: ${PORT}`);
-    });
-});
+const server = http.createServer(app);
+initSocket(server);
 
 const authRoutes = require("./routes/auth.route")
 const userRoutes = require("./routes/user.route")
@@ -46,6 +44,7 @@ const vehicleRoutes = require("./routes/vehicle.route")
 const teamRoutes = require("./routes/team.route")
 const taskRoutes = require("./routes/task.route")
 const alertRoutes = require("./routes/alert.route")
+const gpsRoutes = require("./routes/gps.route")
 
 app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
@@ -56,3 +55,12 @@ app.use("/api/vehicle", vehicleRoutes)
 app.use("/api/fuel", fuelRoutes)
 app.use("/api/maintenance", maintenanceRoutes)
 app.use("/api/alert", alertRoutes)
+app.use("/api/gps", gpsRoutes)
+
+const PORT = process.env.PORT || 3001;
+
+connectDB().then(() => {
+    server.listen(PORT, () => {
+        console.log(`Server Running with GPS WebSockets at port: ${PORT}`);
+    });
+});

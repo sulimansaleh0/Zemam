@@ -1,5 +1,5 @@
 const mongoose = require("mongoose")
-const { vehicleStatus } = require("../data/status")
+const { vehicleStatus, gpsStatus } = require("../data/status")
 const { vehicleTypes } = require("../data/vehicleTypes")
 const { fuelTypes } = require("../data")
 
@@ -61,6 +61,17 @@ const vehicleSchema = new mongoose.Schema({
         type: String,
         enum: [vehicleStatus.ACTIVE, vehicleStatus.INACTIVE, vehicleStatus.INMAINTENANCE],
         default: vehicleStatus.ACTIVE
+    },
+    currentLocation: {
+        lat: { type: Number },
+        lng: { type: Number },
+        speed: { type: Number, default: 0 },
+        updatedAt: { type: Date, default: Date.now }
+    },
+    gpsStatus: {
+        type: String,
+        enum: Object.values(gpsStatus),
+        default: gpsStatus.AVAILABLE
     },
     teamId: {
         type: mongoose.Schema.Types.ObjectId,
