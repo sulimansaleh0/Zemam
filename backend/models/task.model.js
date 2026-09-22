@@ -37,10 +37,6 @@ const taskSchema = new mongoose.Schema({
         type: Number,
         min: 0
     },
-    isDelayed: {
-        type: Boolean,
-        default: false
-    },
     pickupLocation: {
         address: { type: String, required: true, trim: true },
         lat: { type: String, required: true, trim: true },

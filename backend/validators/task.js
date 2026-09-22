@@ -33,10 +33,6 @@ exports.createTaskSchema = [
     body("startOdometer")
         .optional()
         .isFloat({ min: 0 }),
-    body("endOdometer")
-        .optional()
-        .isFloat({ min: 0 }),
-
     body("pickupLocation")
         .isObject()
         .withMessage("Pickup location is required"),
