@@ -18,7 +18,6 @@ const imageFolder = "fuelRecords"
 
 router.use(verifyToken)
 router.use(checkSubscription())
-router.use(getTeam)
 
 router.post("/",
     allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER, userRoles.DRIVER),
@@ -26,6 +25,7 @@ router.post("/",
     uploadToCloudinary(imageFolder),
     createFuelSchema,
     validator,
+    getTeam,
     createFuelRecord
 )
 
