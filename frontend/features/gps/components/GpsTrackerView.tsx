@@ -10,16 +10,13 @@ import {
   Radio,
   RefreshCw,
   Route,
-  Smartphone,
   Truck,
   Zap,
 } from 'lucide-react';
-import { Modal } from '@/shared/ui/Modal';
 import { useFleetGps } from '../hooks/useFleetGps';
 import { FleetGpsSidebar } from './FleetGpsSidebar';
 import { VehicleTelemetryDrawer } from './VehicleTelemetryDrawer';
 import { TripSummaryModal } from './TripSummaryModal';
-import { DriverLocationBroadcaster } from './DriverLocationBroadcaster';
 import { gpsService } from '../services/gps.service';
 import type { TripSummary } from '../types/gps.types';
 
@@ -46,12 +43,10 @@ export function GpsTrackerView() {
     stats,
     isLoading,
     refreshFleet,
-    updateVehicleTelemetry,
   } = useFleetGps();
 
   const [activeTripSummary, setActiveTripSummary] = useState<TripSummary | null>(null);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
-  const [showDriverModal, setShowDriverModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // استعراض ملخص آخر رحلة منتهية للمركبة
@@ -109,15 +104,6 @@ export function GpsTrackerView() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* زر فتح لوحة بث السائق PWA كنافذة منبثقة نظيفة */}
-          <button
-            onClick={() => setShowDriverModal(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-500/20 transition-colors cursor-pointer"
-          >
-            <Smartphone className="h-4 w-4" />
-            <span>بث السائق PWA</span>
-          </button>
-
           {/* زر تحديث الأسطول */}
           <button
             onClick={() => refreshFleet()}
@@ -185,40 +171,6 @@ export function GpsTrackerView() {
         onClose={() => setIsTripModalOpen(false)}
         summary={activeTripSummary}
       />
-
-      {/* ── نافذة بث موقع السائق (PWA Broadcaster) كنافذة منبثقة راقية ── */}
-      <Modal
-        isOpen={showDriverModal}
-        onClose={() => setShowDriverModal(false)}
-        title="محطة بث موقع السائق الميداني (PWA Tracker)"
-        description="بث إحداثيات السائق الحقيقية عبر الأقمار الصناعية أو اختبار البث الحي"
-        icon={Smartphone}
-        iconClassName="text-blue-500"
-        maxWidth="2xl"
-      >
-        <div className="pt-2">
-          <DriverLocationBroadcaster
-            vehicleId={selectedVehicleId || vehicles[0]?.vehicleId || 'demo-vehicle-1'}
-            onLocationEmitted={(payload) => {
-              updateVehicleTelemetry({
-                vehicleId: payload.vehicleId,
-                plateNumber: selectedVehicle?.plateNumber || 'بث مباشر',
-                model: selectedVehicle?.model || 'مركبة تجريبية',
-                driverName: selectedVehicle?.driverName || 'سائق ميداني',
-                currentLocation: {
-                  lat: payload.lat,
-                  lng: payload.lng,
-                  speed: payload.speed,
-                  heading: payload.heading,
-                  updatedAt: new Date().toISOString(),
-                },
-                gpsStatus: payload.speed > 0 ? 'moving' : 'idle',
-                isInTask: true,
-              });
-            }}
-          />
-        </div>
-      </Modal>
     </div>
   );
 }
