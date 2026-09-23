@@ -1,5 +1,8 @@
+const mongoose = require("mongoose");
 const Vehicle = require("../models/vehicle.model");
 const Task = require("../models/task.model");
+const TaskLivePoint = require("../models/taskLivePoint.model");
+const { encodePolyline } = require("../services/gpsIngestion.service");
 const { success, error, serverError } = require("../utils/responses");
 const { userRoles } = require("../data/roles");
 const { taskStatus, mainStatus } = require("../data/status");
@@ -62,23 +65,68 @@ exports.getLiveFleet = async (req, res) => {
                     speed: v.currentLocation.speed || 0,
                     heading: v.currentLocation.heading || 0,
                     updatedAt: v.currentLocation.updatedAt ? new Date(v.currentLocation.updatedAt).toISOString() : new Date().toISOString()
-                } : {
-                    lat: 24.7136,
-                    lng: 46.6753,
-                    speed: 0,
-                    heading: 0,
-                    updatedAt: new Date().toISOString()
-                },
+                } : null,
                 gpsStatus: v.gpsStatus || "available",
                 isInTask: !!activeTask || !!v.isInTask,
                 activeTaskId: activeTask?.taskId,
                 activeTaskTitle: activeTask?.title
             };
+
         });
 
         return success(res, 200, { vehicles: formattedVehicles });
     } catch (err) {
         console.error("❌ [GPS Controller] Error fetching live fleet:", err);
+        return serverError(res);
+    }
+};
+
+/**
+ * GET /api/gps/trip-path/:taskId
+ * Returns the live GPS path for an in-progress task.
+ */
+exports.getLiveTripPath = async (req, res) => {
+    const user = req.user;
+    const { taskId } = req.params;
+    const teamId = req.teamId;
+
+    if (!taskId || !mongoose.isValidObjectId(taskId)) {
+        return error(res, 400, "Task ID is required");
+    }
+
+    try {
+        const taskFilters = {
+            _id: taskId,
+            companyId: user.companyId,
+            status: taskStatus.INPROGRESS
+        };
+
+        if (teamId) {
+            taskFilters.teamId = teamId;
+        }
+
+        const task = await Task.findOne(taskFilters).lean();
+        if (!task) {
+            return error(res, 404, "Active task not found");
+        }
+
+        const points = await TaskLivePoint.find({ taskId })
+            .sort({ timestamp: 1 })
+            .select("lat lng speed heading accuracy timestamp")
+            .lean();
+
+        const coordinates = points.map((point) => [point.lat, point.lng]);
+
+        return success(res, 200, {
+            path: {
+                taskId: task._id.toString(),
+                vehicleId: task.vehicleId.toString(),
+                encodedPath: encodePolyline(coordinates),
+                points
+            }
+        });
+    } catch (err) {
+        console.error("❌ [GPS Controller] Error fetching live trip path:", err);
         return serverError(res);
     }
 };

@@ -47,28 +47,9 @@ function initSocket(server) {
         transports: ["websocket", "polling"]
     });
 
-    // Engine-level connection logging: logs raw engine request headers (useful to see Cookie)
-    try {
-        io.engine.on('connection', (engineSocket) => {
-            try {
-                console.log('🔎 [engine] incoming connection id=%s, transport=%s, headers=%o', engineSocket.id, engineSocket.transport, engineSocket.request && engineSocket.request.headers);
-            } catch (e) {
-                console.log('🔎 [engine] incoming connection (could not stringify headers)');
-            }
-        });
-    } catch (e) {
-        // engine may not be available in some test contexts
-    }
-
     // Authentication Middleware
     io.use(async (socket, next) => {
-        // Log handshake metadata to verify whether the browser sent cookies/auth
-        try {
-            console.log('🔒 [socket auth] handshake origin=%s, cookie=%s, auth=%o', socket.handshake.headers.origin, socket.handshake.headers.cookie, socket.handshake.auth);
-        } catch (e) {
-            console.log('🔒 [socket auth] handshake (could not log headers)');
-        }
-
+        const cookieHeader = socket.handshake.headers.cookie;
         try {
             const token = extractToken(socket);
             if (!token) {
@@ -97,7 +78,6 @@ function initSocket(server) {
                 return next(socketAuthError("INVALID_TOKEN", "Invalid access token"));
             }
 
-            console.error("❌ [Socket Auth] Authentication failed:", err);
             return next(socketAuthError("AUTH_FAILED", "Unable to authenticate socket"));
         }
     });
@@ -109,8 +89,7 @@ function initSocket(server) {
         socket.on("fleet:join", () => {
             const companyId = user.companyId;
             const teamId = user.teamId;
-            const role = user.role
-            console.log(user)
+            const role = user.role;
             if (role === userRoles.ADMIN) {
                 socket.join(`company_${companyId}`);
             } else if (role === userRoles.FLEET_MANAGER) {
@@ -140,7 +119,7 @@ function initSocket(server) {
         // Handle driver location update (PWA telemetry pulse)
         socket.on("driver:location_update", async (payload) => {
             try {
-                if (!payload || !payload.vehicleId) {
+                if (user.role !== userRoles.DRIVER || !payload || !payload.vehicleId) {
                     return;
                 }
 
@@ -157,6 +136,8 @@ function initSocket(server) {
                     lat: payload.lat,
                     lng: payload.lng,
                     speed: payload.speed,
+                    heading: payload.heading,
+                    accuracy: payload.accuracy,
                     timestamp: payload.timestamp
                 });
 

@@ -1,25 +1,21 @@
 require("dotenv").config();
 const express = require("express");
+const http = require("http");
+const { initSocket } = require("./services/socket.service");
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
 const { connectDB } = require("./config/db");
+const { allowedOrigins } = require("./data");
+const routes = require("./routes");
+const PORT = process.env.PORT || 3001;
 
 const app = express();
+
 app.set("trust proxy", 1);
 app.use(express.json());
-
-const allowedOrigins = [
-    "http://localhost:3000",
-    process.env.CLIENT_URL,
-].filter(Boolean);
-
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        if (allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
 
@@ -28,39 +24,13 @@ app.use(cors({
     credentials: true
 }));
 app.use(cookieParser());
-
-const http = require("http");
-const { initSocket } = require("./services/socket.service");
+app.use("/api", routes);
 
 const server = http.createServer(app);
 initSocket(server);
 
-const authRoutes = require("./routes/auth.route")
-const userRoutes = require("./routes/user.route")
-const companyRoutes = require("./routes/company.route")
-const fuelRoutes = require("./routes/fuel.route")
-const maintenanceRoutes = require("./routes/maintenance.route")
-const vehicleRoutes = require("./routes/vehicle.route")
-const teamRoutes = require("./routes/team.route")
-const taskRoutes = require("./routes/task.route")
-const alertRoutes = require("./routes/alert.route")
-const gpsRoutes = require("./routes/gps.route")
-
-app.use("/api/auth", authRoutes)
-app.use("/api/user", userRoutes)
-app.use("/api/company", companyRoutes)
-app.use("/api/team", teamRoutes)
-app.use("/api/task", taskRoutes)
-app.use("/api/vehicle", vehicleRoutes)
-app.use("/api/fuel", fuelRoutes)
-app.use("/api/maintenance", maintenanceRoutes)
-app.use("/api/alert", alertRoutes)
-app.use("/api/gps", gpsRoutes)
-
-const PORT = process.env.PORT || 3001;
-
 connectDB().then(() => {
     server.listen(PORT, () => {
-        console.log(`Server Running with GPS WebSockets at port: ${PORT}`);
+        console.log(`Server Running at port: ${PORT}`);
     });
-});
+});

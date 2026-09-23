@@ -6,7 +6,7 @@ const { userRoles } = require("../data/roles")
 const { mainStatus, taskStatus } = require("../data/status")
 const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
 const { getExpectedEndTime } = require("../utils/taskEndTime")
-const { finalizeTripSummary } = require("../services/gpsIngestion.service")
+const { finalizeTripSummary, stopTelemetryTracking } = require("../services/gpsIngestion.service")
 const { notifyTripCompleted } = require("../services/socket.service")
 
 exports.createTask = async (req, res) => {
@@ -199,23 +199,52 @@ exports.acceptTask = async (req, res) => {
         const vehicle = await Vehicle.findOne({
             _id: task.vehicleId,
             companyId: user.companyId,
+            teamId: user.teamId,
             status: mainStatus.ACTIVE,
             isDeleted: false,
+            isInTask: false
         })
 
         if (!vehicle)
             return error(res, 409, "Vehicle is unavailable for this task")
 
         const vehicleUpdate = await Vehicle.updateOne(
-            { _id: vehicle._id },
+            {
+                _id: vehicle._id,
+                companyId: user.companyId,
+                teamId: user.teamId,
+                status: mainStatus.ACTIVE,
+                isDeleted: false,
+                isInTask: false
+            },
             { $set: { isInTask: true } }
         )
         if (!vehicleUpdate.modifiedCount)
             return error(res, 409, "Vehicle is unavailable for this task")
 
-        task.status = taskStatus.INPROGRESS
-        task.startedAt = new Date()
-        await task.save()
+        const startedAt = new Date()
+        const acceptedTask = await Task.findOneAndUpdate(
+            {
+                _id: task._id,
+                companyId: user.companyId,
+                teamId: user.teamId,
+                driverId: user._id,
+                status: taskStatus.PENDING
+            },
+            {
+                $set: {
+                    status: taskStatus.INPROGRESS,
+                    startedAt
+                }
+            },
+            { new: true }
+        )
+
+        if (!acceptedTask) {
+            await Vehicle.updateOne({ _id: vehicle._id }, { $set: { isInTask: false } })
+            return error(res, 409, "Task is no longer available")
+        }
+
         success(res, 200)
     } catch (err) {
         console.log(err)
@@ -238,7 +267,13 @@ exports.finishTask = async (req, res) => {
 
         if (!(task.status === taskStatus.INPROGRESS)) return error(res, 400, "Task is not in progress")
 
-        const vehicle = await Vehicle.findById(task.vehicleId)
+        const vehicle = await Vehicle.findOne({
+            _id: task.vehicleId,
+            companyId: user.companyId,
+            teamId: user.teamId,
+            status: mainStatus.ACTIVE,
+            isDeleted: false
+        })
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
         const finishedAt = new Date()
@@ -258,8 +293,21 @@ exports.finishTask = async (req, res) => {
         task.endOdometer = endOdometer
         await task.save()
 
-        const vehicleUpdate = { isInTask: false, currentOdometer: endOdometer, gpsStatus: "available" }
-        await Vehicle.findByIdAndUpdate(task.vehicleId, vehicleUpdate)
+        const vehicleUpdate = {
+            isInTask: false,
+            currentOdometer: endOdometer,
+            gpsStatus: "available",
+            "currentLocation.speed": 0
+        }
+        await Vehicle.findOneAndUpdate(
+            {
+                _id: task.vehicleId,
+                companyId: user.companyId,
+                teamId: user.teamId,
+                isDeleted: false
+            },
+            { $set: vehicleUpdate }
+        )
 
         // Finalize trip summary (aggregate raw points, compress polyline, purge raw logs)
         try {
@@ -270,6 +318,7 @@ exports.finishTask = async (req, res) => {
         } catch (summaryErr) {
             console.error("⚠️ [Task Completion] Trip summarization warning:", summaryErr.message)
         }
+        stopTelemetryTracking(task.vehicleId)
 
         success(res, 200)
     } catch (err) {

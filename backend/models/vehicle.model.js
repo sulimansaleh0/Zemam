@@ -66,6 +66,7 @@ const vehicleSchema = new mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number },
         speed: { type: Number, default: 0 },
+        heading: { type: Number, default: 0 },
         updatedAt: { type: Date, default: Date.now }
     },
     gpsStatus: {

@@ -1,7 +1,8 @@
+const mongoose = require("mongoose");
 const Vehicle = require("../models/vehicle.model");
 const Task = require("../models/task.model");
 const TaskLivePoint = require("../models/taskLivePoint.model");
-const { gpsStatus } = require("../data/status");
+const { gpsStatus, taskStatus, vehicleStatus } = require("../data/status");
 
 // In-memory cache of latest vehicle telemetry for rapid jitter filtering
 const latestPositions = new Map();
@@ -64,6 +65,50 @@ function encodePolyline(points) {
 }
 
 /**
+ * Confirms that the authenticated driver can report telemetry for this vehicle
+ * and resolves the vehicle's current active task from the database.
+ */
+async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId, teamId }) {
+    if (!mongoose.isValidObjectId(vehicleId)) {
+        throw new Error("Invalid vehicle");
+    }
+
+    const vehicle = await Vehicle.findOne({
+        _id: vehicleId,
+        companyId,
+        teamId,
+        status: vehicleStatus.ACTIVE,
+        isDeleted: false,
+        isInTask: true
+    });
+
+    if (!vehicle) {
+        throw new Error("Vehicle is not available for an active task");
+    }
+
+    const activeTask = await Task.findOne({
+        vehicleId: vehicle._id,
+        driverId,
+        companyId,
+        teamId,
+        status: taskStatus.INPROGRESS
+    });
+
+    if (!activeTask) {
+        throw new Error("Vehicle has no active task");
+    }
+
+    if (taskId && (!mongoose.isValidObjectId(taskId) || activeTask._id.toString() !== taskId.toString())) {
+        throw new Error("Task is not active or is not assigned to this driver and vehicle");
+    }
+
+    return {
+        vehicle,
+        taskId: activeTask?._id
+    };
+}
+
+/**
  * Ingest incoming telemetry point from driver PWA or future hardware tracker
  */
 async function processTelemetryUpdate({
@@ -79,17 +124,35 @@ async function processTelemetryUpdate({
     accuracy = 0,
     timestamp = Date.now()
 }) {
-    if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+
+    if (
+        !Number.isFinite(numLat) ||
+        !Number.isFinite(numLng) ||
+        numLat < -90 ||
+        numLat > 90 ||
+        numLng < -180 ||
+        numLng > 180
+    ) {
         throw new Error("Invalid coordinates");
     }
 
-    const numLat = Number(lat);
-    const numLng = Number(lng);
+    const authorizedSource = await authorizeTelemetrySource({
+        vehicleId,
+        taskId,
+        driverId,
+        companyId,
+        teamId
+    });
+    const resolvedTaskId = authorizedSource.taskId;
+
     let numSpeed = Math.max(0, Number(speed) || 0);
     const numHeading = Math.max(0, Math.min(360, Number(heading) || 0));
 
     // Jitter filtering: check against previous reading
-    const prev = latestPositions.get(vehicleId.toString());
+    const canonicalVehicleId = authorizedSource.vehicle._id.toString();
+    const prev = latestPositions.get(canonicalVehicleId);
     let computedStatus = gpsStatus.AVAILABLE;
 
     if (prev) {
@@ -97,18 +160,21 @@ async function processTelemetryUpdate({
         // If movement is under 5 meters and speed under 3 km/h, vehicle is stationary / idle
         if (distKm < 0.005 && numSpeed < 3) {
             numSpeed = 0;
-            computedStatus = taskId ? gpsStatus.IDLE : gpsStatus.AVAILABLE;
+            computedStatus = resolvedTaskId ? gpsStatus.IDLE : gpsStatus.AVAILABLE;
         } else if (numSpeed >= 3 || distKm >= 0.005) {
             computedStatus = gpsStatus.MOVING;
         }
     } else {
-        computedStatus = numSpeed >= 3 ? gpsStatus.MOVING : (taskId ? gpsStatus.IDLE : gpsStatus.AVAILABLE);
+        computedStatus = numSpeed >= 3 ? gpsStatus.MOVING : (resolvedTaskId ? gpsStatus.IDLE : gpsStatus.AVAILABLE);
     }
 
     const updateTime = new Date(timestamp);
+    if (Number.isNaN(updateTime.getTime())) {
+        throw new Error("Invalid timestamp");
+    }
 
     // Update in-memory cache
-    latestPositions.set(vehicleId.toString(), {
+    latestPositions.set(canonicalVehicleId, {
         lat: numLat,
         lng: numLng,
         speed: numSpeed,
@@ -128,19 +194,29 @@ async function processTelemetryUpdate({
         gpsStatus: computedStatus
     };
 
-    const updatedVehicle = await Vehicle.findByIdAndUpdate(
-        vehicleId,
+    const updatedVehicle = await Vehicle.findOneAndUpdate(
+        {
+            _id: authorizedSource.vehicle._id,
+            companyId,
+            teamId,
+            status: vehicleStatus.ACTIVE,
+            isDeleted: false
+        },
         { $set: vehicleUpdate },
         { new: true }
     )
         .populate("driverId", "name email phone avatar")
         .populate("teamId", "name");
 
+    if (!updatedVehicle) {
+        throw new Error("Vehicle is no longer available for telemetry");
+    }
+
     // If active task, record in temporary high-resolution log (24h TTL)
-    if (taskId) {
+    if (resolvedTaskId) {
         await TaskLivePoint.create({
-            taskId,
-            vehicleId,
+            taskId: resolvedTaskId,
+            vehicleId: authorizedSource.vehicle._id,
             driverId,
             companyId,
             teamId,
@@ -175,10 +251,19 @@ async function processTelemetryUpdate({
                 updatedAt: updateTime.toISOString()
             },
             gpsStatus: computedStatus,
-            isInTask: !!taskId,
-            activeTaskId: taskId ? taskId.toString() : undefined
+            isInTask: !!resolvedTaskId,
+            activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined
         }
     };
+}
+
+/**
+ * Removes the in-memory tracking state after a task is finished.
+ */
+function stopTelemetryTracking(vehicleId) {
+    if (vehicleId) {
+        latestPositions.delete(vehicleId.toString());
+    }
 }
 
 /**
@@ -215,8 +300,10 @@ async function finalizeTripSummary(taskId) {
             if (i > 0) {
                 const prev = points[i - 1];
                 const legDist = calculateHaversineDistance(prev.lat, prev.lng, p.lat, p.lng);
-                // Filter out impossible spikes (> 180 km/h)
-                if (legDist > 0.002 && legDist < 5) {
+                const elapsedHours = (new Date(p.timestamp).getTime() - new Date(prev.timestamp).getTime()) / 3600000;
+                const segmentSpeed = elapsedHours > 0 ? legDist / elapsedHours : 0;
+                // Ignore GPS jitter and impossible jumps, but allow valid sparse updates.
+                if (legDist > 0.002 && elapsedHours > 0 && segmentSpeed <= 180) {
                     totalDistanceKm += legDist;
                 }
             }
@@ -276,6 +363,7 @@ async function finalizeTripSummary(taskId) {
 module.exports = {
     calculateHaversineDistance,
     encodePolyline,
+    stopTelemetryTracking,
     processTelemetryUpdate,
     finalizeTripSummary
 };
