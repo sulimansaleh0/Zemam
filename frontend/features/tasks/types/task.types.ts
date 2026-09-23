@@ -54,6 +54,13 @@ export interface BackendTask {
   teamId?: string | PopulatedTeam;
   companyId: string;
   declineReason?: string;
+  tripSummary?: {
+    totalDistanceKm?: number;
+    durationMinutes?: number;
+    averageSpeed?: number;
+    maxSpeed?: number;
+    encodedPath?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

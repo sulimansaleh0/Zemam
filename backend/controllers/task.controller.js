@@ -6,6 +6,8 @@ const { userRoles } = require("../data/roles")
 const { mainStatus, taskStatus } = require("../data/status")
 const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
 const { getExpectedEndTime } = require("../utils/taskEndTime")
+const { finalizeTripSummary } = require("../services/gpsIngestion.service")
+const { notifyTripCompleted } = require("../services/socket.service")
 
 exports.createTask = async (req, res) => {
     const user = req.user
@@ -256,8 +258,19 @@ exports.finishTask = async (req, res) => {
         task.endOdometer = endOdometer
         await task.save()
 
-        const vehicleUpdate = { isInTask: false, currentOdometer: endOdometer }
+        const vehicleUpdate = { isInTask: false, currentOdometer: endOdometer, gpsStatus: "available" }
         await Vehicle.findByIdAndUpdate(task.vehicleId, vehicleUpdate)
+
+        // Finalize trip summary (aggregate raw points, compress polyline, purge raw logs)
+        try {
+            const tripSummary = await finalizeTripSummary(task._id)
+            if (tripSummary) {
+                notifyTripCompleted(user.companyId, user.teamId, tripSummary)
+            }
+        } catch (summaryErr) {
+            console.error("⚠️ [Task Completion] Trip summarization warning:", summaryErr.message)
+        }
+
         success(res, 200)
     } catch (err) {
         console.log(err)

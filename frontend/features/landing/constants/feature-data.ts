@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   Droplet,
   MapPin,
@@ -5,8 +6,9 @@ import {
   Truck,
   Users,
   Wrench,
-  type LucideIcon,
 } from "lucide-react";
+
+type LucideIcon = ComponentType<any>;
 
 export type FleetFeature = {
   title: string;

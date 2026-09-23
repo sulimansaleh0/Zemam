@@ -22,3 +22,10 @@ exports.taskStatus = {
     DECLINED: "declined",
     FINISHED: "finished"
 }
+
+exports.gpsStatus = {
+    MOVING: "moving",
+    IDLE: "idle",
+    AVAILABLE: "available",
+    OFFLINE: "offline"
+}

@@ -10,6 +10,7 @@ import {
   Compass,
   Eye,
   FileText,
+  Gauge,
   MapPin,
   Navigation,
   Phone,
@@ -18,10 +19,12 @@ import {
   Timer,
   Truck,
   User,
+  Zap,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import { getTaskStatusConfig, formatTaskDateTime } from '../utils/taskHelpers';
 import { fetchDrivingRoute, type RouteData } from '../utils/mapHelpers';
+import { decodePolyline } from '@/features/gps/utils/gpsHelpers';
 import type { TaskWithRelations } from '../types/task.types';
 
 const LeafletMapCanvas = dynamic(() => import('./LeafletMapCanvas'), {
@@ -65,6 +68,13 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
       isMounted = false;
     };
   }, [task?._id, pickupLat, pickupLng, deliveryLat, deliveryLng, hasCoords]);
+
+  const decodedTripPath = React.useMemo(() => {
+    if (task?.tripSummary?.encodedPath) {
+      return decodePolyline(task.tripSummary.encodedPath);
+    }
+    return undefined;
+  }, [task?.tripSummary?.encodedPath]);
 
   if (!task) return null;
 
@@ -226,19 +236,55 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                     <LeafletMapCanvas
                       pickupPosition={[pickupLat, pickupLng]}
                       deliveryPosition={[deliveryLat, deliveryLng]}
-                      routeCoordinates={routeData?.coordinates}
+                      routeCoordinates={decodedTripPath || routeData?.coordinates}
                       className="h-[250px] w-full rounded-xl"
                       readOnly={true}
                     />
 
-                    {routeData && (
+                    {/* إذا كانت المهمة منتهية ويوجد ملخص GPS فعلي */}
+                    {task.tripSummary ? (
+                      <div className="space-y-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs">
+                        <div className="flex items-center justify-between border-b border-emerald-500/15 pb-2">
+                          <span className="font-bold text-emerald-600 flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span>تقرير التتبع الفعلي للمهمة (GPS Trip Summary)</span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
+                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
+                            <span className="text-[10px] text-[var(--zd-muted)] block">المسافة الفعلية</span>
+                            <span className="font-black text-blue-600 text-sm">
+                              {task.tripSummary.totalDistanceKm ?? '—'} كم
+                            </span>
+                          </div>
+                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
+                            <span className="text-[10px] text-[var(--zd-muted)] block">زمن القيادة</span>
+                            <span className="font-black text-emerald-600 text-sm">
+                              {task.tripSummary.durationMinutes ?? '—'} دقيقة
+                            </span>
+                          </div>
+                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
+                            <span className="text-[10px] text-[var(--zd-muted)] block">متوسط السرعة</span>
+                            <span className="font-black text-amber-600 text-sm">
+                              {task.tripSummary.averageSpeed ?? '—'} كم/س
+                            </span>
+                          </div>
+                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
+                            <span className="text-[10px] text-[var(--zd-muted)] block">أقصى سرعة</span>
+                            <span className="font-black text-purple-600 text-sm">
+                              {task.tripSummary.maxSpeed ?? '—'} كم/س
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : routeData ? (
                       <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs">
                         <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shrink-0">
                             <Route className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-[10px] text-[var(--zd-muted)]">المسافة الفعلية</p>
+                            <p className="text-[10px] text-[var(--zd-muted)]">المسافة المقدرة</p>
                             <p className="text-xs font-bold text-blue-400">{routeData.distanceKm} كم</p>
                           </div>
                         </div>
@@ -253,7 +299,7 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                           </div>
                         </div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>

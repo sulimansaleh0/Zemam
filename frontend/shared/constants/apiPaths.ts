@@ -86,4 +86,10 @@ export const API_PATHS = {
   USER: {
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
   },
+
+  GPS: {
+    LIVE: 'api/gps/live',
+    TRIP_SUMMARY: (taskId: string) => `api/gps/trip-summary/${taskId}`,
+    VEHICLE_HISTORY: (vehicleId: string) => `api/gps/history/${vehicleId}`,
+  },
 } as const;

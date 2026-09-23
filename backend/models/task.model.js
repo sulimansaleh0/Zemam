@@ -67,7 +67,14 @@ const taskSchema = new mongoose.Schema({
         ref: "company",
         required: true
     },
-    declineReason: String
+    declineReason: String,
+    tripSummary: {
+        totalDistanceKm: { type: Number, default: 0 },
+        durationMinutes: { type: Number, default: 0 },
+        averageSpeed: { type: Number, default: 0 },
+        maxSpeed: { type: Number, default: 0 },
+        encodedPath: { type: String, default: "" },
+    }
 })
 
 const Task = mongoose.model("task", taskSchema)
