@@ -4,37 +4,36 @@ const User = require("../models/user.model");
 const { userRoles } = require("../data/roles");
 const { mainStatus } = require("../data/status");
 const { processTelemetryUpdate } = require("./gpsIngestion.service");
+const { allowedOrigins } = require("../data");
 
 let io = null;
 
-/**
- * Extracts JWT token from cookie string or auth payload
- */
 function extractToken(socket) {
-    if (socket.handshake.auth && socket.handshake.auth.token) {
-        return socket.handshake.auth.token;
-    }
     const cookieHeader = socket.handshake.headers.cookie;
     if (cookieHeader) {
-        const cookies = cookieHeader.split(";").map((c) => c.trim());
-        for (const cookie of cookies) {
-            if (cookie.startsWith("token=")) {
-                return cookie.substring("token=".length);
-            }
+        const tokenCookie = cookieHeader
+            .split(";")
+            .map((cookie) => cookie.trim())
+            .find((cookie) => cookie.startsWith("token="));
+
+        if (tokenCookie) {
+            return decodeURIComponent(tokenCookie.substring("token=".length));
         }
     }
+
     return null;
+}
+
+function socketAuthError(code, message) {
+    const error = new Error(message);
+    error.data = { code };
+    return error;
 }
 
 /**
  * Initialize Socket.io on the HTTP server
  */
 function initSocket(server) {
-    const allowedOrigins = [
-        "http://localhost:3000",
-        process.env.CLIENT_URL,
-    ].filter(Boolean);
-
     io = new Server(server, {
         cors: {
             origin: (origin, callback) => {
@@ -48,53 +47,76 @@ function initSocket(server) {
         transports: ["websocket", "polling"]
     });
 
+    // Engine-level connection logging: logs raw engine request headers (useful to see Cookie)
+    try {
+        io.engine.on('connection', (engineSocket) => {
+            try {
+                console.log('🔎 [engine] incoming connection id=%s, transport=%s, headers=%o', engineSocket.id, engineSocket.transport, engineSocket.request && engineSocket.request.headers);
+            } catch (e) {
+                console.log('🔎 [engine] incoming connection (could not stringify headers)');
+            }
+        });
+    } catch (e) {
+        // engine may not be available in some test contexts
+    }
+
     // Authentication Middleware
     io.use(async (socket, next) => {
+        // Log handshake metadata to verify whether the browser sent cookies/auth
+        try {
+            console.log('🔒 [socket auth] handshake origin=%s, cookie=%s, auth=%o', socket.handshake.headers.origin, socket.handshake.headers.cookie, socket.handshake.auth);
+        } catch (e) {
+            console.log('🔒 [socket auth] handshake (could not log headers)');
+        }
+
         try {
             const token = extractToken(socket);
             if (!token) {
-                // If token is missing, we still allow connection if in development, but tag socket as unauthenticated
-                socket.user = null;
-                return next();
+                return next(socketAuthError("AUTH_REQUIRED", "Authentication token is required"));
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
             const user = await User.findById(decoded._id);
-            if (!user || user.status !== mainStatus.ACTIVE) {
-                socket.user = null;
-                return next();
+
+            if (!user) {
+                return next(socketAuthError("USER_NOT_FOUND", "User not found"));
+            }
+
+            if (user.isDeleted || user.status !== mainStatus.ACTIVE) {
+                return next(socketAuthError("USER_INACTIVE", "User is not active"));
             }
 
             socket.user = user;
             return next();
         } catch (err) {
-            console.warn("⚠️ [Socket Auth] Token verification warning:", err.message);
-            socket.user = null;
-            return next();
+            if (err.name === "TokenExpiredError") {
+                return next(socketAuthError("TOKEN_EXPIRED", "Access token expired"));
+            }
+
+            if (err.name === "JsonWebTokenError" || err.name === "NotBeforeError") {
+                return next(socketAuthError("INVALID_TOKEN", "Invalid access token"));
+            }
+
+            console.error("❌ [Socket Auth] Authentication failed:", err);
+            return next(socketAuthError("AUTH_FAILED", "Unable to authenticate socket"));
         }
     });
 
     io.on("connection", (socket) => {
         const user = socket.user;
-        // console.log(`🟢 [Socket] Client connected: ${socket.id} (User: ${user ? user.email : "guest"})`);
-
+        console.log(`🟢 [Socket] Client connected: ${socket.id} (User: ${user ? user.email : "guest"})`);
         // Handle joining scoped fleet tracking room
-        socket.on("fleet:join", (data) => {
-            const companyId = (user && user.companyId) ? user.companyId.toString() : data?.companyId;
-            const teamId = (user && user.teamId) ? user.teamId.toString() : data?.teamId;
-            const role = (user && user.role) ? user.role : (data?.role || "admin");
-
+        socket.on("fleet:join", () => {
+            const companyId = user.companyId;
+            const teamId = user.teamId;
+            const role = user.role
+            console.log(user)
             if (role === userRoles.ADMIN) {
-                if (companyId) {
-                    const room = `company_${companyId}`;
-                    socket.join(room);
-                    // console.log(`[Socket] Joined room ${room} for admin ${socket.id}`);
-                }
+                socket.join(`company_${companyId}`);
             } else if (role === userRoles.FLEET_MANAGER) {
                 if (teamId) {
                     const room = `team_${teamId}`;
                     socket.join(room);
-                    // console.log(`[Socket] Joined room ${room} for manager ${socket.id}`);
                 }
             } else if (role === userRoles.DRIVER) {
                 if (companyId) {
@@ -122,9 +144,9 @@ function initSocket(server) {
                     return;
                 }
 
-                const companyId = user?.companyId || payload.companyId;
-                const teamId = user?.teamId || payload.teamId;
-                const driverId = user?._id || payload.driverId;
+                const companyId = user.companyId;
+                const teamId = user.teamId;
+                const driverId = user._id;
 
                 const result = await processTelemetryUpdate({
                     vehicleId: payload.vehicleId,
@@ -135,25 +157,20 @@ function initSocket(server) {
                     lat: payload.lat,
                     lng: payload.lng,
                     speed: payload.speed,
-                    heading: payload.heading,
-                    accuracy: payload.accuracy,
                     timestamp: payload.timestamp
                 });
 
                 // Broadcast location update to relevant rooms
-                if (companyId) {
-                    io.to(`company_${companyId}`).emit("vehicle:location_changed", result.telemetry);
-                }
-                if (teamId) {
-                    io.to(`team_${teamId}`).emit("vehicle:location_changed", result.telemetry);
-                }
+                io.to(`company_${companyId}`).emit("vehicle:location_changed", result.telemetry);
+
+                io.to(`team_${teamId}`).emit("vehicle:location_changed", result.telemetry);
             } catch (err) {
                 console.error("❌ [Socket] Error processing driver location update:", err.message);
             }
         });
 
         socket.on("disconnect", (reason) => {
-            // console.log(`🔴 [Socket] Client disconnected: ${socket.id} (${reason})`);
+            console.log(`🔴 [Socket] Client disconnected: ${socket.id} (${reason})`);
         });
     });
 
