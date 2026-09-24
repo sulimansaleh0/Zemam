@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { Cairo, Geist, Geist_Mono } from 'next/font/google';
+import { Cairo } from 'next/font/google';
 import { ToastProvider } from '@/shared/ui/Toast';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
 import { ThemeProvider } from '@/shared/context/ThemeContext';
@@ -12,16 +12,6 @@ const cairo = Cairo({
   subsets: ['arabic', 'latin'],
   weight: ['400', '500', '700', '800'],
   display: 'swap',
-});
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
@@ -54,7 +44,8 @@ export default function RootLayout({
       lang="ar"
       dir="rtl"
       suppressHydrationWarning
-      className={`${cairo.variable} ${geistSans.variable} ${geistMono.variable} scroll-smooth h-full antialiased`}
+      data-scroll-behavior="smooth"
+      className={`${cairo.variable} scroll-smooth h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
