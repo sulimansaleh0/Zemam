@@ -17,8 +17,10 @@ import {
   PlusCircle,
   Truck,
   User,
+  Users,
   AlertCircle,
 } from 'lucide-react';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { Modal } from '@/shared/ui/Modal';
 import {
   createTaskSchema,
@@ -26,6 +28,11 @@ import {
 } from '../schemas/task.schema';
 import type { CreateTaskInput, LocationPoint, TaskWithRelations } from '../types/task.types';
 import { TaskRouteMapPicker } from './TaskRouteMapPicker';
+
+interface TeamOption {
+  _id: string;
+  name: string;
+}
 
 interface VehicleOption {
   _id: string;
@@ -53,6 +60,7 @@ interface TaskFormModalProps {
   isLoading: boolean;
   vehicles: VehicleOption[];
   drivers: DriverOption[];
+  teams?: TeamOption[];
   initialTask?: TaskWithRelations | null;
 }
 
@@ -70,8 +78,13 @@ export function TaskFormModal({
   isLoading,
   vehicles,
   drivers,
+  teams = [],
   initialTask,
 }: TaskFormModalProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role !== 'fleet-manager' && user?.role !== 'fleet_manager';
+
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -108,15 +121,10 @@ export function TaskFormModal({
     setValue('deliveryLocation', loc, { shouldValidate: true });
   };
 
-  // تصفية المركبات المتاحة والنشطة
-  const activeVehicles = useMemo(() => {
-    return vehicles.filter((v) => v.status === 'active' || !v.status);
-  }, [vehicles]);
-
   // إيجاد المركبة المختارة حالياً
   const currentVehicle = useMemo(() => {
-    return activeVehicles.find((v) => v._id === selectedVehicleId);
-  }, [activeVehicles, selectedVehicleId]);
+    return vehicles.find((v) => v._id === selectedVehicleId);
+  }, [vehicles, selectedVehicleId]);
 
   // استخراج معرف فريق المركبة
   const vehicleTeamId = useMemo(() => {
@@ -126,27 +134,72 @@ export function TaskFormModal({
       : currentVehicle.teamId;
   }, [currentVehicle]);
 
-  // تصفية السائقين التابعين لنفس فريق المركبة تلقائياً لمنع خطأ 400
+  // المعرف الفعال للفريق
+  const effectiveTeamId = useMemo(() => {
+    return selectedTeamId || vehicleTeamId || '';
+  }, [selectedTeamId, vehicleTeamId]);
+
+  // تصفية المركبات المتاحة والنشطة مع مراعاة الفريق المختار إن وجد
+  const activeVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      const isActive = v.status === 'active' || !v.status;
+      if (!isActive) return false;
+      if (selectedTeamId) {
+        const vTeamId = typeof v.teamId === 'object' ? v.teamId?._id : v.teamId;
+        return vTeamId === selectedTeamId;
+      }
+      return true;
+    });
+  }, [vehicles, selectedTeamId]);
+
+  // تصفية السائقين التابعين لنفس الفريق التشغيلي تلقائياً لمنع خطأ 400
   const compatibleDrivers = useMemo(() => {
-    if (!vehicleTeamId) return [];
+    if (!effectiveTeamId) return [];
     return drivers.filter((d) => {
       const driverTeamId =
         typeof d.teamId === 'object' ? d.teamId?._id : d.teamId;
-      return driverTeamId === vehicleTeamId;
+      return driverTeamId === effectiveTeamId;
     });
-  }, [drivers, vehicleTeamId]);
+  }, [drivers, effectiveTeamId]);
 
-  // عند تغيير المركبة، يتم تعيين سائقها التلقائي أو تحديث قائمة السائقين
+  // عند تغيير الفريق يدوياً من الأدمن
+  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const tId = e.target.value;
+    setSelectedTeamId(tId);
+
+    // إذا تغير الفريق وكانت المركبة الحالية لا تنتمي للفريق الجديد، يتم تفريغ الاختيار
+    if (currentVehicle) {
+      const vTeamId =
+        typeof currentVehicle.teamId === 'object'
+          ? currentVehicle.teamId._id
+          : currentVehicle.teamId;
+      if (vTeamId && vTeamId !== tId) {
+        setSelectedVehicleId('');
+        setValue('vehicleId', '', { shouldValidate: true });
+        setValue('driverId', '', { shouldValidate: true });
+      }
+    }
+  };
+
+  // عند تغيير المركبة، يتم تعيين سائقها التلقائي أو تحديث قائمة السائقين وتحديث الفريق إن لم يكن محدداً
   const handleVehicleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const vId = e.target.value;
     setSelectedVehicleId(vId);
     setValue('vehicleId', vId, { shouldValidate: true });
 
-    const veh = activeVehicles.find((v) => v._id === vId);
-    if (veh?.driverId) {
-      const dId =
-        typeof veh.driverId === 'object' ? veh.driverId._id : veh.driverId;
-      setValue('driverId', dId, { shouldValidate: true });
+    const veh = vehicles.find((v) => v._id === vId);
+    if (veh) {
+      const vTeamId = typeof veh.teamId === 'object' ? veh.teamId?._id : veh.teamId;
+      if (vTeamId && !selectedTeamId) {
+        setSelectedTeamId(vTeamId);
+      }
+      if (veh.driverId) {
+        const dId =
+          typeof veh.driverId === 'object' ? veh.driverId._id : veh.driverId;
+        setValue('driverId', dId, { shouldValidate: true });
+      } else {
+        setValue('driverId', '', { shouldValidate: true });
+      }
     } else {
       setValue('driverId', '', { shouldValidate: true });
     }
@@ -163,8 +216,13 @@ export function TaskFormModal({
         typeof initialTask.driverId === 'object'
           ? initialTask.driverId._id
           : initialTask.driverId || '';
+      const tId =
+        typeof initialTask.teamId === 'object'
+          ? (initialTask.teamId as any)?._id
+          : initialTask.teamId || '';
 
       setSelectedVehicleId(vId);
+      setSelectedTeamId(tId);
 
       let formattedTime = '';
       if (initialTask.startTime) {
@@ -210,16 +268,24 @@ export function TaskFormModal({
         deliveryLocation: { address: '', lat: '', lng: '' },
       });
       setSelectedVehicleId('');
+      setSelectedTeamId('');
     }
     setFormError(null);
   }, [isOpen, initialTask, reset]);
 
   const handleFormSubmit = handleSubmit(async (values) => {
     setFormError(null);
+
+    if (isAdmin && !effectiveTeamId) {
+      setFormError('يرجى تحديد الفريق المسؤول عن المهمة أولاً');
+      return;
+    }
+
     try {
       const payload: CreateTaskInput = {
         title: values.title?.trim() || undefined,
         description: values.description.trim(),
+        teamId: effectiveTeamId || undefined,
         vehicleId: values.vehicleId,
         driverId: values.driverId || undefined,
         startTime: new Date(values.startTime).toISOString(),
@@ -309,6 +375,53 @@ export function TaskFormModal({
                 )}
               </div>
 
+              {/* الفريق المسؤول (للأدمن أو عند وجود قائمة فرق) */}
+              {(isAdmin || teams.length > 0) && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[var(--zd-text)]">
+                      الفريق المسؤول {isAdmin && <span className="text-rose-500">*</span>}
+                    </label>
+                    {selectedTeamId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTeamId('');
+                          setSelectedVehicleId('');
+                          setValue('vehicleId', '', { shouldValidate: true });
+                          setValue('driverId', '', { shouldValidate: true });
+                        }}
+                        className="text-[10px] text-[var(--zd-muted)] hover:text-rose-400 transition cursor-pointer"
+                      >
+                        إلغاء التحديد
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Users className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                    <select
+                      value={selectedTeamId}
+                      onChange={handleTeamChange}
+                      className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                    >
+                      <option value="">
+                        {isAdmin ? 'اختر الفريق التشغيلي المسؤول...' : 'تصفية حسب الفريق (اختياري)...'}
+                      </option>
+                      {teams.map((t) => (
+                        <option key={t._id} value={t._id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {isAdmin && !selectedTeamId && (
+                    <p className="text-[10px] text-amber-500">
+                      يجب تحديد الفريق لتصفية المركبات والسائقين التابعين له
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* المركبة المخصصة */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-[var(--zd-text)]">
@@ -369,15 +482,20 @@ export function TaskFormModal({
               </div>
 
               {/* تنبيه ذكي لتطابق الفريق */}
-              {selectedVehicleId && (
+              {effectiveTeamId ? (
                 <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-[11px] text-blue-400">
                   <Info className="h-4 w-4 shrink-0 text-blue-400" />
                   <span>
-                    {vehicleTeamId
-                      ? 'تم حصر السائقين في نفس فريق المركبة لضمان قبول المهمة.'
-                      : 'تنبيه: هذه المركبة غير مرتبطة بفريق تشغيلي.'}
+                    تم قصر السائقين والمركبات على نفس الفريق التشغيلي لضمان قبول المهمة.
                   </span>
                 </div>
+              ) : (
+                selectedVehicleId && (
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-2.5 text-[11px] text-amber-400">
+                    <Info className="h-4 w-4 shrink-0 text-amber-400" />
+                    <span>تنبيه: هذه المركبة غير مرتبطة بفريق تشغيلي حالياً.</span>
+                  </div>
+                )
               )}
 
               {/* موعد الانطلاق */}

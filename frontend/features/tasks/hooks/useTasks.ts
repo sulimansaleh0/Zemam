@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useVehicles } from '@/features/vehicles';
 import { useDriversList } from '@/features/drivers';
+import { useTeams } from '@/features/teams';
 import { useToast } from '@/shared/ui/Toast';
 import { taskService } from '../services/task.service';
 import {
@@ -200,6 +201,7 @@ export function useTasksPage() {
   const tasksQuery = useTasks();
   const vehiclesQuery = useVehicles();
   const driversQuery = useDriversList();
+  const teamsQuery = useTeams();
 
   const [activeTab, setActiveTab] = useState<'all' | TaskStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -282,7 +284,8 @@ export function useTasksPage() {
 
     vehicles: vehiclesQuery.data ?? [],
     drivers: driversQuery.data ?? [],
-    isLoadingRelations: vehiclesQuery.isLoading || driversQuery.isLoading,
+    teams: teamsQuery.data ?? [],
+    isLoadingRelations: vehiclesQuery.isLoading || driversQuery.isLoading || teamsQuery.isLoading,
 
     userName: user?.name || user?.email || 'المستخدم',
     menuOpen,
