@@ -1,17 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Compass,
-  Layers,
-  MapPin,
   Menu,
-  Radio,
   RefreshCw,
-  Route,
-  Truck,
-  Zap,
 } from 'lucide-react';
 import { useFleetGps } from '../hooks/useFleetGps';
 import { FleetGpsSidebar } from './FleetGpsSidebar';
@@ -34,7 +28,6 @@ const GpsMapCanvas = dynamic(() => import('./GpsMapCanvas'), {
 export function GpsTrackerView() {
   const {
     vehicles,
-    allVehicles,
     selectedVehicle,
     selectedVehicleId,
     setSelectedVehicleId,
@@ -48,6 +41,60 @@ export function GpsTrackerView() {
   const [activeTripSummary, setActiveTripSummary] = useState<TripSummary | null>(null);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedVehiclePath, setSelectedVehiclePath] = useState<[number, number][]>([]);
+
+  // استرجاع النقاط المقطوعة الحية للمركبة المحددة أثناء قيامها بمهمة
+  useEffect(() => {
+    if (!selectedVehicle?.isInTask || !selectedVehicle?.activeTaskId) {
+      setSelectedVehiclePath([]);
+      return;
+    }
+
+    let isMounted = true;
+    const taskId = selectedVehicle.activeTaskId;
+
+    gpsService
+      .getTaskLivePoints(taskId)
+      .then((res) => {
+        if (!isMounted) return;
+        if (res.success && res.data?.points && res.data.points.length > 0) {
+          const coords: [number, number][] = res.data.points.map((p) => [p.lat, p.lng]);
+          const cur = selectedVehicle.currentLocation;
+          if (cur?.lat && cur?.lng) {
+            const last = coords[coords.length - 1];
+            if (!last || Math.abs(last[0] - cur.lat) > 0.00005 || Math.abs(last[1] - cur.lng) > 0.00005) {
+              coords.push([cur.lat, cur.lng]);
+            }
+          }
+          setSelectedVehiclePath(coords);
+        } else if (selectedVehicle.currentLocation?.lat && selectedVehicle.currentLocation?.lng) {
+          setSelectedVehiclePath([[selectedVehicle.currentLocation.lat, selectedVehicle.currentLocation.lng]]);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedVehicle?.vehicleId, selectedVehicle?.activeTaskId]);
+
+  // تحديث مسار المركبة المباشر عند تحركها
+  useEffect(() => {
+    if (!selectedVehicle?.isInTask || !selectedVehicle?.currentLocation?.lat || !selectedVehicle?.currentLocation?.lng) {
+      return;
+    }
+    const curLat = selectedVehicle.currentLocation.lat;
+    const curLng = selectedVehicle.currentLocation.lng;
+
+    setSelectedVehiclePath((prev) => {
+      if (prev.length === 0) return [[curLat, curLng]];
+      const last = prev[prev.length - 1];
+      if (Math.abs(last[0] - curLat) > 0.00005 || Math.abs(last[1] - curLng) > 0.00005) {
+        return [...prev, [curLat, curLng]];
+      }
+      return prev;
+    });
+  }, [selectedVehicle?.currentLocation?.lat, selectedVehicle?.currentLocation?.lng]);
 
   // استعراض ملخص آخر رحلة منتهية للمركبة
   const handleViewRecentTrip = async (vehicleId: string) => {
@@ -138,6 +185,7 @@ export function GpsTrackerView() {
             vehicles={vehicles}
             selectedVehicleId={selectedVehicleId}
             onSelectVehicle={(id) => setSelectedVehicleId(id)}
+            activePolyline={selectedVehiclePath.length > 1 ? selectedVehiclePath : undefined}
           />
 
           {/* بطاقة تفاصيل المركبة تظهر فقط عند النقر على مركبة */}
