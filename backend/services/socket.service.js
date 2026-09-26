@@ -8,22 +8,6 @@ const { allowedOrigins } = require("../data");
 
 let io = null;
 
-function extractToken(socket) {
-    const cookieHeader = socket.handshake.headers.cookie;
-    if (cookieHeader) {
-        const tokenCookie = cookieHeader
-            .split(";")
-            .map((cookie) => cookie.trim())
-            .find((cookie) => cookie.startsWith("token="));
-
-        if (tokenCookie) {
-            return decodeURIComponent(tokenCookie.substring("token=".length));
-        }
-    }
-
-    return null;
-}
-
 function socketAuthError(code, message) {
     const error = new Error(message);
     error.data = { code };
@@ -50,12 +34,15 @@ function initSocket(server) {
     // Authentication Middleware
     io.use(async (socket, next) => {
         try {
-            const token = extractToken(socket);
+            const token = socket.handshake.auth?.ticket;
             if (!token) {
                 return next(socketAuthError("AUTH_REQUIRED", "Authentication token is required"));
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+            if (token && decoded.purpose !== "socket") {
+                return next(socketAuthError("INVALID_TOKEN", "Invalid socket authentication ticket"));
+            }
             const user = await User.findById(decoded._id);
 
             if (!user) {

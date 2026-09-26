@@ -2,19 +2,23 @@
 
 import { io, Socket } from 'socket.io-client';
 import type { DriverTelemetryPayload, VehicleLiveTelemetry } from '../types/gps.types';
+import { sendRequest } from '@/shared/lib/coreApi';
+import { API_PATHS } from '@/shared/constants/apiPaths';
 
 export function getSocketUrl(): string {
-  if (typeof window !== 'undefined') {
-    const { hostname } = window.location;
-    // إذا كان التصفح من IP شبكة محلية (مثل 192.168.10.130) على الهاتف
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      if (hostname.includes('ngrok')) {
-        return window.location.origin;
-      }
-      return `http://${hostname}:3001`;
-    }
-  }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+}
+
+async function getSocketTicket(): Promise<string> {
+  const result = await sendRequest<{ ticket: string }>(API_PATHS.AUTH.SOCKET_TICKET, {
+    method: 'POST',
+  });
+
+  if (!result.success) {
+    throw new Error(result.message || 'Could not authenticate GPS socket');
+  }
+
+  return result.data.ticket;
 }
 
 let socketInstance: Socket | null = null;
@@ -31,10 +35,19 @@ export function getGpsSocket(): Socket {
     socketInstance = io(targetUrl, {
       withCredentials: true,
       autoConnect: false,
+      addTrailingSlash: true,
       reconnection: true,
       reconnectionAttempts: 15,
       reconnectionDelay: 1500,
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
+      auth: (callback) => {
+        void getSocketTicket()
+          .then((ticket) => callback({ ticket }))
+          .catch((error: unknown) => {
+            console.error('[GPS Socket] Could not obtain authentication ticket:', error);
+            callback({});
+          });
+      },
     });
 
     socketInstance.on('connect', () => {
@@ -126,4 +139,3 @@ export function onFleetTelemetryUpdate(callback: (telemetry: VehicleLiveTelemetr
 }
 
 export const onVehicleLocationChanged = onFleetTelemetryUpdate;
-

@@ -72,6 +72,17 @@ exports.login = async (req, res) => {
     }
 }
 
+exports.createSocketTicket = (req, res) => {
+    const ticket = jwt.sign(
+        { _id: req.user._id, purpose: "socket" },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "60s" }
+    );
+
+    res.set("Cache-Control", "no-store");
+    success(res, 200, { ticket });
+};
+
 exports.signup = async (req, res) => {
     const { email, password, confirmPassword, name, companyName } = req.body
     try {
