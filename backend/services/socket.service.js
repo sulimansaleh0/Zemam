@@ -14,6 +14,9 @@ function extractToken(socket) {
     if (socket.handshake.auth && socket.handshake.auth.token) {
         return socket.handshake.auth.token;
     }
+    if (socket.handshake.headers?.authorization?.startsWith("Bearer ")) {
+        return socket.handshake.headers.authorization.split(" ")[1];
+    }
     const cookieHeader = socket.handshake.headers.cookie;
     if (cookieHeader) {
         const cookies = cookieHeader.split(";").map((c) => c.trim());
@@ -84,19 +87,19 @@ function initSocket(server) {
             const teamId = (user && user.teamId) ? user.teamId.toString() : data?.teamId;
             const role = (user && user.role) ? user.role : (data?.role || "admin");
 
-            if (role === userRoles.ADMIN) {
+            if (role === userRoles.ADMIN || role === "super_admin") {
                 if (companyId) {
                     const room = `company_${companyId}`;
                     socket.join(room);
                     // console.log(`[Socket] Joined room ${room} for admin ${socket.id}`);
                 }
-            } else if (role === userRoles.FLEET_MANAGER) {
+            } else if (role === userRoles.FLEET_MANAGER || role === "fleet_manager") {
                 if (teamId) {
                     const room = `team_${teamId}`;
                     socket.join(room);
                     // console.log(`[Socket] Joined room ${room} for manager ${socket.id}`);
                 }
-            } else if (role === userRoles.DRIVER) {
+            } else if (role === userRoles.DRIVER || role === "driver") {
                 if (companyId) {
                     socket.join(`company_${companyId}`);
                 }

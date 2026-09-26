@@ -32,6 +32,7 @@ import {
 } from '@/features/driver/services/driverStorage';
 import { DriverHeader } from '@/features/driver/components/DriverHeader';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { driverTaskService } from '@/features/driver/services/driverTaskService';
 
 // استيراد خريطة الـ Leaflet ديناميكياً لتجنب مشاكل الـ SSR
 const DriverLiveMap = dynamic(
@@ -207,6 +208,12 @@ export default function DriverMobileTrackingPage() {
           setSuccessNotice(`تمت مزامنة ${queued.length} نبضة مخزنة تلقائياً.`);
           setTimeout(() => setSuccessNotice(null), 3000);
         }
+
+        const actionsRes = await driverTaskService.flushOfflineActions();
+        if (actionsRes.succeeded > 0) {
+          setSuccessNotice(`تمت مزامنة ${actionsRes.succeeded} عملية ميدانية مخزنة.`);
+          setTimeout(() => setSuccessNotice(null), 3000);
+        }
       } catch {}
     };
 
@@ -220,6 +227,9 @@ export default function DriverMobileTrackingPage() {
     window.addEventListener('offline', handleOffline);
 
     getQueuedTelemetry().then((q) => setOfflineQueueCount(q.length));
+    if (navigator.onLine) {
+      driverTaskService.flushOfflineActions().catch(() => {});
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);

@@ -43,6 +43,10 @@ export const API_PATHS = {
     ASSIGN_RESOURCES: (id: string) => `api/team/${id}/resources`,
   },
 
+  COMPANY: {
+    STATICS:          'api/company/statics',
+  },
+
   MANAGERS: {
     LIST:          'api/user/fleet-manager',
     CREATE:        'api/user/fleet-manager',

@@ -54,6 +54,9 @@ exports.login = async (req, res) => {
         // Check Password
         const isMatched = await bcrypt.compare(password, user.password)
         if (!isMatched) return error(res, 400, "Check Email or Password")
+        if (user.status !== mainStatus.ACTIVE) {
+            return error(res, 403, "الحساب معطل أو غير نشط، يرجى مراجعة إدارة الشركة");
+        }
         if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
             return error(res, 403, "Fleet manager must be assigned to an active team")
         }

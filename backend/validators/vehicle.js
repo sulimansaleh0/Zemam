@@ -1,5 +1,5 @@
 const { body } = require("express-validator");
-const { mainStatus } = require("../data/status");
+const { mainStatus, vehicleStatus } = require("../data/status");
 const { vehicleTypes } = require("../data/vehicleTypes");
 
 exports.createVehicleSchema = [
@@ -49,7 +49,7 @@ exports.createVehicleSchema = [
 
 exports.updateVehicleStatusSchema = [
     body("status")
-        .isIn(Object.values(mainStatus))
+        .isIn([vehicleStatus.ACTIVE, vehicleStatus.INACTIVE, vehicleStatus.INMAINTENANCE])
         .withMessage("Invalid Vehicle status")
 ]
 

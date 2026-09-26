@@ -26,10 +26,23 @@ module.exports = (plan = plans.TRIAL) =>
             const hasAccess =
                 company.subscriptionStatus === subscriptionStatus.ACTIVE
 
-            if (!hasAccess)
+            if (!hasAccess) {
                 return error(res, 402, "Your subscription has expired. Choose a plan to continue.")
+            }
 
-            if (plan !== company.plan) return error(res, 401, "upgrade your plan to use this feature.")
+            const planHierarchy = {
+                [plans.FREE]: 0,
+                [plans.TRIAL]: 1,
+                [plans.MONTHLY]: 2,
+                [plans.ANNUAL]: 3
+            }
+
+            const currentPlanRank = planHierarchy[company.plan] ?? 0
+            const requiredPlanRank = planHierarchy[plan] ?? 1
+
+            if (currentPlanRank < requiredPlanRank) {
+                return error(res, 403, "Upgrade your plan to use this feature.")
+            }
 
             next()
         } catch (err) {

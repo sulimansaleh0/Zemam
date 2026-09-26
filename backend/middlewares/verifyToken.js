@@ -5,7 +5,10 @@ const { userRoles } = require("../data/roles")
 const { error, serverError } = require("../utils/responses");
 
 module.exports = async (req, res, next) => {
-    const token = req.cookies.token;
+    let token = req.cookies?.token;
+    if (!token && req.headers?.authorization?.startsWith("Bearer ")) {
+        token = req.headers.authorization.split(" ")[1];
+    }
     if (!token) return error(res, 401, "Token Required");
 
     try {

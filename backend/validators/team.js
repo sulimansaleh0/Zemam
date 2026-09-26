@@ -5,6 +5,6 @@ exports.createTeamSchema = [
         .trim()
         .notEmpty()
         .withMessage("Name is required")
-        .isLength({ min: 5 })
-        .withMessage("Name should be at least 5 characters"),
+        .isLength({ min: 2 })
+        .withMessage("Name should be at least 2 characters"),
 ]

@@ -143,8 +143,8 @@ exports.teamStatics = async (req, res) => {
 exports.assignResources = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const driversIds = Array.isArray(req.body.driversIds) ? req.body.driversIds : []
-    const vehiclesIds = Array.isArray(req.body.vehiclesIds) ? req.body.vehiclesIds : []
+    const driversIds = Array.isArray(req.body.driversIds) ? req.body.driversIds : (Array.isArray(req.body.driverIds) ? req.body.driverIds : [])
+    const vehiclesIds = Array.isArray(req.body.vehiclesIds) ? req.body.vehiclesIds : (Array.isArray(req.body.vehicleIds) ? req.body.vehicleIds : [])
     try {
         const operations = []
 

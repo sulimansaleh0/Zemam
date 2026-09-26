@@ -11,7 +11,6 @@ const { maintenancePriority } = require("../data")
 exports.createMaintenanceRecord = async (req, res) => {
     const user = req.user
     const { vehicleId, description, cost, images, category, odometer, priority } = req.body
-    const numericOdometer = Number(odometer)
     try {
         const vehicleFilters = {
             _id: vehicleId,
@@ -28,16 +27,27 @@ exports.createMaintenanceRecord = async (req, res) => {
                 driverId: user._id,
                 vehicleId,
                 companyId: user.companyId,
-                status: taskStatus.INPROGRESS
+                status: { $in: [taskStatus.INPROGRESS, taskStatus.PENDING] }
             })
-            if (!task)
-                return error(res, 403, "You can only report an issue for the vehicle in your task")
+            const isAssigned = await Vehicle.findOne({
+                _id: vehicleId,
+                driverId: user._id,
+                companyId: user.companyId
+            })
+            if (!task && !isAssigned)
+                return error(res, 403, "You can only report an issue for an assigned vehicle or active task")
 
-            vehicleFilters.teamId = task.teamId
+            if (task) {
+                vehicleFilters.teamId = task.teamId
+            }
         }
 
         const vehicle = await Vehicle.findOne(vehicleFilters)
         if (!vehicle) return error(res, 404, "Vehicle Not Found")
+
+        const numericOdometer = odometer !== undefined && odometer !== null && odometer !== ""
+            ? Number(odometer)
+            : vehicle.currentOdometer
 
         if (numericOdometer < vehicle.currentOdometer) {
             return error(res, 400, "Odometer cannot be lower than the vehicle's last reading")
@@ -46,7 +56,7 @@ exports.createMaintenanceRecord = async (req, res) => {
         const record = await Maintenance.create({
             vehicleId,
             description,
-            cost,
+            cost: cost != null && cost !== "" ? Number(cost) : 0,
             images,
             category,
             odoMeter: numericOdometer,
@@ -110,22 +120,63 @@ exports.verifyMaintenanceRecord = async (req, res) => {
             companyId: user.companyId,
             status: expenseRecordStatus.PENDING
         }
-        if (user.role === userRoles.FLEET_MANAGER)
-            filters.teamId = user.teamId
 
-        const pendingRecord = await Maintenance.findOne(filters).select("driverId")
-        if (!pendingRecord) return error(res, 404, "Maintenance Record Not Found")
-        if (status === expenseRecordStatus.APPROVED && Boolean(isDriverFault) && !pendingRecord.driverId) {
-            return error(res, 400, "A driver must be linked before assigning fault")
+        if (user.role === userRoles.FLEET_MANAGER) {
+            filters.$or = [
+                { teamId: user.teamId },
+                { teamId: null },
+                { teamId: { $exists: false } }
+            ]
         }
-        const maintenanceRecord = await Maintenance.findOneAndUpdate(filters, {
-            status,
-            cost,
-            declineReason: status === expenseRecordStatus.DECLINED ? declineReason : undefined,
-            isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : undefined
-        }, { returnDocument: 'after', runValidators: true })
 
-        if (!maintenanceRecord) return error(res, 400, "Maintenance Record Not Found")
+        const pendingRecord = await Maintenance.findOne(filters)
+        if (!pendingRecord) {
+            const alreadyProcessed = await Maintenance.findOne({ _id: recordId, companyId: user.companyId })
+            if (alreadyProcessed) {
+                if (alreadyProcessed.status !== expenseRecordStatus.PENDING) {
+                    return error(res, 400, "تم اعتماد أو معالجة هذا الطلب مسبقاً")
+                }
+                if (user.role === userRoles.FLEET_MANAGER && alreadyProcessed.teamId && alreadyProcessed.teamId.toString() !== user.teamId.toString()) {
+                    return error(res, 403, "ليس لديك صلاحية لاعتماد طلب صيانة تابع لفريق آخر")
+                }
+            }
+            return error(res, 404, "سجل الصيانة غير موجود أو تمت معالجته")
+        }
+
+        let targetDriverId = pendingRecord.driverId
+        if (status === expenseRecordStatus.APPROVED && Boolean(isDriverFault)) {
+            if (!targetDriverId) {
+                const vehicle = await Vehicle.findById(pendingRecord.vehicleId)
+                if (vehicle?.driverId) {
+                    targetDriverId = vehicle.driverId
+                }
+            }
+            if (!targetDriverId) {
+                return error(res, 400, "لا يمكن تحميل المسؤولية لسائق نظراً لعدم وجود سائق مرتبط بهذه المركبة أو الطلب")
+            }
+        }
+
+        const updateData = {
+            status,
+            declineReason: status === expenseRecordStatus.DECLINED ? (declineReason || "تم الرفض بواسطة الإدارة") : undefined,
+            isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : false
+        }
+
+        if (cost !== undefined && cost !== null && cost !== "") {
+            updateData.cost = Number(cost)
+        }
+        if (targetDriverId) {
+            updateData.driverId = targetDriverId
+        }
+
+        const maintenanceRecord = await Maintenance.findByIdAndUpdate(
+            pendingRecord._id,
+            { $set: updateData },
+            { new: true }
+        )
+
+        if (!maintenanceRecord) return error(res, 400, "فشل تحديث سجل الصيانة")
+
         const activeMaintenance = await Maintenance.exists({
             vehicleId: maintenanceRecord.vehicleId,
             status: expenseRecordStatus.PENDING,
@@ -134,21 +185,34 @@ exports.verifyMaintenanceRecord = async (req, res) => {
         if (!activeMaintenance) {
             await Vehicle.findByIdAndUpdate(maintenanceRecord.vehicleId, { status: vehicleStatus.ACTIVE })
         }
-        if (maintenanceRecord.status === expenseRecordStatus.APPROVED && maintenanceRecord.isDriverFault && !maintenanceRecord.driverFaultProcessed) {
+
+        if (maintenanceRecord.status === expenseRecordStatus.APPROVED && maintenanceRecord.isDriverFault && !maintenanceRecord.driverFaultProcessed && maintenanceRecord.driverId) {
             const points = maintenanceRecord.priority === maintenancePriority.HIGH ? -15 : -8
-            await User.findByIdAndUpdate(maintenanceRecord.driverId, {
-                $inc: { faultIncidentsCount: 1 },
-                $push: { scoreHistory: { pointsChange: points, reason: "Approved maintenance fault attributed to driver", category: "maintenance", relatedId: maintenanceRecord._id } }
-            })
-            await User.findOneAndUpdate({ _id: maintenanceRecord.driverId }, [
-                { $set: { driverScore: { $max: [0, { $add: ["$driverScore", points] }] } } }
-            ])
-            await Maintenance.findByIdAndUpdate(maintenanceRecord._id, { driverFaultProcessed: true })
+            try {
+                const driver = await User.findById(maintenanceRecord.driverId)
+                if (driver) {
+                    driver.faultIncidentsCount = (driver.faultIncidentsCount || 0) + 1
+                    if (!driver.scoreHistory) driver.scoreHistory = []
+                    driver.scoreHistory.push({
+                        pointsChange: points,
+                        reason: "Approved maintenance fault attributed to driver",
+                        category: "maintenance",
+                        relatedId: maintenanceRecord._id,
+                        createdAt: new Date()
+                    })
+                    driver.driverScore = Math.max(0, (driver.driverScore ?? 100) + points)
+                    await driver.save()
+                }
+                await Maintenance.findByIdAndUpdate(maintenanceRecord._id, { driverFaultProcessed: true })
+            } catch (driverUpdateErr) {
+                console.error("⚠️ [Driver Score Update Warning]:", driverUpdateErr.message)
+            }
         }
-        success(res, 200)
+
+        return success(res, 200, { record: maintenanceRecord })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 

@@ -6,6 +6,8 @@ const allowedTo = require("../middlewares/allowedTo")
 const getTeam = require("../middlewares/getTeam")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
+const upload = require("../middlewares/upload")
+const uploadToCloudinary = require("../middlewares/uploadToCloudinary")
 
 const { createTask, listTask, listTasks, updateTask, acceptTask, finishTask, declineTask, listDriverTasks } = require("../controllers/task.controller")
 
@@ -16,7 +18,15 @@ router.use(checkSubscription())
 
 // driver routes
 router.patch("/:id/accept", allowedTo(userRoles.DRIVER), acceptTask)
-router.patch("/:id/finish", allowedTo(userRoles.DRIVER), finishTaskSchema, validate, finishTask)
+router.patch(
+    "/:id/finish",
+    allowedTo(userRoles.DRIVER),
+    upload.array("proofPhoto", 1),
+    uploadToCloudinary("deliveryProof"),
+    finishTaskSchema,
+    validate,
+    finishTask
+)
 router.get("/driver", allowedTo(userRoles.DRIVER), listDriverTasks)
 
 router.use(getTeam)

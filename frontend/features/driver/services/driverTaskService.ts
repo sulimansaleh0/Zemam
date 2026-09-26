@@ -9,6 +9,8 @@ import {
   cacheTasksLocally,
   getCachedTasksLocally,
   queueOfflineAction,
+  getOfflineActions,
+  removeOfflineAction,
 } from './driverStorage';
 
 function getAuthHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
@@ -136,12 +138,16 @@ export const driverTaskService = {
   async submitFuel(payload: FuelLogPayload): Promise<boolean> {
     const formData = new FormData();
     formData.append('vehicleId', payload.vehicleId);
+    formData.append('qty', String(payload.liters));
     formData.append('liters', String(payload.liters));
     formData.append('cost', String(payload.cost));
     formData.append('fuelType', payload.fuelType);
     formData.append('odometer', String(payload.odometer));
+    formData.append('isFullTank', 'true');
     if (payload.notes) formData.append('notes', payload.notes);
-    if (payload.receiptPhoto) formData.append('receiptPhoto', payload.receiptPhoto);
+    if (payload.receiptPhoto) {
+      formData.append('image', payload.receiptPhoto);
+    }
 
     if (navigator.onLine) {
       const res = await fetch('/api/fuel', {
@@ -163,11 +169,13 @@ export const driverTaskService = {
         method: 'POST',
         body: {
           vehicleId: payload.vehicleId,
-          liters: payload.liters,
+          qty: payload.liters,
           cost: payload.cost,
           fuelType: payload.fuelType,
           odometer: payload.odometer,
+          isFullTank: true,
           notes: payload.notes,
+          image: 'https://placehold.co/600x400?text=Offline+Fuel+Receipt',
         },
         createdAt: Date.now(),
       });
@@ -179,18 +187,22 @@ export const driverTaskService = {
    * تسجيل بلاغ صيانة أو عطل طارئ
    */
   async submitMaintenance(payload: MaintenanceReportPayload): Promise<boolean> {
+    const category = payload.type === 'routine' ? 'Periodic Maintenance' : 'Faults';
+    const priority = payload.urgency === 'low' ? 'low' : 'High';
+
     const formData = new FormData();
     formData.append('vehicleId', payload.vehicleId);
-    formData.append('type', payload.type);
+    formData.append('category', category);
+    formData.append('priority', priority);
     formData.append('description', payload.description);
-    formData.append('urgency', payload.urgency);
-    if (payload.odometer) formData.append('odometer', String(payload.odometer));
-    if (payload.lat) formData.append('lat', String(payload.lat));
-    if (payload.lng) formData.append('lng', String(payload.lng));
+    if (payload.odometer) {
+      formData.append('odometer', String(payload.odometer));
+    }
+    formData.append('cost', '0');
 
     if (payload.damagePhotos && payload.damagePhotos.length > 0) {
       payload.damagePhotos.forEach((photo) => {
-        formData.append('photos', photo);
+        formData.append('images', photo);
       });
     }
 
@@ -214,14 +226,54 @@ export const driverTaskService = {
         method: 'POST',
         body: {
           vehicleId: payload.vehicleId,
-          type: payload.type,
+          category,
+          priority,
           description: payload.description,
-          urgency: payload.urgency,
           odometer: payload.odometer,
+          cost: 0,
         },
         createdAt: Date.now(),
       });
       return true;
     }
+  },
+
+  /**
+   * مزامنة وإعادة إرسال العمليات المخزنة محلياً عند عودة الاتصال
+   */
+  async flushOfflineActions(): Promise<{ total: number; succeeded: number }> {
+    if (!navigator.onLine) return { total: 0, succeeded: 0 };
+    const actions = await getOfflineActions();
+    if (!actions || actions.length === 0) return { total: 0, succeeded: 0 };
+
+    let succeeded = 0;
+    actions.sort((a, b) => a.createdAt - b.createdAt);
+
+    for (const action of actions) {
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        const body = JSON.stringify(action.body || {});
+
+        const res = await fetch(action.url, {
+          method: action.method,
+          credentials: 'include',
+          headers: getAuthHeaders(headers),
+          body,
+        });
+
+        // 200/201: النجاح، 400/404/409: عمليات منتهية الصلاحية أو مكررة يتم إزالتها لتجنب انسداد الطابور
+        if (res.ok || res.status === 400 || res.status === 404 || res.status === 409) {
+          await removeOfflineAction(action.id);
+          if (res.ok) succeeded++;
+        }
+      } catch (err) {
+        console.warn(`[driverTaskService] Failed to replay action ${action.id}:`, err);
+        break;
+      }
+    }
+
+    return { total: actions.length, succeeded };
   },
 };

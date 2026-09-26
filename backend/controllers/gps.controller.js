@@ -1,5 +1,6 @@
 const Vehicle = require("../models/vehicle.model");
 const Task = require("../models/task.model");
+const TaskLivePoint = require("../models/taskLivePoint.model");
 const { success, error, serverError } = require("../utils/responses");
 const { userRoles } = require("../data/roles");
 const { taskStatus, mainStatus } = require("../data/status");
@@ -245,6 +246,48 @@ exports.getVehicleHistory = async (req, res) => {
         return success(res, 200, { trips });
     } catch (err) {
         console.error("❌ [GPS Controller] Error fetching vehicle history:", err);
+        return serverError(res);
+    }
+};
+
+/**
+ * GET /api/gps/task-points/:taskId
+ * Fetches the live breadcrumb points for an active or completed task
+ */
+exports.getTaskPoints = async (req, res) => {
+    const user = req.user;
+    const { taskId } = req.params;
+    const teamId = req.teamId;
+
+    if (!taskId) return error(res, 400, "Task ID is required");
+
+    try {
+        const filters = { _id: taskId, companyId: user.companyId };
+        if (teamId) filters.teamId = teamId;
+
+        const task = await Task.findOne(filters).lean();
+        if (!task) return error(res, 404, "Task not found");
+
+        const rawPoints = await TaskLivePoint.find({ taskId }).sort({ timestamp: 1 }).lean();
+
+        const points = rawPoints.map((p) => ({
+            lat: p.lat,
+            lng: p.lng,
+            speed: p.speed || 0,
+            heading: p.heading || 0,
+            accuracy: p.accuracy || 0,
+            timestamp: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString()
+        }));
+
+        return success(res, 200, {
+            taskId: task._id.toString(),
+            points,
+            pickupLocation: task.pickupLocation,
+            deliveryLocation: task.deliveryLocation,
+            status: task.status
+        });
+    } catch (err) {
+        console.error("❌ [GPS Controller] Error fetching task live points:", err);
         return serverError(res);
     }
 };
