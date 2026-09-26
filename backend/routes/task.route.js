@@ -6,8 +6,6 @@ const allowedTo = require("../middlewares/allowedTo")
 const getTeam = require("../middlewares/getTeam")
 const checkSubscription = require("../middlewares/CheckSubscription")
 const validate = require("../middlewares/validator")
-const upload = require("../middlewares/upload")
-const uploadToCloudinary = require("../middlewares/uploadToCloudinary")
 
 const { createTask, listTask, listTasks, updateTask, acceptTask, finishTask, declineTask, listDriverTasks } = require("../controllers/task.controller")
 

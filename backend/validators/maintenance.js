@@ -33,8 +33,8 @@ exports.verifyMaintenanceSchema = [
         .withMessage("Status must be approved or declined"),
     body("cost")
         .optional({ values: "falsy" })
-        .isNumeric()
-        .withMessage("cost must be a number"),
+        .isFloat({ min: 0 })
+        .withMessage("Cost must be a non-negative number"),
     body("declineReason")
         .optional({ values: "falsy" })
         .trim()

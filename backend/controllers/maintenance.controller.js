@@ -123,26 +123,30 @@ exports.verifyMaintenanceRecord = async (req, res) => {
             return error(res, 400, "A driver must be linked before assigning fault")
         }
 
-        const maintenanceRecord = await Maintenance.findOneAndUpdate(filters, {
+        const updateData = {
             status,
-            declineReason: status === expenseRecordStatus.DECLINED ? (declineReason || "تم الرفض بواسطة الإدارة") : undefined,
             isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : false
         }
 
         if (cost !== undefined && cost !== null && cost !== "") {
             updateData.cost = Number(cost)
         }
-        if (targetDriverId) {
-            updateData.driverId = targetDriverId
+
+        if (status === expenseRecordStatus.DECLINED) {
+            updateData.declineReason = declineReason || "تم الرفض بواسطة الإدارة"
         }
 
-        const maintenanceRecord = await Maintenance.findByIdAndUpdate(
-            pendingRecord._id,
-            { $set: updateData },
-            { new: true }
-        )
+        const update = { $set: updateData }
+        if (status === expenseRecordStatus.APPROVED) {
+            update.$unset = { declineReason: 1 }
+        }
 
-        if (!maintenanceRecord) return error(res, 400, "فشل تحديث سجل الصيانة")
+        const maintenanceRecord = await Maintenance.findOneAndUpdate(filters, update, {
+            new: true,
+            runValidators: true
+        })
+
+        if (!maintenanceRecord) return error(res, 404, "Maintenance Record Not Found")
 
         const activeMaintenance = await Maintenance.exists({
             vehicleId: maintenanceRecord.vehicleId,
