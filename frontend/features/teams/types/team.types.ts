@@ -58,5 +58,7 @@ export type TeamFilterStatus = 'all' | 'assigned' | 'unassigned';
 export interface AssignTeamResourcesInput {
   driverIds?: string[];
   vehicleIds?: string[];
+  driversIds?: string[];
+  vehiclesIds?: string[];
 }
 

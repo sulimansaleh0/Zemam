@@ -163,20 +163,19 @@ exports.createDriverSchema = [
         .optional({ values: "falsy" })
         .trim(),
     body("licenseNumber")
+        .optional({ values: "falsy" })
         .trim()
-        .notEmpty()
-        .withMessage("License number is required")
         .isString()
         .withMessage("License number must be a string"),
     body("licenseTypes")
-        .isArray({ min: 1 })
-        .withMessage("License types are required and must be a non-empty array")
+        .optional({ values: "falsy" })
+        .isArray()
+        .withMessage("License types must be an array")
         .bail()
         .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
         .withMessage("Invalid license type"),
     body("licenseExpiry")
-        .notEmpty()
-        .withMessage("License expiry is required")
+        .optional({ values: "falsy" })
         .isISO8601()
         .withMessage("License expiry must be a valid date"),
 ]

@@ -68,6 +68,10 @@ const taskSchema = new mongoose.Schema({
         required: true
     },
     declineReason: String,
+    proofPhoto: {
+        type: String,
+        default: null
+    },
     tripSummary: {
         taskId: String,
         totalDistanceKm: { type: Number, default: 0 },

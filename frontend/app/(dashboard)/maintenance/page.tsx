@@ -49,13 +49,21 @@ export default function MaintenancePage() {
   const verifyMaintenanceMutation = useVerifyMaintenance();
 
   const handleCreateSubmit = async (data: CreateMaintenanceInput) => {
-    await createMaintenanceMutation.mutateAsync(data);
-    setIsCreateModalOpen(false);
+    try {
+      await createMaintenanceMutation.mutateAsync(data);
+      setIsCreateModalOpen(false);
+    } catch {
+      // Handled by onError toast in useCreateMaintenance
+    }
   };
 
   const handleVerifyConfirm = async (data: VerifyMaintenanceInput) => {
-    await verifyMaintenanceMutation.mutateAsync(data);
-    setSelectedRecordForVerify(null);
+    try {
+      await verifyMaintenanceMutation.mutateAsync(data);
+      setSelectedRecordForVerify(null);
+    } catch {
+      // Handled by onError toast in useVerifyMaintenance
+    }
   };
 
   return (

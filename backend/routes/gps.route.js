@@ -11,5 +11,6 @@ router.get("/live",  getLiveFleet);
 router.get("/trip-path/:taskId", getLiveTripPath);
 router.get("/trip-summary/:taskId", getTripSummary);
 router.get("/history/:vehicleId", getVehicleHistory);
+router.get("/task-points/:taskId", getTaskPoints);
 
 module.exports = router;

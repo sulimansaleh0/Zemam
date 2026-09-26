@@ -27,12 +27,19 @@ exports.createMaintenanceRecord = async (req, res) => {
                 driverId: user._id,
                 vehicleId,
                 companyId: user.companyId,
-                status: taskStatus.INPROGRESS
+                status: { $in: [taskStatus.INPROGRESS, taskStatus.PENDING] }
             })
-            if (!task)
-                return error(res, 403, "You can only report an issue for the vehicle in your task")
+            const isAssigned = await Vehicle.findOne({
+                _id: vehicleId,
+                driverId: user._id,
+                companyId: user.companyId
+            })
+            if (!task && !isAssigned)
+                return error(res, 403, "You can only report an issue for an assigned vehicle or active task")
 
-            vehicleFilters.teamId = task.teamId
+            if (task) {
+                vehicleFilters.teamId = task.teamId
+            }
         }
 
         const vehicle = await Vehicle.findOne(vehicleFilters)
@@ -41,7 +48,7 @@ exports.createMaintenanceRecord = async (req, res) => {
         const record = await Maintenance.create({
             vehicleId,
             description,
-            cost,
+            cost: cost != null && cost !== "" ? Number(cost) : 0,
             images,
             category,
             odoMeter: vehicle.currentOdometer,
@@ -101,8 +108,14 @@ exports.verifyMaintenanceRecord = async (req, res) => {
             companyId: user.companyId,
             status: expenseRecordStatus.PENDING
         }
-        if (user.role === userRoles.FLEET_MANAGER)
-            filters.teamId = user.teamId
+
+        if (user.role === userRoles.FLEET_MANAGER) {
+            filters.$or = [
+                { teamId: user.teamId },
+                { teamId: null },
+                { teamId: { $exists: false } }
+            ]
+        }
 
         const pendingRecord = await Maintenance.findOne(filters).select("driverId")
         if (!pendingRecord) return error(res, 404, "Maintenance Record Not Found")
@@ -112,12 +125,25 @@ exports.verifyMaintenanceRecord = async (req, res) => {
 
         const maintenanceRecord = await Maintenance.findOneAndUpdate(filters, {
             status,
-            cost,
-            declineReason: status === expenseRecordStatus.DECLINED ? declineReason : undefined,
-            isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : undefined
-        }, { returnDocument: 'after', runValidators: true })
+            declineReason: status === expenseRecordStatus.DECLINED ? (declineReason || "تم الرفض بواسطة الإدارة") : undefined,
+            isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : false
+        }
 
-        if (!maintenanceRecord) return error(res, 400, "Maintenance Record Not Found")
+        if (cost !== undefined && cost !== null && cost !== "") {
+            updateData.cost = Number(cost)
+        }
+        if (targetDriverId) {
+            updateData.driverId = targetDriverId
+        }
+
+        const maintenanceRecord = await Maintenance.findByIdAndUpdate(
+            pendingRecord._id,
+            { $set: updateData },
+            { new: true }
+        )
+
+        if (!maintenanceRecord) return error(res, 400, "فشل تحديث سجل الصيانة")
+
         const activeMaintenance = await Maintenance.exists({
             vehicleId: maintenanceRecord.vehicleId,
             status: expenseRecordStatus.PENDING,
@@ -126,7 +152,8 @@ exports.verifyMaintenanceRecord = async (req, res) => {
         if (!activeMaintenance) {
             await Vehicle.findByIdAndUpdate(maintenanceRecord.vehicleId, { status: vehicleStatus.ACTIVE })
         }
-        if (maintenanceRecord.status === expenseRecordStatus.APPROVED && maintenanceRecord.isDriverFault && !maintenanceRecord.driverFaultProcessed) {
+
+        if (maintenanceRecord.status === expenseRecordStatus.APPROVED && maintenanceRecord.isDriverFault && !maintenanceRecord.driverFaultProcessed && maintenanceRecord.driverId) {
             const points = maintenanceRecord.priority === maintenancePriority.HIGH ? -15 : -8
 
             await User.findByIdAndUpdate(maintenanceRecord.driverId, {
@@ -141,10 +168,11 @@ exports.verifyMaintenanceRecord = async (req, res) => {
             await Maintenance.findByIdAndUpdate(maintenanceRecord._id, { driverFaultProcessed: true })
 
         }
-        success(res, 200)
+
+        return success(res, 200, { record: maintenanceRecord })
     } catch (err) {
         console.log(err)
-        serverError(res)
+        return serverError(res)
     }
 }
 

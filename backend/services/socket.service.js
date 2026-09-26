@@ -83,7 +83,7 @@ function initSocket(server) {
                     const room = `team_${teamId}`;
                     socket.join(room);
                 }
-            } else if (role === userRoles.DRIVER) {
+            } else if (role === userRoles.DRIVER || role === "driver") {
                 if (companyId) {
                     socket.join(`company_${companyId}`);
                 }
