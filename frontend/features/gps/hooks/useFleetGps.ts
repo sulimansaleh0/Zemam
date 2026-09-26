@@ -60,7 +60,19 @@ export function useFleetGps() {
 
     // الاشتراك في تحديثات الموقع اللحظية
     const unsubscribeLocation = onVehicleLocationChanged((newTelemetry) => {
-      vehiclesMapRef.current.set(newTelemetry.vehicleId, newTelemetry);
+      if (!newTelemetry || !newTelemetry.vehicleId) return;
+
+      const existing = vehiclesMapRef.current.get(newTelemetry.vehicleId);
+      const merged: VehicleLiveTelemetry = {
+        ...(existing || {}),
+        ...newTelemetry,
+        currentLocation: {
+          ...(existing?.currentLocation || {}),
+          ...newTelemetry.currentLocation,
+        },
+      };
+
+      vehiclesMapRef.current.set(newTelemetry.vehicleId, merged);
       setVehicles(Array.from(vehiclesMapRef.current.values()));
     });
 

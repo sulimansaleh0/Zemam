@@ -9,7 +9,13 @@ import {
   Pin,
 } from 'lucide-react';
 import type { VehicleLiveTelemetry } from '../types/gps.types';
-import { getGpsStatusConfig } from '../utils/gpsHelpers';
+import {
+  createUnifiedVehicleMarker,
+  createUnifiedLocationPin,
+  createBreadcrumbDot,
+  UNIFIED_MAP_TILE_URL,
+  UNIFIED_MAP_ATTRIBUTION,
+} from '../utils/mapMarkers';
 
 const COMPANY_HQ_STORAGE_KEY = 'zemam_company_hq_center';
 
@@ -21,86 +27,13 @@ interface GpsMapCanvasProps {
   className?: string;
 }
 
-/**
- * إنشاء أيقونة مركبة احترافية مع زاوية الاتجاه ولون الحالة
- */
 function createVehicleMarkerIcon(v: VehicleLiveTelemetry, isSelected: boolean) {
-  const config = getGpsStatusConfig(v.gpsStatus);
-  const heading = v.currentLocation?.heading || 0;
-  const speed = Math.round(v.currentLocation?.speed || 0);
-
-  const html = `
-    <div class="group relative flex flex-col items-center cursor-pointer transition-all duration-300 ${
-      isSelected ? 'scale-115 z-50' : 'hover:scale-105 z-20'
-    }">
-      <!-- وسم المركبة العلوي -->
-      <div style="
-        background: #0f172a;
-        color: white;
-        font-weight: 700;
-        font-size: 10px;
-        padding: 3px 8px;
-        border-radius: 9999px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-        white-space: nowrap;
-        margin-bottom: 4px;
-        border: 1.5px solid ${isSelected ? '#3b82f6' : config.pinColor};
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        direction: rtl;
-      ">
-        <span style="width: 7px; height: 7px; border-radius: 50%; background: ${config.pinColor}; display: inline-block;"></span>
-        <span>${v.plateNumber}</span>
-        ${v.gpsStatus === 'moving' ? `<span style="color: #34d399; font-size: 9px; font-weight: 800;">${speed} كم/س</span>` : ''}
-      </div>
-
-      <!-- قرص المركبة مع سهم البوصلة -->
-      <div style="
-        position: relative;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: #0f172a;
-        border: 3px solid ${isSelected ? '#3b82f6' : config.pinColor};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.45);
-      ">
-        ${
-          v.gpsStatus === 'moving'
-            ? `<div style="
-                position: absolute;
-                inset: -6px;
-                border-radius: 50%;
-                border: 2px solid ${config.pinColor};
-                opacity: 0.7;
-                animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-              "></div>`
-            : ''
-        }
-
-        <div style="
-          transform: rotate(${heading}deg);
-          transition: transform 0.6s ease-out;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? '#3b82f6' : 'white'}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
-          </svg>
-        </div>
-      </div>
-    </div>
-  `;
-
-  return L.divIcon({
-    html,
-    className: 'gps-vehicle-marker-icon',
-    iconSize: [42, 60],
-    iconAnchor: [21, 52],
+  return createUnifiedVehicleMarker({
+    plateNumber: v.plateNumber,
+    speed: v.currentLocation?.speed,
+    heading: v.currentLocation?.heading,
+    status: v.gpsStatus,
+    isSelected,
   });
 }
 
@@ -115,7 +48,12 @@ export default function GpsMapCanvas({
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const polylineRef = useRef<L.Polyline | null>(null);
+  const polylineCasingRef = useRef<L.Polyline | null>(null);
+  const startPointMarkerRef = useRef<L.Marker | null>(null);
+  const waypointsLayerRef = useRef<L.LayerGroup | null>(null);
   const hasAutoCenteredRef = useRef(false);
+  const hasFittedFleetRef = useRef(false);
+  const hasFittedPolylineRef = useRef(false);
 
   const [hqSavedNotice, setHqSavedNotice] = useState(false);
 
@@ -151,9 +89,9 @@ export default function GpsMapCanvas({
     // وضع أزرار التقريب في الزاوية العلوية المقابلة لمنع أي تداخل
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer(UNIFIED_MAP_TILE_URL, {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: UNIFIED_MAP_ATTRIBUTION,
     }).addTo(map);
 
     mapRef.current = map;
@@ -199,14 +137,14 @@ export default function GpsMapCanvas({
       }
     });
 
-    if (validCoords.length > 0 && !hasAutoCenteredRef.current && !selectedVehicleId) {
+    if (validCoords.length > 0 && !hasFittedFleetRef.current && !selectedVehicleId) {
       if (validCoords.length === 1) {
-        map.setView(validCoords[0], 14);
+        map.setView(validCoords[0], 15, { animate: true });
       } else {
         const bounds = L.latLngBounds(validCoords);
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
       }
-      hasAutoCenteredRef.current = true;
+      hasFittedFleetRef.current = true;
     }
   }, [vehicles, selectedVehicleId]);
 
@@ -231,6 +169,9 @@ export default function GpsMapCanvas({
       if (existingMarker) {
         existingMarker.setLatLng([lat, lng]);
         existingMarker.setIcon(createVehicleMarkerIcon(v, isSelected));
+        if (isSelected) {
+          map.panTo([lat, lng], { animate: true, duration: 0.5 });
+        }
       } else {
         const marker = L.marker([lat, lng], {
           icon: createVehicleMarkerIcon(v, isSelected),
@@ -256,6 +197,7 @@ export default function GpsMapCanvas({
 
   // 4. التمركز على مركبة محددة عند النقر عليها
   useEffect(() => {
+    hasFittedPolylineRef.current = false;
     const map = mapRef.current;
     if (!map || !selectedVehicleId) return;
 
@@ -263,35 +205,94 @@ export default function GpsMapCanvas({
     if (v?.currentLocation?.lat && v?.currentLocation?.lng) {
       map.flyTo([v.currentLocation.lat, v.currentLocation.lng], 15, {
         animate: true,
-        duration: 1.2,
+        duration: 1.0,
       });
     }
-  }, [selectedVehicleId, vehicles]);
+  }, [selectedVehicleId]);
 
-  // 5. رسم مسار الرحلة
+  // 5. رسم مسار الرحلة وتحديد النقاط المقطوعة
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
+    if (!waypointsLayerRef.current) {
+      waypointsLayerRef.current = L.layerGroup().addTo(map);
+    }
+
     if (activePolyline && activePolyline.length > 1) {
+      // الغلاف الخارجي المتوهج
+      if (!polylineCasingRef.current) {
+        polylineCasingRef.current = L.polyline(activePolyline, {
+          color: '#1d4ed8',
+          weight: 9,
+          opacity: 0.35,
+          lineJoin: 'round',
+          lineCap: 'round',
+        }).addTo(map);
+      } else {
+        polylineCasingRef.current.setLatLngs(activePolyline);
+      }
+
+      // خط السير الرئيسي المقطوع
       if (!polylineRef.current) {
         polylineRef.current = L.polyline(activePolyline, {
           color: '#2563eb',
           weight: 5,
-          opacity: 0.9,
+          opacity: 0.95,
           lineJoin: 'round',
+          lineCap: 'round',
         }).addTo(map);
       } else {
         polylineRef.current.setLatLngs(activePolyline);
       }
 
-      try {
-        const bounds = L.latLngBounds(activePolyline);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-      } catch {}
-    } else if (polylineRef.current) {
-      polylineRef.current.remove();
-      polylineRef.current = null;
+      // مؤشر نقطة البداية
+      const startCoord = activePolyline[0];
+      if (!startPointMarkerRef.current) {
+        startPointMarkerRef.current = L.marker(startCoord, {
+          icon: createUnifiedLocationPin('start'),
+        }).addTo(map);
+      } else {
+        startPointMarkerRef.current.setLatLng(startCoord);
+      }
+
+      // النقاط المقطوعة (Breadcrumb Trail Dots)
+      if (waypointsLayerRef.current) {
+        waypointsLayerRef.current.clearLayers();
+        const step = activePolyline.length > 50 ? Math.ceil(activePolyline.length / 50) : 1;
+        activePolyline.forEach((pt, i) => {
+          if (i === 0 || i === activePolyline.length - 1) return;
+          if (i % step !== 0) return;
+
+          const dot = createBreadcrumbDot(pt[0], pt[1], i + 1);
+          dot.addTo(waypointsLayerRef.current!);
+        });
+      }
+
+      if (!hasFittedPolylineRef.current) {
+        try {
+          const bounds = L.latLngBounds(activePolyline);
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+          hasFittedPolylineRef.current = true;
+        } catch {}
+      }
+    } else {
+      hasFittedPolylineRef.current = false;
+      if (polylineCasingRef.current) {
+        polylineCasingRef.current.remove();
+        polylineCasingRef.current = null;
+      }
+      if (polylineRef.current) {
+        polylineRef.current.remove();
+        polylineRef.current = null;
+      }
+      if (startPointMarkerRef.current) {
+        startPointMarkerRef.current.remove();
+        startPointMarkerRef.current = null;
+      }
+      if (waypointsLayerRef.current) {
+        waypointsLayerRef.current.clearLayers();
+      }
     }
   }, [activePolyline]);
 

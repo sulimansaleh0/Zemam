@@ -15,12 +15,36 @@ export interface VehicleHistoryResponse {
   trips: TripSummary[];
 }
 
+export interface TaskLivePointData {
+  lat: number;
+  lng: number;
+  speed: number;
+  heading?: number;
+  accuracy?: number;
+  timestamp: string | number;
+}
+
+export interface TaskLivePointsResponse {
+  taskId: string;
+  points: TaskLivePointData[];
+  pickupLocation?: { lat: number | string; lng: number | string; address?: string };
+  deliveryLocation?: { lat: number | string; lng: number | string; address?: string };
+  status?: string;
+}
+
 export const gpsService = {
   /**
    * جلب أحدث المواقع اللحظية لأسطول المركبات (حسب صلاحيات المستخدم: كل الشركة للأدمن، وفريقه لمدير الأسطول)
    */
   getLiveFleet(signal?: AbortSignal): Promise<ServiceResult<LiveFleetResponse>> {
     return sendRequest<LiveFleetResponse>(API_PATHS.GPS.LIVE, { signal });
+  },
+
+  /**
+   * استرجاع النقاط المقطوعة المباشرة لمهمة قيد التنفيذ
+   */
+  getTaskLivePoints(taskId: string, signal?: AbortSignal): Promise<ServiceResult<TaskLivePointsResponse>> {
+    return sendRequest<TaskLivePointsResponse>(API_PATHS.GPS.TASK_POINTS(taskId), { signal });
   },
 
   /**

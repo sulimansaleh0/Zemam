@@ -39,11 +39,19 @@ export function useLogin() {
 
     await checkSession();
     const sessionResult = await sessionService.getSession();
-    const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+    const hasCompany = Boolean(sessionResult.success && sessionResult.data.user?.companyId);
+
+    if (sessionResult.success && sessionResult.data.user?.role?.toLowerCase() === 'driver') {
+      addToast({ type: 'success', title: 'مرحباً بعودتك!', message: result.message || 'تم تسجيل الدخول بنجاح' });
+      const callback = searchParams.get('callbackUrl');
+      router.push(callback && callback.startsWith('/driver') ? callback : '/driver');
+      return;
+    }
 
     if (hasCompany) {
       addToast({ type: 'success', title: 'مرحباً بعودتك!', message: result.message || 'تم تسجيل الدخول بنجاح' });
-      router.push('/dashboard');
+      const callback = searchParams.get('callbackUrl');
+      router.push(callback && !callback.startsWith('/driver') ? callback : '/dashboard');
     } else {
       addToast({ type: 'info', title: 'مرحباً بك!', message: 'يرجى إكمال إعداد مساحة عمل شركتك' });
       router.push('/onboarding');
@@ -63,7 +71,14 @@ export function useLogin() {
 
         await checkSession();
         const sessionResult = await sessionService.getSession();
-        const hasCompany = Boolean(sessionResult.success && sessionResult.data?.user?.companyId);
+        const hasCompany = Boolean(sessionResult.success && sessionResult.data.user?.companyId);
+
+        if (sessionResult.success && sessionResult.data.user?.role?.toLowerCase() === 'driver') {
+          addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });
+          const callback = searchParams.get('callbackUrl');
+          router.push(callback && callback.startsWith('/driver') ? callback : '/driver');
+          return;
+        }
 
         if (hasCompany) {
           addToast({ type: 'success', title: 'مرحباً بعودتك!', message: 'تم تسجيل الدخول بنجاح' });

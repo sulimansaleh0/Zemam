@@ -203,7 +203,7 @@ async function processTelemetryUpdate({
             isDeleted: false
         },
         { $set: vehicleUpdate },
-        { new: true }
+        { returnDocument: 'after' }
     )
         .populate("driverId", "name email phone avatar")
         .populate("teamId", "name");
