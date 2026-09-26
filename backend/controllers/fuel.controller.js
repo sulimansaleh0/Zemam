@@ -27,12 +27,19 @@ exports.createFuelRecord = async (req, res) => {
                 driverId: user._id,
                 vehicleId,
                 companyId: user.companyId,
-                status: taskStatus.INPROGRESS
+                status: { $in: [taskStatus.INPROGRESS, taskStatus.PENDING] }
             })
-            if (!activeTask) {
-                return error(res, 403, "You can only report fuel for the vehicle in your active task")
+            const isAssigned = await Vehicle.findOne({
+                _id: vehicleId,
+                driverId: user._id,
+                companyId: user.companyId
+            })
+            if (!activeTask && !isAssigned) {
+                return error(res, 403, "You can only report fuel for an assigned vehicle or active task")
             }
-            vehicleFilters.teamId = activeTask.teamId
+            if (activeTask) {
+                vehicleFilters.teamId = activeTask.teamId
+            }
         }
 
         const vehicle = await Vehicle.findOne(vehicleFilters)

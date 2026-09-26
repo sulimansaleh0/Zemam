@@ -70,5 +70,7 @@ exports.finishTaskSchema = [
     body("endOdometer")
         .optional()
         .isFloat({ min: 0 })
-        .withMessage("End odometer must be a non-negative number")
+        .withMessage("End odometer must be a non-negative number"),
+    body("proofPhoto")
+        .optional()
 ]

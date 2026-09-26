@@ -27,6 +27,7 @@ import { useDriversList } from '@/features/drivers';
 import { useTeams } from '@/features/teams';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { teamService } from '@/features/teams/services/team.service';
+import { companyService } from '@/features/company/services/company.service';
 import { useQuery } from '@tanstack/react-query';
 
 export default function DashboardPage() {
@@ -56,6 +57,16 @@ export default function DashboardPage() {
       return await teamService.getTeamStatics(user?.teamId);
     },
     enabled: Boolean(isFleetManager),
+  });
+
+  // Admin company-wide stats query
+  const { data: companyStatics } = useQuery({
+    queryKey: ['admin-dashboard-company-stats', user?.companyId],
+    queryFn: async () => {
+      if (isFleetManager) return null;
+      return await companyService.getCompanyStatics();
+    },
+    enabled: !isFleetManager,
   });
 
   const fleetManagerTeam = isFleetManager && user?.teamId
@@ -90,6 +101,14 @@ export default function DashboardPage() {
     ? teamStatics.maintenanceRecordsCost
     : Array.isArray(teamStatics?.maintenanceRecordsCost)
     ? (teamStatics.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+    : 0;
+
+  const companyFuelCost = typeof companyStatics?.FuelRecordsCost === 'number'
+    ? companyStatics.FuelRecordsCost
+    : 0;
+
+  const companyMaintenanceCost = typeof companyStatics?.maintenanceRecordsCost === 'number'
+    ? companyStatics.maintenanceRecordsCost
     : 0;
 
   return (
@@ -205,8 +224,8 @@ export default function DashboardPage() {
                   <KpiCard
                     icon={Truck}
                     label="إجمالي المركبات"
-                    value={String(vehiclesList.length)}
-                    change={`${vehiclesList.filter((v) => v.status === 'active').length} نشطة`}
+                    value={String(companyStatics?.totalVehicles ?? vehiclesList.length)}
+                    change={`${companyStatics?.activeVehicles ?? vehiclesList.filter((v) => v.status === 'active').length} نشطة`}
                     color="bg-[#5d8cff]"
                     note="مسجلة في أسطول الشركة"
                   />
@@ -220,19 +239,35 @@ export default function DashboardPage() {
                   />
                   <KpiCard
                     icon={Package}
-                    label="الفرق التشغيلية"
-                    value={String(teamsList.length)}
-                    change="فرق معتمدة"
+                    label="إنجاز المهام"
+                    value={
+                      companyStatics
+                        ? `${companyStatics.finishedTasks ?? 0} / ${companyStatics.totalTasks ?? 0}`
+                        : `${teamsList.length} فرق`
+                    }
+                    change={
+                      companyStatics?.totalTasks
+                        ? `${Math.round(((companyStatics.finishedTasks ?? 0) / (companyStatics.totalTasks || 1)) * 100)}% إنجاز`
+                        : `${teamsList.length} فرق معتمدة`
+                    }
                     color="bg-[#eab66b]"
-                    note="هيكل الشركة"
+                    note="المهام المنفذة للشركة"
                   />
                   <KpiCard
-                    icon={AlertTriangle}
-                    label="حالة النظام"
-                    value="مستقر"
-                    change="100%"
+                    icon={Wrench}
+                    label="إجمالي المصروفات"
+                    value={
+                      companyStatics
+                        ? `${(companyFuelCost + companyMaintenanceCost).toLocaleString('ar-SA')} ر.س`
+                        : '0 ر.س'
+                    }
+                    change={
+                      companyStatics
+                        ? `صيانة: ${companyMaintenanceCost.toLocaleString('ar-SA')} ر.س`
+                        : 'مستقر'
+                    }
                     color="bg-[#10b981]"
-                    note="جميع الخوادم متصلة"
+                    note="إجمالي وقود وصيانة الأسطول"
                   />
                 </>
               )}

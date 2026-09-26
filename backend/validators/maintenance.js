@@ -13,16 +13,14 @@ exports.createMaintenanceSchema = [
         .notEmpty()
         .withMessage("Description is required"),
     body("cost")
-        .notEmpty()
-        .withMessage("Cost is required")
+        .optional({ values: "falsy" })
         .isFloat({ min: 0 })
         .withMessage("Cost must be a non-negative number"),
     body("category")
         .isIn(Object.values(maintenanceCategories))
         .withMessage("Invalid maintenance category"),
     body("odometer")
-        .notEmpty()
-        .withMessage("Odometer is required")
+        .optional({ values: "falsy" })
         .isFloat({ min: 0 })
         .withMessage("Odometer must be a non-negative number"),
     body("priority")
@@ -38,11 +36,11 @@ exports.verifyMaintenanceSchema = [
         .isIn([expenseRecordStatus.APPROVED, expenseRecordStatus.DECLINED])
         .withMessage("Status must be approved or declined"),
     body("cost")
-        .optional()
+        .optional({ values: "falsy" })
         .isNumeric()
         .withMessage("cost must be a number"),
     body("declineReason")
-        .optional()
+        .optional({ values: "falsy" })
         .trim()
         .isString()
         .withMessage("Decline reason must be a string"),

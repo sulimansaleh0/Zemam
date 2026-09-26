@@ -253,6 +253,11 @@ exports.finishTask = async (req, res) => {
         // const expectedEndTime = task.expectedEndTime || task.startTime
         // const deadline = new Date(expectedEndTime.getTime() + 15 * 60 * 1000)
 
+        const proofPhoto = req.body.proofPhoto || req.body.images?.[0] || null
+        if (proofPhoto) {
+            task.proofPhoto = proofPhoto
+        }
+
         task.status = taskStatus.FINISHED
         task.finishedAt = finishedAt
         task.endOdometer = endOdometer

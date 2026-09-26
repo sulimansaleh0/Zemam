@@ -80,8 +80,18 @@ export const teamService = {
   /**
    * تعيين موارد (سائقين ومركبات) دفعة واحدة للفريق
    */
-  async assignResources(teamId: string, payload: { driverIds?: string[]; vehicleIds?: string[] }): Promise<void> {
-    const result = await patchRequest<void>(API_PATHS.TEAMS.ASSIGN_RESOURCES(teamId), payload);
+  async assignResources(
+    teamId: string,
+    payload: { driverIds?: string[]; vehicleIds?: string[]; driversIds?: string[]; vehiclesIds?: string[] }
+  ): Promise<void> {
+    const dataToSend = {
+      ...payload,
+      driversIds: payload.driversIds || payload.driverIds,
+      vehiclesIds: payload.vehiclesIds || payload.vehicleIds,
+      driverIds: payload.driverIds || payload.driversIds,
+      vehicleIds: payload.vehicleIds || payload.vehiclesIds,
+    };
+    const result = await patchRequest<void>(API_PATHS.TEAMS.ASSIGN_RESOURCES(teamId), dataToSend);
     if (!result.success) {
       throw new Error(result.message || 'فشل في تعيين الموارد للفريق');
     }
