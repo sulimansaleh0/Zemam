@@ -1,4 +1,5 @@
 const Task = require("../models/task.model")
+const TaskLivePoint = require("../models/taskLivePoint.model")
 const Vehicle = require("../models/vehicle.model")
 const User = require("../models/user.model")
 const { success, error, serverError } = require("../utils/responses")
@@ -13,7 +14,7 @@ exports.createTask = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
     if (!teamId) return error(res, 400, "Team Id is required")
-    const { title, description, driverId, vehicleId, startTime, expectedEndTime, startOdometer, pickupLocation, deliveryLocation } = req.body
+    const { title, description, driverId, vehicleId, startTime, expectedEndTime, pickupLocation, deliveryLocation } = req.body
     try {
         const endTime = getExpectedEndTime(startTime, expectedEndTime)
         if (!endTime)
@@ -50,7 +51,6 @@ exports.createTask = async (req, res) => {
             driverId: assignedDriverId,
             startTime,
             expectedEndTime: endTime,
-            startOdometer: startOdometer ?? vehicle.currentOdometer,
             pickupLocation,
             deliveryLocation,
             teamId,
@@ -122,7 +122,7 @@ exports.listTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { title, description, driverId, vehicleId, startTime, expectedEndTime, startOdometer, pickupLocation, deliveryLocation } = req.body
+    const { title, description, driverId, vehicleId, startTime, expectedEndTime, pickupLocation, deliveryLocation } = req.body
     const taskId = req.params.id || null
     if (!taskId) return error(res, 400, "task id is required")
     try {
@@ -164,7 +164,7 @@ exports.updateTask = async (req, res) => {
             vehicleId: nextVehicleId,
             expectedEndTime: validatedExpectedEndTime
         }
-        const optionalUpdates = { title, description, startTime, startOdometer, pickupLocation, deliveryLocation }
+        const optionalUpdates = { title, description, startTime, pickupLocation, deliveryLocation }
         for (const [field, value] of Object.entries(optionalUpdates)) {
             if (value !== undefined) updates[field] = value
         }
@@ -234,7 +234,8 @@ exports.acceptTask = async (req, res) => {
             {
                 $set: {
                     status: taskStatus.INPROGRESS,
-                    startedAt
+                    startedAt,
+                    startOdometer: vehicle.currentOdometer
                 }
             },
             { new: true }
@@ -265,60 +266,53 @@ exports.finishTask = async (req, res) => {
         })
         if (!task) return error(res, 404, "Task not found")
 
-        if (!(task.status === taskStatus.INPROGRESS)) return error(res, 400, "Task is not in progress")
+        const isAlreadyFinished = task.status === taskStatus.FINISHED
+        if (task.status !== taskStatus.INPROGRESS && !isAlreadyFinished) {
+            return error(res, 400, "Task is not in progress")
+        }
 
         const vehicle = await Vehicle.findOne({
             _id: task.vehicleId,
             companyId: user.companyId,
-            teamId: user.teamId,
-            status: mainStatus.ACTIVE,
             isDeleted: false
         })
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
-        const finishedAt = new Date()
-        const endOdometer = req.body.endOdometer === undefined ? vehicle.currentOdometer : Number(req.body.endOdometer)
-
-        if (!Number.isFinite(endOdometer))
-            return error(res, 400, "End odometer must be a valid number")
-
-        if (endOdometer !== undefined && endOdometer < (task.startOdometer ?? vehicle.currentOdometer))
-            return error(res, 400, "End odometer cannot be lower than the start odometer")
-
-        // const expectedEndTime = task.expectedEndTime || task.startTime
-        // const deadline = new Date(expectedEndTime.getTime() + 15 * 60 * 1000)
-
-        task.status = taskStatus.FINISHED
-        task.finishedAt = finishedAt
-        task.endOdometer = endOdometer
-        await task.save()
-
-        const vehicleUpdate = {
-            isInTask: false,
-            currentOdometer: endOdometer,
-            gpsStatus: "available",
-            "currentLocation.speed": 0
+        if (!isAlreadyFinished) {
+            task.status = taskStatus.FINISHED
+            task.finishedAt = new Date()
+            await task.save()
         }
-        await Vehicle.findOneAndUpdate(
+
+        const tripSummary = task.tripSummary?.finishedAt
+            ? task.tripSummary
+            : await finalizeTripSummary(task)
+        if (!tripSummary) throw new Error("Unable to finalize task GPS summary")
+
+        const endOdometer = task.endOdometer
+        if (!Number.isFinite(endOdometer)) throw new Error("Task GPS odometer is invalid")
+
+        const vehicleUpdate = await Vehicle.updateOne(
             {
                 _id: task.vehicleId,
                 companyId: user.companyId,
-                teamId: user.teamId,
                 isDeleted: false
             },
-            { $set: vehicleUpdate }
-        )
-
-        // Finalize trip summary (aggregate raw points, compress polyline, purge raw logs)
-        try {
-            const tripSummary = await finalizeTripSummary(task._id)
-            if (tripSummary) {
-                notifyTripCompleted(user.companyId, user.teamId, tripSummary)
+            {
+                $set: {
+                    isInTask: false,
+                    gpsStatus: "available",
+                    "currentLocation.speed": 0
+                },
+                $max: { currentOdometer: endOdometer }
             }
-        } catch (summaryErr) {
-            console.error("⚠️ [Task Completion] Trip summarization warning:", summaryErr.message)
-        }
+        )
+        if (!vehicleUpdate.matchedCount) throw new Error("Vehicle not found while finishing task")
+
+        await TaskLivePoint.deleteMany({ taskId: task._id })
         stopTelemetryTracking(task.vehicleId)
+
+        notifyTripCompleted(user.companyId, user.teamId, tripSummary)
 
         success(res, 200)
     } catch (err) {
@@ -347,7 +341,13 @@ exports.declineTask = async (req, res) => {
         task.status = taskStatus.DECLINED
         await task.save()
 
-        await Vehicle.findByIdAndUpdate(task.vehicleId, { isInTask: false })
+        await Vehicle.findByIdAndUpdate(task.vehicleId, {
+            isInTask: false,
+            gpsStatus: "available",
+            "currentLocation.speed": 0
+        })
+        await TaskLivePoint.deleteMany({ taskId: task._id })
+        stopTelemetryTracking(task.vehicleId)
 
         success(res, 200)
     } catch (err) {

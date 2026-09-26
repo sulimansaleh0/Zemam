@@ -69,11 +69,24 @@ const taskSchema = new mongoose.Schema({
     },
     declineReason: String,
     tripSummary: {
+        taskId: String,
         totalDistanceKm: { type: Number, default: 0 },
         durationMinutes: { type: Number, default: 0 },
         averageSpeed: { type: Number, default: 0 },
         maxSpeed: { type: Number, default: 0 },
         encodedPath: { type: String, default: "" },
+        startLocation: {
+            lat: Number,
+            lng: Number,
+            address: { type: String, default: "" }
+        },
+        endLocation: {
+            lat: Number,
+            lng: Number,
+            address: { type: String, default: "" }
+        },
+        startedAt: Date,
+        finishedAt: Date
     }
 })
 

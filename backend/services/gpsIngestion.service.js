@@ -267,15 +267,13 @@ function stopTelemetryTracking(vehicleId) {
 }
 
 /**
- * Aggregates high-frequency raw points into a permanent, lightweight trip summary
- * and purges temporary raw points from database.
+ * Aggregates a task's high-frequency raw points into a permanent trip summary.
  */
-async function finalizeTripSummary(taskId) {
-    const task = await Task.findById(taskId);
+async function finalizeTripSummary(task) {
     if (!task) return null;
 
     // Fetch all recorded points for this task, ordered by timestamp
-    const points = await TaskLivePoint.find({ taskId }).sort({ timestamp: 1 });
+    const points = await TaskLivePoint.find({ taskId: task._id }).sort({ timestamp: 1 });
 
     let totalDistanceKm = 0;
     let maxSpeed = 0;
@@ -339,6 +337,7 @@ async function finalizeTripSummary(taskId) {
     const encodedPath = encodePolyline(coordinatePairs);
 
     const tripSummary = {
+        taskId: task._id.toString(),
         totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
         durationMinutes,
         averageSpeed,
@@ -352,10 +351,8 @@ async function finalizeTripSummary(taskId) {
 
     // Save summary permanently to Task
     task.tripSummary = tripSummary;
+    task.endOdometer = (task.startOdometer || 0) + tripSummary.totalDistanceKm;
     await task.save();
-
-    // Immediately purge temporary raw points to save MongoDB space
-    await TaskLivePoint.deleteMany({ taskId });
 
     return tripSummary;
 }

@@ -53,6 +53,20 @@ const userSchema = new mongoose.Schema({
         max: 100,
         default: 100
     },
+    faultIncidentsCount: {
+        type: Number,
+        min: 0,
+        default: 0
+    },
+    scoreHistory: [{
+        pointsChange: {
+            type: Number,
+            required: true
+        },
+        reason: String,
+        category: String,
+        relatedId: mongoose.Schema.Types.ObjectId
+    }],
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",

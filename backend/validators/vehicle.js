@@ -35,12 +35,6 @@ exports.createVehicleSchema = [
         .optional()
         .isIn(Object.values(vehicleTypes))
         .withMessage("Invalid vehicle type"),
-    body("currentOdometer")
-        .notEmpty()
-        .withMessage("Current odometer is required")
-        .isFloat({ min: 0 })
-        .withMessage("Current odometer must be a non-negative number"),
-
     body("expectedFuelEfficiency")
         .notEmpty()
         .isFloat({ gt: 0 })

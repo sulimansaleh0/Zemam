@@ -20,11 +20,6 @@ exports.createMaintenanceSchema = [
     body("category")
         .isIn(Object.values(maintenanceCategories))
         .withMessage("Invalid maintenance category"),
-    body("odometer")
-        .notEmpty()
-        .withMessage("Odometer is required")
-        .isFloat({ min: 0 })
-        .withMessage("Odometer must be a non-negative number"),
     body("priority")
         .isIn([maintenancePriority.HIGH, maintenancePriority.LOW])
         .withMessage("Invalid priority")

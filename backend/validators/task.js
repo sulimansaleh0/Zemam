@@ -30,9 +30,6 @@ exports.createTaskSchema = [
         .optional()
         .isISO8601()
         .withMessage("Invalid expected end time"),
-    body("startOdometer")
-        .optional()
-        .isFloat({ min: 0 }),
     body("pickupLocation")
         .isObject()
         .withMessage("Pickup location is required"),
@@ -64,11 +61,4 @@ exports.createTaskSchema = [
         .trim()
         .notEmpty()
         .withMessage("Delivery longitude is required"),
-]
-
-exports.finishTaskSchema = [
-    body("endOdometer")
-        .optional()
-        .isFloat({ min: 0 })
-        .withMessage("End odometer must be a non-negative number")
 ]

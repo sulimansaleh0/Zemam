@@ -8,8 +8,7 @@ const { calculateFuelMetrics, getFuelIssue } = require("../utils/fuelCalculation
 
 exports.createFuelRecord = async (req, res) => {
     const user = req.user
-    const { vehicleId, cost, qty, odometer, isFullTank, location } = req.body
-    const numericOdometer = Number(odometer)
+    const { vehicleId, cost, qty, isFullTank, location } = req.body
     const image = req.body.image || req.body.images?.[0]
     if (!image) return error(res, 400, "A fuel receipt image is required")
     try {
@@ -41,15 +40,11 @@ exports.createFuelRecord = async (req, res) => {
             return error(res, 400, "Fuel quantity cannot exceed the vehicle tank capacity")
         }
 
-        if (numericOdometer < vehicle.currentOdometer) {
-            return error(res, 400, "Odometer cannot be lower than the vehicle's last reading")
-        }
-
         const record = await Fuel.create({
             vehicleId: vehicle._id,
             cost,
             qty,
-            odometer: numericOdometer,
+            odometer: vehicle.currentOdometer,
             image,
             isFullTank,
             companyId: user.companyId,
@@ -57,11 +52,6 @@ exports.createFuelRecord = async (req, res) => {
             userId: user._id,
             location
         })
-
-        await Vehicle.updateOne(
-            { _id: vehicle._id, currentOdometer: { $lte: numericOdometer } },
-            { $set: { currentOdometer: numericOdometer } }
-        )
 
         success(res, 201, { record })
     } catch (err) {

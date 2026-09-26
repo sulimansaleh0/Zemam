@@ -12,7 +12,7 @@ const { vehicleTypes } = require("../data/vehicleTypes")
 exports.createVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { model, year, plateNumber, vehicleType, driverId, currentOdometer, expectedFuelEfficiency,
+    const { model, year, plateNumber, vehicleType, driverId, expectedFuelEfficiency,
         tankCapacity, fuelType, licenseNumber, licenseExpiry, issuingAuthority,
         insuranceNumber, insuranceCompany, insuranceType, insuranceExpiry } = req.body
     const selectedVehicleType = vehicleType || vehicleTypes.NORMAL
@@ -46,7 +46,6 @@ exports.createVehicle = async (req, res) => {
             year,
             plateNumber,
             vehicleType: selectedVehicleType,
-            currentOdometer,
             expectedFuelEfficiency,
             tankCapacity,
             fuelType,
@@ -129,7 +128,7 @@ exports.listVehicle = async (req, res) => {
 exports.updateVehicle = async (req, res) => {
     const user = req.user
     const updates = {}
-    const allowedFields = ["model", "year", "plateNumber", "vehicleType", "currentOdometer",
+    const allowedFields = ["model", "year", "plateNumber", "vehicleType",
         "expectedFuelEfficiency", "tankCapacity", "fuelType", "licenseNumber",
         "licenseExpiry", "issuingAuthority", "insuranceNumber", "insuranceCompany",
         "insuranceType", "insuranceExpiry"]

@@ -4,8 +4,8 @@ const Task = require("../models/task.model");
 const TaskLivePoint = require("../models/taskLivePoint.model");
 const { encodePolyline } = require("../services/gpsIngestion.service");
 const { success, error, serverError } = require("../utils/responses");
-const { userRoles } = require("../data/roles");
 const { taskStatus, mainStatus } = require("../data/status");
+const fallBackTripSummary = require("../utils/fallBackTripSummary");
 
 /**
  * GET /api/gps/live
@@ -140,8 +140,8 @@ exports.getTripSummary = async (req, res) => {
     const { taskId } = req.params;
     const teamId = req.teamId;
 
-    if (!taskId) {
-        return error(res, 400, "Task ID is required");
+    if (!taskId || !mongoose.isValidObjectId(taskId)) {
+        return error(res, 400, "Valid Task ID is required");
     }
 
     try {
@@ -163,34 +163,9 @@ exports.getTripSummary = async (req, res) => {
             return error(res, 404, "Task not found");
         }
 
-        if (!task.tripSummary || !task.tripSummary.totalDistanceKm) {
+        if (!task.tripSummary?.finishedAt) {
             // Fallback for tasks completed without GPS telemetry points
-            const fallbackSummary = {
-                taskId: task._id.toString(),
-                taskTitle: task.title,
-                vehicleId: task.vehicleId?._id ? task.vehicleId._id.toString() : task.vehicleId?.toString(),
-                plateNumber: task.vehicleId?.plateNumber,
-                driverName: task.driverId?.name,
-                totalDistanceKm: Math.max(0, (task.endOdometer || 0) - (task.startOdometer || 0)),
-                durationMinutes: task.startedAt && task.finishedAt
-                    ? Math.max(1, Math.round((new Date(task.finishedAt).getTime() - new Date(task.startedAt).getTime()) / 60000))
-                    : 0,
-                averageSpeed: 0,
-                maxSpeed: 0,
-                startLocation: {
-                    lat: parseFloat(task.pickupLocation?.lat) || 0,
-                    lng: parseFloat(task.pickupLocation?.lng) || 0,
-                    address: task.pickupLocation?.address || ""
-                },
-                endLocation: {
-                    lat: parseFloat(task.deliveryLocation?.lat) || 0,
-                    lng: parseFloat(task.deliveryLocation?.lng) || 0,
-                    address: task.deliveryLocation?.address || ""
-                },
-                encodedPath: "",
-                startedAt: task.startedAt ? new Date(task.startedAt).toISOString() : new Date().toISOString(),
-                finishedAt: task.finishedAt ? new Date(task.finishedAt).toISOString() : new Date().toISOString()
-            };
+            const fallbackSummary = fallBackTripSummary(task, task.vehicleId);
 
             return success(res, 200, { summary: fallbackSummary });
         }
@@ -219,8 +194,8 @@ exports.getVehicleHistory = async (req, res) => {
     const user = req.user;
     const { vehicleId } = req.params;
     const teamId = req.teamId;
-    if (!vehicleId) {
-        return error(res, 400, "Vehicle ID is required");
+    if (!vehicleId || !mongoose.isValidObjectId(vehicleId)) {
+        return error(res, 400, "Valid Vehicle ID is required");
     }
 
     try {
@@ -262,32 +237,7 @@ exports.getVehicleHistory = async (req, res) => {
             }
 
             // Fallback for tasks with odometer only
-            return {
-                taskId: t._id.toString(),
-                taskTitle: t.title,
-                vehicleId: vehicleId.toString(),
-                plateNumber: vehicle.plateNumber,
-                driverName: t.driverId?.name,
-                totalDistanceKm: Math.max(0, (t.endOdometer || 0) - (t.startOdometer || 0)),
-                durationMinutes: t.startedAt && t.finishedAt
-                    ? Math.max(1, Math.round((new Date(t.finishedAt).getTime() - new Date(t.startedAt).getTime()) / 60000))
-                    : 0,
-                averageSpeed: 0,
-                maxSpeed: 0,
-                startLocation: {
-                    lat: parseFloat(t.pickupLocation?.lat) || 0,
-                    lng: parseFloat(t.pickupLocation?.lng) || 0,
-                    address: t.pickupLocation?.address || ""
-                },
-                endLocation: {
-                    lat: parseFloat(t.deliveryLocation?.lat) || 0,
-                    lng: parseFloat(t.deliveryLocation?.lng) || 0,
-                    address: t.deliveryLocation?.address || ""
-                },
-                encodedPath: "",
-                startedAt: t.startedAt ? new Date(t.startedAt).toISOString() : new Date().toISOString(),
-                finishedAt: t.finishedAt ? new Date(t.finishedAt).toISOString() : new Date().toISOString()
-            };
+            return fallBackTripSummary(t, vehicle);
         });
 
         return success(res, 200, { trips });

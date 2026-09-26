@@ -10,8 +10,7 @@ const { maintenancePriority } = require("../data")
 
 exports.createMaintenanceRecord = async (req, res) => {
     const user = req.user
-    const { vehicleId, description, cost, images, category, odometer, priority } = req.body
-    const numericOdometer = Number(odometer)
+    const { vehicleId, description, cost, images, category, priority } = req.body
     try {
         const vehicleFilters = {
             _id: vehicleId,
@@ -39,28 +38,19 @@ exports.createMaintenanceRecord = async (req, res) => {
         const vehicle = await Vehicle.findOne(vehicleFilters)
         if (!vehicle) return error(res, 404, "Vehicle Not Found")
 
-        if (numericOdometer < vehicle.currentOdometer) {
-            return error(res, 400, "Odometer cannot be lower than the vehicle's last reading")
-        }
-
         const record = await Maintenance.create({
             vehicleId,
             description,
             cost,
             images,
             category,
-            odoMeter: numericOdometer,
+            odoMeter: vehicle.currentOdometer,
             companyId: user.companyId,
             teamId: vehicle.teamId || null,
             reportedBy: user._id,
             driverId: user.role === userRoles.DRIVER ? user._id : vehicle.driverId,
             priority
         })
-
-        await Vehicle.updateOne(
-            { _id: vehicle._id, currentOdometer: { $lte: numericOdometer } },
-            { $set: { currentOdometer: numericOdometer } }
-        )
 
         if (priority === maintenancePriority.HIGH) {
             vehicle.status = vehicleStatus.INMAINTENANCE
@@ -104,6 +94,7 @@ exports.verifyMaintenanceRecord = async (req, res) => {
     const user = req.user
     const { status, declineReason, isDriverFault, cost } = req.body
     const recordId = req.params.id
+    if (!recordId) return error(res, 400, "Maintenance Record ID is required")
     try {
         const filters = {
             _id: recordId,
@@ -118,6 +109,7 @@ exports.verifyMaintenanceRecord = async (req, res) => {
         if (status === expenseRecordStatus.APPROVED && Boolean(isDriverFault) && !pendingRecord.driverId) {
             return error(res, 400, "A driver must be linked before assigning fault")
         }
+
         const maintenanceRecord = await Maintenance.findOneAndUpdate(filters, {
             status,
             cost,
@@ -136,14 +128,18 @@ exports.verifyMaintenanceRecord = async (req, res) => {
         }
         if (maintenanceRecord.status === expenseRecordStatus.APPROVED && maintenanceRecord.isDriverFault && !maintenanceRecord.driverFaultProcessed) {
             const points = maintenanceRecord.priority === maintenancePriority.HIGH ? -15 : -8
+
             await User.findByIdAndUpdate(maintenanceRecord.driverId, {
                 $inc: { faultIncidentsCount: 1 },
                 $push: { scoreHistory: { pointsChange: points, reason: "Approved maintenance fault attributed to driver", category: "maintenance", relatedId: maintenanceRecord._id } }
             })
+
             await User.findOneAndUpdate({ _id: maintenanceRecord.driverId }, [
                 { $set: { driverScore: { $max: [0, { $add: ["$driverScore", points] }] } } }
             ])
+
             await Maintenance.findByIdAndUpdate(maintenanceRecord._id, { driverFaultProcessed: true })
+
         }
         success(res, 200)
     } catch (err) {

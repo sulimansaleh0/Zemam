@@ -24,8 +24,8 @@ const vehicleSchema = new mongoose.Schema({
     },
     currentOdometer: {
         type: Number,
-        required: true,
-        min: 0
+        min: 0,
+        default: 0
     },
     expectedFuelEfficiency: {
         type: Number,

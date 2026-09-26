@@ -6,7 +6,6 @@ const { mainStatus } = require("../data/status")
 const bcrypt = require("bcrypt")
 const { success, error, serverError } = require("../utils/responses")
 const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
-const { sendRegisterEmail } = require("../services/email")
 const Task = require("../models/task.model")
 const Fuel = require("../models/fuel.model")
 const Maintenance = require("../models/maintenance.model")
@@ -169,7 +168,13 @@ exports.assignManager = async (req, res) => {
         if (!team) return error(res, 404, "Team not found")
         if (team.managerId) return error(res, 400, "Team already has a manager")
 
-        const manager = await User.findOne({ _id: managerId, companyId: user.companyId, isDeleted: false, status: mainStatus.ACTIVE })
+        const manager = await User.findOne({
+            _id: managerId,
+            companyId: user.companyId,
+            role: userRoles.FLEET_MANAGER,
+            isDeleted: false,
+            status: mainStatus.ACTIVE
+        })
         if (!manager) return error(res, 404, "Manager not found")
         if (manager.teamId) return error(res, 400, "Manager already in a team")
 
@@ -228,7 +233,6 @@ exports.getManagerStats = async (req, res) => {
                     _id: null,
                     totalTasks: { $sum: 1 },
                     completedTasks: { $sum: { $cond: [{ $eq: ["$status", taskStatus.FINISHED] }, 1, 0] } },
-                    delayedTasks: { $sum: { $cond: ["$isDelayed", 1, 0] } }
                 }
             }]),
             Fuel.aggregate([{ $match: { teamId, status: expenseRecordStatus.APPROVED } }, { $group: { _id: null, fuelCost: { $sum: "$cost" } } }]),

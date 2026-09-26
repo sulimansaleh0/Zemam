@@ -49,7 +49,6 @@ function initSocket(server) {
 
     // Authentication Middleware
     io.use(async (socket, next) => {
-        const cookieHeader = socket.handshake.headers.cookie;
         try {
             const token = extractToken(socket);
             if (!token) {
@@ -117,9 +116,13 @@ function initSocket(server) {
         });
 
         // Handle driver location update (PWA telemetry pulse)
-        socket.on("driver:location_update", async (payload) => {
+        socket.on("driver:location_update", async (payload, acknowledge) => {
+            const respond = (result) => {
+                if (typeof acknowledge === "function") acknowledge(result);
+            };
             try {
                 if (user.role !== userRoles.DRIVER || !payload || !payload.vehicleId) {
+                    respond({ ok: false, message: "A driver and vehicle are required" });
                     return;
                 }
 
@@ -144,9 +147,13 @@ function initSocket(server) {
                 // Broadcast location update to relevant rooms
                 io.to(`company_${companyId}`).emit("vehicle:location_changed", result.telemetry);
 
-                io.to(`team_${teamId}`).emit("vehicle:location_changed", result.telemetry);
+                if (teamId) {
+                    io.to(`team_${teamId}`).emit("vehicle:location_changed", result.telemetry);
+                }
+                respond({ ok: true });
             } catch (err) {
                 console.error("❌ [Socket] Error processing driver location update:", err.message);
+                respond({ ok: false, message: err.message });
             }
         });
 
