@@ -65,7 +65,7 @@ exports.login = async (req, res) => {
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
 
-        success(res, 200, {expiresAt: new Date(Date.now() + 15 * 60 * 1000),})
+        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
     } catch (err) {
         console.log(err)
         return serverError(res)
