@@ -89,6 +89,7 @@ export const API_PATHS = {
 
   GPS: {
     LIVE: 'api/gps/live',
+    TASK_POINTS: (taskId: string) => `api/gps/task-points/${taskId}`,
     TRIP_SUMMARY: (taskId: string) => `api/gps/trip-summary/${taskId}`,
     VEHICLE_HISTORY: (vehicleId: string) => `api/gps/history/${vehicleId}`,
   },

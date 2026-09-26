@@ -12,7 +12,13 @@ const { userRoles } = require("../data/roles")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user?.teamId || null }
+    const data = {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+        companyId: user?.companyId || null,
+        teamId: user?.teamId || null,
+    }
     return jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
 }
 
@@ -32,6 +38,7 @@ const storeToken = (res, token, type = "token") => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
+        path: "/",
         maxAge: 10 * 24 * 60 * 60 * 1000
     });
 };
@@ -58,7 +65,7 @@ exports.login = async (req, res) => {
         storeToken(res, token)
         storeToken(res, refreshToken, "refreshToken")
 
-        success(res, 200, { expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
+        success(res, 200, {expiresAt: new Date(Date.now() + 15 * 60 * 1000),})
     } catch (err) {
         console.log(err)
         return serverError(res)
@@ -117,7 +124,8 @@ exports.logout = async (req, res) => {
         const cookieOptions = {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? "none" : "lax"
+            sameSite: isProduction ? "none" : "lax",
+            path: "/"
         };
 
         res.clearCookie("token", cookieOptions);

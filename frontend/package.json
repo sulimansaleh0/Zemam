@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:secure": "next dev --experimental-https --experimental-https-key ./certificates/key.pem --experimental-https-cert ./certificates/cert.pem",
+    "cert": "node scripts/generate-cert.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -31,6 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "selfsigned": "^5.5.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

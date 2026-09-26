@@ -4,6 +4,12 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import {
+  createUnifiedLocationPin,
+  UNIFIED_MAP_TILE_URL,
+  UNIFIED_MAP_ATTRIBUTION,
+} from '@/features/gps/utils/mapMarkers';
+
 interface LeafletMapCanvasProps {
   center?: [number, number];
   zoom?: number;
@@ -15,52 +21,6 @@ interface LeafletMapCanvasProps {
   onDeliveryDrag?: (lat: number, lng: number) => void;
   className?: string;
   readOnly?: boolean;
-}
-
-function createCustomPin(color: string, label: string) {
-  const html = `
-    <div style="
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translate(-50%, -100%);
-      cursor: pointer;
-    ">
-      <div style="
-        background: ${color};
-        color: white;
-        font-weight: 700;
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 9999px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        white-space: nowrap;
-        margin-bottom: 2px;
-        border: 2px solid white;
-      ">${label}</div>
-      <div style="
-        width: 14px;
-        height: 14px;
-        background: ${color};
-        border: 2px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      "></div>
-      <div style="
-        width: 2px;
-        height: 8px;
-        background: ${color};
-      "></div>
-    </div>
-  `;
-
-  return L.divIcon({
-    html,
-    className: 'custom-leaflet-pin',
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
-  });
 }
 
 export default function LeafletMapCanvas({
@@ -107,9 +67,9 @@ export default function LeafletMapCanvas({
       zoomControl: true,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer(UNIFIED_MAP_TILE_URL, {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: UNIFIED_MAP_ATTRIBUTION,
     }).addTo(map);
 
     if (!readOnly) {
@@ -142,7 +102,7 @@ export default function LeafletMapCanvas({
     if (pickupPosition) {
       if (!pickupMarkerRef.current) {
         const marker = L.marker(pickupPosition, {
-          icon: createCustomPin('#10b981', '🟢 الانطلاق A'),
+          icon: createUnifiedLocationPin('pickup', 'نقطة الانطلاق A'),
           draggable: !readOnly,
         }).addTo(map);
 
@@ -171,7 +131,7 @@ export default function LeafletMapCanvas({
     if (deliveryPosition) {
       if (!deliveryMarkerRef.current) {
         const marker = L.marker(deliveryPosition, {
-          icon: createCustomPin('#2563eb', '🔵 التسليم B'),
+          icon: createUnifiedLocationPin('delivery', 'نقطة التسليم B'),
           draggable: !readOnly,
         }).addTo(map);
 

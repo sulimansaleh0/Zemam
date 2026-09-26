@@ -123,7 +123,7 @@ exports.verifyMaintenanceRecord = async (req, res) => {
             cost,
             declineReason: status === expenseRecordStatus.DECLINED ? declineReason : undefined,
             isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : undefined
-        }, { new: true, runValidators: true })
+        }, { returnDocument: 'after', runValidators: true })
 
         if (!maintenanceRecord) return error(res, 400, "Maintenance Record Not Found")
         const activeMaintenance = await Maintenance.exists({

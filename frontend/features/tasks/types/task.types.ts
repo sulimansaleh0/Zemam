@@ -79,6 +79,7 @@ export interface CreateTaskInput {
   description: string;
   vehicleId: string;
   driverId?: string;
+  teamId?: string;
   startTime: string;
   expectedEndTime?: string;
   startOdometer?: number;
@@ -91,6 +92,7 @@ export interface UpdateTaskInput {
   description?: string;
   vehicleId?: string;
   driverId?: string;
+  teamId?: string;
   startTime?: string;
   expectedEndTime?: string;
   startOdometer?: number;

@@ -39,6 +39,7 @@ export default function TasksPage() {
     setSelectedTaskForDecline,
     vehicles,
     drivers,
+    teams,
     isLoadingRelations,
     userName,
     menuOpen,
@@ -184,6 +185,7 @@ export default function TasksPage() {
         isLoading={createTaskMutation.isPending || updateTaskMutation.isPending}
         vehicles={vehicles as any}
         drivers={drivers as any}
+        teams={teams as any}
         initialTask={taskToEdit}
       />
 

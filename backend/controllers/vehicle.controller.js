@@ -149,7 +149,7 @@ exports.updateVehicle = async (req, res) => {
             if (duplicate) return error(res, 400, "Plate number is already in use")
         }
         const vehicle = await Vehicle.findOneAndUpdate(filters, { $set: updates }, {
-            new: true, runValidators: true
+            returnDocument: 'after', runValidators: true
         })
         if (!vehicle) return error(res, 404, "Vehicle not found")
         success(res, 200, { vehicle })

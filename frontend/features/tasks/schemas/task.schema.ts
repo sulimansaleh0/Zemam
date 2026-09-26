@@ -15,6 +15,7 @@ export const createTaskSchema = z.object({
     .min(15, 'يجب أن يكون وصف المهمة 15 حرفاً على الأقل'),
   vehicleId: z.string().min(1, 'يرجى اختيار المركبة'),
   driverId: z.string().optional().or(z.literal('')),
+  teamId: z.string().optional().or(z.literal('')),
   startTime: z.string().min(1, 'يرجى تحديد موعد انطلاق المهمة'),
   expectedEndTime: z.string().optional(),
   pickupLocation: locationPointSchema,

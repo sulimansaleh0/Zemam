@@ -131,26 +131,43 @@ async function processTelemetryUpdate({
     const updatedVehicle = await Vehicle.findByIdAndUpdate(
         vehicleId,
         { $set: vehicleUpdate },
-        { new: true }
+        { returnDocument: 'after' }
     )
         .populate("driverId", "name email phone avatar")
         .populate("teamId", "name");
 
+    // Resolve missing driverId / companyId / teamId from the vehicle document in DB
+    const resolvedDriverId = driverId
+        || (updatedVehicle?.driverId?._id ? updatedVehicle.driverId._id.toString() : updatedVehicle?.driverId?.toString())
+        || undefined;
+
+    const resolvedCompanyId = companyId
+        || updatedVehicle?.companyId?.toString()
+        || undefined;
+
+    const resolvedTeamId = teamId
+        || (updatedVehicle?.teamId?._id ? updatedVehicle.teamId._id.toString() : updatedVehicle?.teamId?.toString())
+        || undefined;
+
     // If active task, record in temporary high-resolution log (24h TTL)
-    if (taskId) {
-        await TaskLivePoint.create({
-            taskId,
-            vehicleId,
-            driverId,
-            companyId,
-            teamId,
-            lat: numLat,
-            lng: numLng,
-            speed: numSpeed,
-            heading: numHeading,
-            accuracy,
-            timestamp: updateTime
-        });
+    if (taskId && resolvedDriverId && resolvedCompanyId) {
+        try {
+            await TaskLivePoint.create({
+                taskId,
+                vehicleId,
+                driverId: resolvedDriverId,
+                companyId: resolvedCompanyId,
+                teamId: resolvedTeamId,
+                lat: numLat,
+                lng: numLng,
+                speed: numSpeed,
+                heading: numHeading,
+                accuracy,
+                timestamp: updateTime
+            });
+        } catch (livePointErr) {
+            console.warn('⚠️ [GPS] Could not save TaskLivePoint:', livePointErr.message);
+        }
     }
 
     return {

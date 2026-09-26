@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>زمام - انقطاع الاتصال</title>
+  <style>
+    body {
+      background-color: #09090b;
+      color: #f1f5f9;
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+    .card {
+      background-color: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 1.5rem;
+      padding: 2rem 1.5rem;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1.25rem;
+      background: rgba(15, 118, 110, 0.15);
+      border: 1px solid rgba(15, 118, 110, 0.3);
+      border-radius: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #14b8a6;
+    }
+    h1 {
+      font-size: 1.25rem;
+      margin: 0 0 0.5rem;
+      font-weight: 700;
+    }
+    p {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin: 0 0 1.5rem;
+    }
+    .btn {
+      background-color: #0f766e;
+      color: #ffffff;
+      border: none;
+      border-radius: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #0d5c4d;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+    <h1>أنت غير متصل بالإنترنت</h1>
+    <p>يبدو أن هاتفك فقد الاتصال بالشبكة. التطبيق يعمل محلياً وسيتم مزامنة أي بيانات ميدانية تلقائياً فور عودة التغطية.</p>
+    <button class="btn" onclick="window.location.reload()">إعادة المحاولة</button>
+  </div>
+</body>
+</html>

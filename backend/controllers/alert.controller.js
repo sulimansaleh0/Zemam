@@ -20,7 +20,7 @@ exports.markAlertRead = async (req, res) => {
     try {
         const filters = { _id: req.params.id, companyId: req.user.companyId }
         if (req.user.role === userRoles.FLEET_MANAGER) filters.teamId = req.user.teamId
-        const alert = await Alert.findOneAndUpdate(filters, { isRead: true }, { new: true })
+        const alert = await Alert.findOneAndUpdate(filters, { isRead: true }, { returnDocument: 'after' })
         if (!alert) return error(res, 404, "Alert not found")
         success(res, 200, { alert })
     } catch (err) {

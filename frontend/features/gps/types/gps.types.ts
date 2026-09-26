@@ -58,6 +58,9 @@ export interface TripSummary {
 export interface DriverTelemetryPayload {
   vehicleId: string;
   taskId?: string;
+  companyId?: string;
+  teamId?: string;
+  driverId?: string;
   lat: number;
   lng: number;
   speed: number;
