@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  AlertTriangle,
   Calendar,
   Droplet,
   Eye,
@@ -17,9 +18,11 @@ import {
   getFuelStatusConfig,
   formatCostSAR,
   formatLiters,
+  formatEfficiency,
 } from '../utils/fuelHelpers';
 import type {
   FuelRecordWithRelations,
+  FuelIssueType,
   FuelStatus,
 } from '../types/fuel.types';
 import type { BackendVehicle } from '@/features/vehicles';
@@ -45,6 +48,19 @@ const STATUS_TABS: { id: 'all' | FuelStatus; label: string }[] = [
   { id: 'approved', label: 'المعتمدة' },
   { id: 'declined', label: 'المرفوضة' },
 ];
+
+function getFuelIssueLabel(issueType?: FuelIssueType): string {
+  switch (issueType) {
+    case 'high_consumption':
+      return 'استهلاك مرتفع';
+    case 'possible_leak':
+      return 'اشتباه تسرب';
+    case 'efficiency_deviation':
+      return 'كفاءة غير متوقعة';
+    default:
+      return 'تنبيه كفاءة الوقود';
+  }
+}
 
 export function FuelTable({
   records,
@@ -158,7 +174,7 @@ export function FuelTable({
                   <th className="px-4 py-3.5">مقدم الإيصال</th>
                   <th className="px-4 py-3.5 whitespace-nowrap">الكمية والتكلفة</th>
                   <th className="px-4 py-3.5 whitespace-nowrap">قراءة العداد</th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">الكمية المضافة للرصيد</th>
+                  <th className="px-4 py-3.5 whitespace-nowrap">الكفاءة والكمية المضافة</th>
                   <th className="px-4 py-3.5 text-center">الحالة</th>
                   <th className="px-4 py-3.5 text-center">الإجراءات</th>
                 </tr>
@@ -167,11 +183,14 @@ export function FuelTable({
                 {records.map((record) => {
                   const status = getFuelStatusConfig(record.status);
                   const isPending = record.status === 'pending';
+                  const fuelIssueLabel = getFuelIssueLabel(record.fuelIssueType);
 
                   return (
                     <tr
                       key={record._id}
-                      className="transition-colors hover:bg-[var(--zd-surface-2)]/60"
+                      className={`transition-colors hover:bg-[var(--zd-surface-2)]/60 ${
+                        record.fuelIssue ? 'bg-rose-500/5' : ''
+                      }`}
                     >
                       {/* المركبة */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
@@ -216,10 +235,51 @@ export function FuelTable({
                           <Gauge className="h-3 w-3 text-[var(--zd-muted)]" />
                           <span>{Number(record.odometer).toLocaleString('ar-EG')} كم</span>
                         </div>
+                        <div className="mt-1">
+                          {record.isFullTank ? (
+                            <span className="inline-flex items-center rounded border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-400">
+                              تعبئة كاملة (Full)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded bg-[var(--zd-surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--zd-muted)]">
+                              تعبئة جزئية
+                            </span>
+                          )}
+                        </div>
                       </td>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap font-bold text-emerald-500">
-                        +{formatLiters(record.qty)}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {record.fuelIssue ? (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span>{fuelIssueLabel}</span>
+                            </span>
+                            {record.fuelEfficiency && (
+                              <p className="font-mono text-[10px] text-rose-400">
+                                الكفاءة: {formatEfficiency(record.fuelEfficiency)}
+                              </p>
+                            )}
+                          </div>
+                        ) : record.fuelEfficiency ? (
+                          <div>
+                            <span className="inline-flex items-center rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+                              {formatEfficiency(record.fuelEfficiency)}
+                            </span>
+                            {record.distanceSinceLastFull && (
+                              <p className="mt-0.5 text-[10px] text-[var(--zd-muted)]">
+                                قطعت: {record.distanceSinceLastFull.toLocaleString('ar-EG')} كم
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-[var(--zd-muted)]">
+                            {record.isFullTank ? 'تتطلب تعبئة كاملة سابقة' : 'تعبئة جزئية'}
+                          </span>
+                        )}
+                        <div className="mt-1 font-bold text-emerald-500">
+                          +{formatLiters(record.qty)}
+                        </div>
                       </td>
 
                       {/* الحالة */}

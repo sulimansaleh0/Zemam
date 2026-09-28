@@ -992,11 +992,13 @@ export default function DriverDetailPage() {
                             >
                               {fuel.status === 'approved' ? 'معتمدة' : 'قيد التدقيق'}
                             </span>
-                            {fuel.isFullTank && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-500/10 text-sky-500">
-                                تانك كامل (Full)
-                              </span>
-                            )}
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                              fuel.isFullTank
+                                ? 'bg-sky-500/10 text-sky-500'
+                                : 'bg-slate-500/10 text-slate-500'
+                            }`}>
+                              {fuel.isFullTank ? 'تانك كامل (FULL)' : 'غير ممتلئ (NOT FULL)'}
+                            </span>
                           </div>
 
                           <div className="flex items-center gap-4 text-xs text-[var(--muted)]">

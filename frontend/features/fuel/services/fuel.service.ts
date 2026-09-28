@@ -70,6 +70,7 @@ export const fuelService = {
   createFuelRecord(data: CreateFuelInput): Promise<ServiceResult<CreateFuelResponse>> {
     const formData = new FormData();
     formData.append('vehicleId', data.vehicleId);
+    formData.append('isFullTank', String(data.isFullTank));
     formData.append('cost', String(data.cost));
     formData.append('qty', String(data.qty));
     formData.append('image', data.image);

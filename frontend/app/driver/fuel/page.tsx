@@ -20,6 +20,7 @@ export default function DriverFuelPage() {
   const [liters, setLiters] = useState('');
   const [cost, setCost] = useState('');
   const [fuelType, setFuelType] = useState<'91' | '95' | 'diesel'>('91');
+  const [isFullTank, setIsFullTank] = useState<'full' | 'not-full' | ''>('');
   const [odometer, setOdometer] = useState('');
   const [notes, setNotes] = useState('');
   const [receiptPhoto, setReceiptPhoto] = useState<File | null>(null);
@@ -81,6 +82,10 @@ export default function DriverFuelPage() {
       setErrorMessage('يرجى إدخال المبلغ الإجمالي');
       return;
     }
+    if (!isFullTank) {
+      setErrorMessage('يرجى تحديد ما إذا كان الخزان ممتلئاً بعد التعبئة');
+      return;
+    }
     try {
       setIsLoading(true);
       const payload: FuelLogPayload = {
@@ -88,6 +93,7 @@ export default function DriverFuelPage() {
         liters: Number(liters),
         cost: Number(cost),
         fuelType,
+        isFullTank: isFullTank === 'full',
         odometer: odometer ? Number(odometer) : undefined,
         notes: notes.trim() || undefined,
         receiptPhoto,
@@ -98,6 +104,7 @@ export default function DriverFuelPage() {
       setSuccessNotice('⛽ تم تسجيل فاتورة الوقود بنجاح وإرسالها للاعتماد!');
       setLiters('');
       setCost('');
+      setIsFullTank('');
       setOdometer('');
       setNotes('');
       setReceiptPhoto(null);
@@ -190,6 +197,22 @@ export default function DriverFuelPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm">
+            <label className="text-xs font-semibold text-slate-700">
+              حالة الخزان بعد التعبئة <span className="text-rose-600">*</span>
+            </label>
+            <select
+              required
+              value={isFullTank}
+              onChange={(e) => setIsFullTank(e.target.value as 'full' | 'not-full' | '')}
+              className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+            >
+              <option value="">حدد حالة الخزان</option>
+              <option value="full">ممتلئ بالكامل (FULL)</option>
+              <option value="not-full">غير ممتلئ (NOT FULL)</option>
+            </select>
           </div>
 
           {/* تفاصيل التعبئة والمبالغ */}

@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 export const createFuelSchema = z.object({
   vehicleId: z.string().min(1, 'يرجى تحديد المركبة المستهدفة'),
+  isFullTank: z.boolean({
+    required_error: 'يرجى تحديد ما إذا كان الخزان ممتلئاً',
+    invalid_type_error: 'يرجى تحديد ما إذا كان الخزان ممتلئاً',
+  }),
   cost: z
     .preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),

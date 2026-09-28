@@ -54,6 +54,7 @@ export interface OfflineAction {
 
 export interface FuelLogPayload {
   vehicleId: string;
+  isFullTank: boolean;
   liters: number;
   cost: number;
   fuelType: '91' | '95' | 'diesel';

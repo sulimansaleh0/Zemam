@@ -5,6 +5,14 @@ exports.createFuelSchema = [
     body("vehicleId")
         .isMongoId()
         .withMessage("Invalid vehicle ID"),
+    body("isFullTank")
+        .exists()
+        .withMessage("Refill tank status is required")
+        .bail()
+        .isBoolean()
+        .withMessage("Refill tank status must be FULL or NOT FULL")
+        .bail()
+        .toBoolean(),
     body("cost")
         .isFloat({ min: 0 })
         .withMessage("Cost must be a non-negative number"),

@@ -60,6 +60,7 @@ export function FuelFormModal({
     resolver: zodResolver(createFuelSchema),
     defaultValues: {
       vehicleId: '',
+      isFullTank: false,
       cost: undefined,
       qty: undefined,
     },
@@ -140,6 +141,7 @@ export function FuelFormModal({
     try {
       await onSubmit({
         vehicleId: values.vehicleId,
+        isFullTank: values.isFullTank,
         cost: values.cost,
         qty: values.qty,
         image: selectedFile,
@@ -194,6 +196,27 @@ export function FuelFormModal({
             </div>
             {errors.vehicleId && (
               <p className="mt-1 text-[11px] text-rose-500">{errors.vehicleId.message}</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3.5">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                {...register('isFullTank')}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--zd-blue)]"
+              />
+              <span>
+                <span className="block text-xs font-bold text-[var(--zd-text)]">
+                  الخزان ممتلئ بالكامل (FULL)
+                </span>
+                <span className="mt-1 block text-[11px] leading-relaxed text-[var(--zd-muted)]">
+                  اترك المربع بدون تحديد إذا كانت التعبئة جزئية (NOT FULL).
+                </span>
+              </span>
+            </label>
+            {errors.isFullTank && (
+              <p className="mt-1 text-[11px] text-rose-500">{errors.isFullTank.message}</p>
             )}
           </div>
 
@@ -266,7 +289,7 @@ export function FuelFormModal({
           <div className="flex items-start gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3.5 text-[11px] leading-relaxed text-[var(--zd-muted)]">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--zd-blue)]" />
             <p>
-              تضاف الكمية المسجلة إلى رصيد الوقود فور تسجيل الإيصال، ويخصم النظام الاستهلاك التقديري عند إكمال المهمة.
+              تضاف الكمية المعتمدة إلى رصيد الوقود، ويخصم النظام الاستهلاك التقديري عند إكمال المهمة. تساعد التعبئة الكاملة على قياس كفاءة الوقود بين تعبئتين كاملتين.
             </p>
           </div>
 

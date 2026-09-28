@@ -127,7 +127,7 @@ export const driverTaskService = {
     formData.append('cost', String(payload.cost));
     formData.append('fuelType', payload.fuelType);
     formData.append('odometer', String(payload.odometer));
-    formData.append('isFullTank', 'true');
+    formData.append('isFullTank', String(payload.isFullTank));
     if (payload.notes) formData.append('notes', payload.notes);
     if (payload.receiptPhoto) {
       formData.append('image', payload.receiptPhoto);
@@ -157,7 +157,7 @@ export const driverTaskService = {
           cost: payload.cost,
           fuelType: payload.fuelType,
           odometer: payload.odometer,
-          isFullTank: true,
+          isFullTank: payload.isFullTank,
           notes: payload.notes,
           image: 'https://placehold.co/600x400?text=Offline+Fuel+Receipt',
         },

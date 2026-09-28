@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   Calendar,
+  AlertTriangle,
   Eye,
   Fuel,
   Receipt,
@@ -127,6 +128,37 @@ export function FuelDetailModal({
                   {record.pricePerLiter.toFixed(2)} ر.س / لتر
                 </p>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[var(--zd-muted)]">حالة الخزان بعد التعبئة</span>
+                <span className={`font-bold ${record.isFullTank ? 'text-sky-500' : 'text-[var(--zd-text)]'}`}>
+                  {record.isFullTank ? 'ممتلئ بالكامل (FULL)' : 'غير ممتلئ (NOT FULL)'}
+                </span>
+              </div>
+              {record.isFullTank && record.fuelEfficiency != null && (
+                <div className="grid grid-cols-1 gap-3 border-t border-[var(--zd-line)]/50 pt-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[11px] text-[var(--zd-muted)]">المسافة منذ التعبئة الكاملة السابقة</p>
+                    <p className="mt-1 font-bold text-[var(--zd-text)]">{Number(record.distanceSinceLastFull).toLocaleString('ar-SA')} كم</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-[var(--zd-muted)]">الوقود المضاف خلال الدورة</p>
+                    <p className="mt-1 font-bold text-[var(--zd-text)]">{formatLiters(record.fuelSinceLastFull ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-[var(--zd-muted)]">الكفاءة الفعلية للدورة</p>
+                    <p className="mt-1 font-bold text-[var(--zd-text)]">{record.fuelEfficiency.toFixed(2)} كم/لتر</p>
+                  </div>
+                </div>
+              )}
+              {record.fuelIssue && record.fuelIssueMessage && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500" role="alert">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{record.fuelIssueMessage}</p>
+                </div>
+              )}
             </div>
 
             {/* صورة الإيصال المرفقة */}

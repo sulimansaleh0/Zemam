@@ -4,7 +4,7 @@
 
 export type FuelStatus = 'pending' | 'approved' | 'declined';
 
-export type FuelIssueType = 'high_consumption' | 'possible_leak' | null;
+export type FuelIssueType = 'high_consumption' | 'possible_leak' | 'efficiency_deviation' | null;
 
 export interface PopulatedVehicle {
   _id: string;
@@ -62,6 +62,7 @@ export interface FuelRecordWithRelations extends BackendFuelRecord {
 
 export interface CreateFuelInput {
   vehicleId: string;
+  isFullTank: boolean;
   cost: number;
   qty: number;
   image: File; // صورة فاتورة الوقود مطلوبة إجبارياً

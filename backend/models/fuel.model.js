@@ -55,7 +55,7 @@ const fuelSchema = new mongoose.Schema({
     },
     fuelIssueType: {
         type: String,
-        enum: ["high_consumption", "possible_leak", null],
+        enum: ["high_consumption", "possible_leak", "efficiency_deviation", null],
         default: null
     },
     fuelIssueMessage: {
