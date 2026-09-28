@@ -321,9 +321,12 @@ export function VehiclesTable({
                 }
 
                 menuItems.push({
-                  label: isActive ? 'تعطيل المركبة' : 'تفعيل المركبة',
+                  label: vehicle.status === 'in_maintenance'
+                    ? 'قيد الصيانة - بانتظار المراجعة'
+                    : isActive ? 'تعطيل المركبة' : 'تفعيل المركبة',
                   icon: Power,
                   variant: isActive ? 'warning' : 'success',
+                  disabled: vehicle.status === 'in_maintenance',
                   onClick: () => onChangeStatusClick(vehicle),
                 });
 
@@ -401,6 +404,7 @@ export function VehiclesTable({
               <option value="all">كل الحالات</option>
               <option value="active">نشطة فقط</option>
               <option value="inactive">غير نشطة فقط</option>
+              <option value="in_maintenance">قيد الصيانة</option>
             </select>
           </div>
         </div>

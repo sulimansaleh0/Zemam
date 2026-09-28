@@ -43,7 +43,7 @@ exports.createVehicleSchema = [
 
 exports.updateVehicleStatusSchema = [
     body("status")
-        .isIn([vehicleStatus.ACTIVE, vehicleStatus.INACTIVE, vehicleStatus.INMAINTENANCE])
+        .isIn([vehicleStatus.ACTIVE, vehicleStatus.INACTIVE])
         .withMessage("Invalid Vehicle status")
 ]
 

@@ -279,19 +279,29 @@ exports.changeVehicleStatus = async (req, res) => {
     if (!id) return error(res, 400, "vehicle id is required")
     const { status } = req.body
     try {
-        let filters = {
+        const filters = {
             _id: id,
             companyId: user.companyId,
+            isDeleted: false
         };
         if (teamId) filters.teamId = teamId;
 
-        const vehicle = await Vehicle.findOneAndUpdate(filters, {
-            status
-        })
+        const currentVehicle = await Vehicle.findOne(filters).select("status")
+        if (!currentVehicle) return error(res, 404, "Vehicle not found")
+        if (currentVehicle.status === vehicleStatus.INMAINTENANCE) {
+            return error(res, 409, "Vehicle status cannot be changed until its maintenance request is verified")
+        }
 
-        if (!vehicle) return error(res, 404, "Vehicle not found")
+        const vehicle = await Vehicle.findOneAndUpdate(
+            { ...filters, status: { $ne: vehicleStatus.INMAINTENANCE } },
+            { $set: { status } },
+            { new: true, runValidators: true }
+        )
+        if (!vehicle) {
+            return error(res, 409, "Vehicle status cannot be changed until its maintenance request is verified")
+        }
 
-        success(res, 200)
+        success(res, 200, { vehicle })
     } catch (err) {
         console.log(err)
         serverError(res)

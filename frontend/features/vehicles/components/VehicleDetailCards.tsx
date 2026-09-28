@@ -32,6 +32,7 @@ export function VehicleDetailCards({
   isUnassigningDriver = false,
 }: VehicleDetailCardsProps) {
   const isActive = vehicle.status === 'active';
+  const isInMaintenance = vehicle.status === 'in_maintenance';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -53,7 +54,9 @@ export function VehicleDetailCards({
           <div className="flex items-center justify-between">
             <span className="text-[var(--muted)]">حالة التشغيل:</span>
             <span className="font-semibold text-[var(--text)]">
-              {isActive ? 'نشطة في الخدمة' : 'معطلة عن العمل'}
+              {isInMaintenance
+                ? 'قيد الصيانة - بانتظار المراجعة'
+                : isActive ? 'نشطة في الخدمة' : 'معطلة عن العمل'}
             </span>
           </div>
         </div>

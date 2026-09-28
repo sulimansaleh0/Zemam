@@ -167,7 +167,7 @@ exports.verifyMaintenanceRecord = async (req, res) => {
 
             await User.findOneAndUpdate({ _id: maintenanceRecord.driverId }, [
                 { $set: { driverScore: { $max: [0, { $add: ["$driverScore", points] }] } } }
-            ])
+            ], { updatePipeline: true })
 
             await Maintenance.findByIdAndUpdate(maintenanceRecord._id, { driverFaultProcessed: true })
 

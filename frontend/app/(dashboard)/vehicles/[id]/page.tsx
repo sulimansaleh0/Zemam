@@ -183,15 +183,20 @@ export default function VehicleDetailPage() {
                 <button
                   type="button"
                   onClick={handleToggleStatus}
-                  disabled={isChangingStatus}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
+                  disabled={isChangingStatus || vehicle.status === 'in_maintenance'}
+                  title={vehicle.status === 'in_maintenance' ? 'لا يمكن تغيير الحالة قبل مراجعة طلب الصيانة' : undefined}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                     isActive
                       ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
                       : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
                   }`}
                 >
                   <Power className="w-3.5 h-3.5" />
-                  <span>{isActive ? 'تعطيل المركبة' : 'تفعيل المركبة'}</span>
+                  <span>
+                    {vehicle.status === 'in_maintenance'
+                      ? 'بانتظار مراجعة الصيانة'
+                      : isActive ? 'تعطيل المركبة' : 'تفعيل المركبة'}
+                  </span>
                 </button>
 
                 {(() => {
@@ -221,7 +226,9 @@ export default function VehicleDetailPage() {
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2.5 animate-in fade-in duration-150">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
                 <span>
-                  هذه المركبة محمية تلقائياً من الحذف نظراً لأنها {vehicle.isInTask ? 'في مهمة تشغيلية جارية حالياً' : 'قيد الصيانة الفنية'}.
+                  {vehicle.status === 'in_maintenance'
+                    ? 'لا يمكن تغيير حالة المركبة حتى تتم مراجعة طلب الصيانة.'
+                    : 'هذه المركبة محمية تلقائياً من الحذف نظراً لأنها في مهمة تشغيلية جارية حالياً.'}
                 </span>
               </div>
             )}

@@ -9,6 +9,15 @@ interface VehicleStatusBadgeProps {
 }
 
 export function VehicleStatusBadge({ status, isInTask }: VehicleStatusBadgeProps) {
+  if (status === 'in_maintenance') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        قيد الصيانة - بانتظار المراجعة
+      </span>
+    );
+  }
+
   if (isInTask) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
