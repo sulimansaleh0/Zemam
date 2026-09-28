@@ -11,10 +11,6 @@ exports.createFuelSchema = [
     body("qty")
         .isFloat({ gt: 0 })
         .withMessage("Quantity must be greater than zero"),
-    body("isFullTank")
-        .isBoolean()
-        .withMessage("isFullTank is required")
-        .toBoolean(),
 ]
 
 exports.verifyFuelSchema = [

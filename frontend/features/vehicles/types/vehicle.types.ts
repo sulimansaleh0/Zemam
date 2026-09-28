@@ -23,6 +23,7 @@ export interface BackendVehicle {
   plateNumber: string | number; // رقم اللوحة (يدعم النصوص والأرقام العربية والإنجليزية)
   vehicleType?: 'normal' | 'van' | 'truck'; // نوع المركبة (خفيف / متوسط / ثقيل)
   tankCapacity?: number;  // سعة خزان الوقود باللتر
+  fuelBalanceLitres?: number; // رصيد الوقود التقديري باللتر
   fuelType?: string;      // نوع الوقود (بنزين 91، بنزين 95، ديزل، هجين، كهربائي)
   currentOdometer?: number; // قراءة العداد الحالية
   expectedFuelEfficiency?: number; // كفاءة الوقود المتوقعة (كم/لتر)
@@ -115,4 +116,3 @@ export interface VehicleStats {
 export interface VehicleStatsResponse {
   stats: VehicleStats;
 }
-

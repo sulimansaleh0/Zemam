@@ -3,12 +3,9 @@
 import React, { useState } from 'react';
 import {
   CheckCircle2,
-  Coins,
-  Droplet,
   Gauge,
   Loader2,
   ShieldCheck,
-  Truck,
   XCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
@@ -73,12 +70,6 @@ export function VerifyFuelModal({
               <span className="text-[var(--zd-muted)]">قراءة العداد:</span>
               <span className="font-mono font-bold text-[var(--zd-text)]">
                 {Number(record.odometer).toLocaleString('ar-EG')} كم
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--zd-muted)]">نوع التعبئة:</span>
-              <span className="font-bold text-[var(--zd-text)]">
-                {record.isFullTank ? 'تعبئة كاملة (Full Tank)' : 'تعبئة جزئية'}
               </span>
             </div>
           </div>

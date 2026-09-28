@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertTriangle,
-  Camera,
   Coins,
   Droplet,
   Fuel,
@@ -55,7 +54,6 @@ export function FuelFormModal({
     register,
     handleSubmit,
     watch,
-    setValue,
     reset,
     formState: { errors },
   } = useForm<CreateFuelFormValues>({
@@ -64,14 +62,12 @@ export function FuelFormModal({
       vehicleId: '',
       cost: undefined,
       qty: undefined,
-      isFullTank: true,
     },
   });
 
   const selectedVehicleId = watch('vehicleId');
   const watchedCost = watch('cost');
   const watchedQty = watch('qty');
-  const watchedIsFullTank = watch('isFullTank');
 
   const selectedVehicle = vehicles.find((v) => v._id === selectedVehicleId);
 
@@ -101,7 +97,7 @@ export function FuelFormModal({
         });
         setIsGettingLocation(false);
       },
-      (err) => {
+      () => {
         setLocationError('تعذر تحديد الموقع الجغرافي. يرجى تفعيل إذن الوصول للموقع.');
         setIsGettingLocation(false);
       },
@@ -146,13 +142,16 @@ export function FuelFormModal({
         vehicleId: values.vehicleId,
         cost: values.cost,
         qty: values.qty,
-        isFullTank: values.isFullTank,
         image: selectedFile,
         location: gpsLocation ? { lat: gpsLocation.lat, lng: gpsLocation.lng } : undefined,
       });
       handleClose();
-    } catch (err: any) {
-      setFormError(err?.message || 'تعذر توثيق إيصال الوقود، يرجى التحقق من البيانات والمحاولة مجدداً');
+    } catch (err: unknown) {
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'تعذر توثيق إيصال الوقود، يرجى التحقق من البيانات والمحاولة مجدداً'
+      );
     }
   };
 
@@ -161,7 +160,7 @@ export function FuelFormModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="توثيق إيصال تعبئة وقود"
-      description="تسجيل تكلفة وكمية الوقود واحتساب مؤشرات الكفاءة والاستهلاك"
+      description="تسجيل تكلفة وكمية الوقود وتحديث رصيد المركبة"
       icon={Fuel}
       maxWidth="2xl"
     >
@@ -264,24 +263,11 @@ export function FuelFormModal({
             </div>
           )}
 
-          {/* خيار تعبئة خزان كامل (Full Tank) */}
-          <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3.5">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={Boolean(watchedIsFullTank)}
-                onChange={(e) => setValue('isFullTank', e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-[var(--zd-line)] text-[var(--zd-blue)] focus:ring-0 cursor-pointer"
-              />
-              <div className="text-xs">
-                <p className="font-bold text-[var(--zd-text)]">
-                  تعبئة خزان كامل (Full Tank)
-                </p>
-                <p className="mt-0.5 text-[11px] text-[var(--zd-muted)] leading-relaxed">
-                  تحديد هذا الخيار يمكّن النظام من حساب كفاءة الاستهلاك الفعلية (كم/لتر) ومقارنتها بمعدل استهلاك المركبة المعتمد، وتنبيهك تلقائياً في حال وجود تسريب أو استهلاك غير طبيعي.
-                </p>
-              </div>
-            </label>
+          <div className="flex items-start gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3.5 text-[11px] leading-relaxed text-[var(--zd-muted)]">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--zd-blue)]" />
+            <p>
+              تضاف الكمية المسجلة إلى رصيد الوقود فور تسجيل الإيصال، ويخصم النظام الاستهلاك التقديري عند إكمال المهمة.
+            </p>
           </div>
 
           {/* تحديد موقع محطة الوقود (GPS) */}

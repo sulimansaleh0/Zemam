@@ -40,10 +40,6 @@ export const fuelService = {
     if (filters?.vehicleId && filters.vehicleId !== 'all') {
       params.set('vehicleId', filters.vehicleId);
     }
-    if (filters?.fuelIssue !== undefined && filters.fuelIssue !== 'all') {
-      params.set('fuelIssue', String(filters.fuelIssue));
-    }
-
     const queryString = params.toString();
     const path = queryString ? `${API_PATHS.FUEL.LIST}?${queryString}` : API_PATHS.FUEL.LIST;
 
@@ -76,7 +72,6 @@ export const fuelService = {
     formData.append('vehicleId', data.vehicleId);
     formData.append('cost', String(data.cost));
     formData.append('qty', String(data.qty));
-    formData.append('isFullTank', String(data.isFullTank));
     formData.append('image', data.image);
 
     if (data.location) {

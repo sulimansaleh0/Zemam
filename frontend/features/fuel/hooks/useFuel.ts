@@ -18,7 +18,6 @@ import type {
   VerifyFuelInput,
   FuelStatus,
   FuelFilters,
-  FuelStats,
 } from '../types/fuel.types';
 
 export const FUEL_QUERY_KEYS = {
@@ -52,7 +51,6 @@ export function useFuel(filters?: FuelFilters) {
           ...record,
           vehicleModel: veh.model,
           vehiclePlate: veh.plate,
-          expectedEfficiency: veh.expectedEfficiency,
           userName: usr.name,
           userEmail: usr.email,
           formattedDate,
@@ -64,7 +62,7 @@ export function useFuel(filters?: FuelFilters) {
 }
 
 /**
- * Hook لجلب إحصائيات ومؤشرات كفاءة الوقود
+ * Hook لجلب إحصائيات الوقود ورصيد المركبات
  */
 export function useFuelStats(vehicleId?: string) {
   return useQuery({
@@ -80,9 +78,8 @@ export function useFuelStats(vehicleId?: string) {
             pending: 0,
             approved: 0,
             declined: 0,
-            fuelIssues: 0,
-            fullTankRecords: 0,
             averageEfficiency: 0,
+            fuelBalanceLitres: 0,
           };
         }
         throw new Error(result.message);
@@ -95,9 +92,8 @@ export function useFuelStats(vehicleId?: string) {
           pending: 0,
           approved: 0,
           declined: 0,
-          fuelIssues: 0,
-          fullTankRecords: 0,
           averageEfficiency: 0,
+          fuelBalanceLitres: 0,
         }
       );
     },
@@ -165,7 +161,6 @@ export function useFuelPage() {
 
   const [activeTab, setActiveTab] = useState<'all' | FuelStatus>('all');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
-  const [onlyIssues, setOnlyIssues] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -178,9 +173,8 @@ export function useFuelPage() {
     () => ({
       status: activeTab,
       vehicleId: selectedVehicleId !== 'all' ? selectedVehicleId : undefined,
-      fuelIssue: onlyIssues ? true : undefined,
     }),
-    [activeTab, selectedVehicleId, onlyIssues]
+    [activeTab, selectedVehicleId]
   );
 
   const fuelQuery = useFuel(filters);
@@ -200,9 +194,7 @@ export function useFuelPage() {
       const userMatch =
         record.userName?.toLowerCase().includes(q) ||
         record.userEmail?.toLowerCase().includes(q);
-      const issueMatch = record.fuelIssueMessage?.toLowerCase().includes(q) ?? false;
-
-      return vehicleMatch || userMatch || issueMatch;
+      return vehicleMatch || userMatch;
     });
   }, [rawRecords, searchQuery]);
 
@@ -225,17 +217,14 @@ export function useFuelPage() {
       pending: 0,
       approved: 0,
       declined: 0,
-      fuelIssues: 0,
-      fullTankRecords: 0,
       averageEfficiency: 0,
+      fuelBalanceLitres: 0,
     },
 
     activeTab,
     setActiveTab,
     selectedVehicleId,
     setSelectedVehicleId,
-    onlyIssues,
-    setOnlyIssues,
     searchQuery,
     setSearchQuery,
 

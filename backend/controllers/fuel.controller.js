@@ -1,30 +1,10 @@
 const Fuel = require("../models/fuel.model")
+const mongoose = require("mongoose")
 const Vehicle = require("../models/vehicle.model")
 const Task = require("../models/task.model")
 const { userRoles } = require("../data/roles")
 const { mainStatus, taskStatus, expenseRecordStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
-const { calculateApprovedFuelMetrics } = require("../utils/fuelCalculations")
-
-const recalculateApprovedFuelRecords = async (vehicleId, companyId, expectedFuelEfficiency) => {
-    const approvedRecords = await Fuel.find({
-        vehicleId,
-        companyId,
-        status: expenseRecordStatus.APPROVED
-    })
-        .select("_id odometer qty isFullTank status createdAt")
-        .sort({ createdAt: 1, _id: 1 })
-
-    const metrics = calculateApprovedFuelMetrics(approvedRecords, expectedFuelEfficiency)
-    if (metrics.length) {
-        await Fuel.bulkWrite(metrics.map(({ _id, ...fields }) => ({
-            updateOne: {
-                filter: { _id, status: expenseRecordStatus.APPROVED },
-                update: { $set: fields }
-            }
-        })))
-    }
-}
 
 exports.createFuelRecord = async (req, res) => {
     const user = req.user
@@ -73,7 +53,7 @@ exports.createFuelRecord = async (req, res) => {
             qty,
             odometer: vehicle.currentOdometer,
             image,
-            isFullTank,
+            isFullTank: isFullTank ?? false,
             companyId: user.companyId,
             teamId: vehicle.teamId || null,
             userId: user._id,
@@ -89,7 +69,7 @@ exports.createFuelRecord = async (req, res) => {
 
 exports.listFuelRecords = async (req, res) => {
     const user = req.user
-    const { status, vehicleId, fuelIssue } = req.query
+    const { status, vehicleId } = req.query
     try {
         let filters = { companyId: user.companyId }
         if (user.role === userRoles.FLEET_MANAGER)
@@ -100,9 +80,6 @@ exports.listFuelRecords = async (req, res) => {
             filters.status = status
         if (vehicleId)
             filters.vehicleId = vehicleId
-        if (fuelIssue !== undefined)
-            filters.fuelIssue = fuelIssue === "true"
-
         const records = await Fuel.find(filters)
             .populate("vehicleId", "model plateNumber")
             .populate("userId", "name email")
@@ -123,91 +100,106 @@ exports.getFuelStats = async (req, res) => {
             match.teamId = user.teamId
         else if (req.teamId)
             match.teamId = req.teamId
-        if (req.query.vehicleId)
-            match.vehicleId = req.query.vehicleId
+        if (typeof req.query.vehicleId === "string")
+            match.vehicleId = mongoose.isValidObjectId(req.query.vehicleId)
+                ? new mongoose.Types.ObjectId(req.query.vehicleId)
+                : req.query.vehicleId
 
-        const [summary] = await Fuel.aggregate([
-            { $match: match },
-            {
-                $group: {
-                    _id: null,
-                    totalRecords: { $sum: 1 },
-                    totalCost: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$cost", 0] } },
-                    totalQty: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$qty", 0] } },
-                    pending: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.PENDING] }, 1, 0] } },
-                    approved: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, 1, 0] } },
-                    declined: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.DECLINED] }, 1, 0] } },
-                    fuelIssues: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$fuelIssue"] },
-                                1,
-                                0
-                            ]
-                        }
-                    },
-                    fullTankRecords: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$isFullTank"] },
-                                1,
-                                0
-                            ]
-                        }
-                    },
-                    efficiencyDistance: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, { $ne: ["$fuelEfficiency", null] }] },
-                                "$distanceSinceLastFull",
-                                0
-                            ]
-                        }
-                    },
-                    efficiencyFuel: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, { $ne: ["$fuelEfficiency", null] }] },
-                                "$fuelSinceLastFull",
-                                0
-                            ]
+        const taskMatch = {
+            companyId: user.companyId,
+            status: taskStatus.FINISHED
+        }
+        if (match.teamId) taskMatch.teamId = match.teamId
+        if (match.vehicleId) taskMatch.vehicleId = match.vehicleId
+
+        const vehicleMatch = { companyId: user.companyId, isDeleted: false }
+        if (match.teamId) vehicleMatch.teamId = match.teamId
+        if (match.vehicleId) vehicleMatch._id = match.vehicleId
+
+        const [summary, [taskSummary], [balanceSummary]] = await Promise.all([
+            Fuel.aggregate([
+                { $match: match },
+                {
+                    $group: {
+                        _id: null,
+                        totalRecords: { $sum: 1 },
+                        totalCost: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$cost", 0] } },
+                        totalQty: { $sum: "$qty" },
+                        pending: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.PENDING] }, 1, 0] } },
+                        approved: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, 1, 0] } },
+                        declined: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.DECLINED] }, 1, 0] } }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        totalRecords: 1,
+                        totalCost: 1,
+                        totalQty: 1,
+                        pending: 1,
+                        approved: 1,
+                        declined: 1
+                    }
+                }
+            ]),
+            Task.aggregate([
+                { $match: taskMatch },
+                {
+                    $group: {
+                        _id: null,
+                        distance: {
+                            $sum: {
+                                $cond: [
+                                    {
+                                        $and: [
+                                            { $ne: ["$fuelConsumptionAppliedAt", null] },
+                                            { $ne: ["$startOdometer", null] },
+                                            { $ne: ["$endOdometer", null] },
+                                            { $gte: ["$endOdometer", "$startOdometer"] }
+                                        ]
+                                    },
+                                    { $subtract: ["$endOdometer", "$startOdometer"] },
+                                    0
+                                ]
+                            }
+                        },
+                        fuelConsumed: {
+                            $sum: {
+                                $cond: [
+                                    { $ne: ["$fuelConsumptionAppliedAt", null] },
+                                    { $ifNull: ["$fuelConsumedLitres", 0] },
+                                    0
+                                ]
+                            }
                         }
                     }
                 }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    totalRecords: 1,
-                    totalCost: 1,
-                    totalQty: 1,
-                    pending: 1,
-                    approved: 1,
-                    declined: 1,
-                    fuelIssues: 1,
-                    fullTankRecords: 1,
-                    averageEfficiency: {
-                        $cond: [
-                            { $gt: ["$efficiencyFuel", 0] },
-                            { $divide: ["$efficiencyDistance", "$efficiencyFuel"] },
-                            0
-                        ]
+            ]),
+            Vehicle.aggregate([
+                { $match: vehicleMatch },
+                {
+                    $group: {
+                        _id: null,
+                        fuelBalanceLitres: { $sum: { $ifNull: ["$fuelBalanceLitres", 0] } }
                     }
                 }
-            }
+            ])
         ])
 
         success(res, 200, {
-            stats: summary || {
-                totalRecords: 0,
-                totalCost: 0,
-                totalQty: 0,
-                pending: 0,
-                approved: 0,
-                declined: 0,
-                fuelIssues: 0,
-                fullTankRecords: 0,
-                averageEfficiency: 0
+            stats: {
+                ...(summary || {
+                    totalRecords: 0,
+                    totalCost: 0,
+                    totalQty: 0,
+                    pending: 0,
+                    approved: 0,
+                    declined: 0
+                }),
+                fuelBalanceLitres: balanceSummary?.fuelBalanceLitres || 0,
+                averageEfficiency: taskSummary?.fuelConsumed
+                    ? taskSummary.distance / taskSummary.fuelConsumed
+                    : 0
             }
         })
     } catch (err) {
@@ -237,7 +229,7 @@ exports.verifyFuelRecord = async (req, res) => {
         const vehicle = await Vehicle.findOne({
             _id: vehicleId,
             companyId: user.companyId
-        }).select("expectedFuelEfficiency tankCapacity currentOdometer")
+        }).select("tankCapacity currentOdometer")
         if (!vehicle) return error(res, 404, "Fuel Record vehicle not found")
 
         if (status === expenseRecordStatus.APPROVED) {
@@ -260,41 +252,44 @@ exports.verifyFuelRecord = async (req, res) => {
             ) {
                 return error(res, 409, "Fuel record odometer is not valid for the vehicle")
             }
-            if (!Number.isFinite(vehicle.expectedFuelEfficiency) || vehicle.expectedFuelEfficiency <= 0) {
-                return error(res, 409, "Vehicle expected fuel efficiency is not configured")
-            }
         }
 
-        const verifiedAt = new Date()
-        const result = await Fuel.updateOne(
-            { ...filters, status: expenseRecordStatus.PENDING },
-            {
-                $set: {
-                    status,
-                    verifiedBy: user._id,
-                    verifiedAt,
-                    ...(status === expenseRecordStatus.DECLINED ? {
-                        distanceSinceLastFull: null,
-                        fuelSinceLastFull: null,
-                        fuelEfficiency: null,
-                        fuelIssue: false,
-                        fuelIssueType: null,
-                        fuelIssueMessage: null
-                    } : {})
+        const session = await mongoose.startSession()
+        let recordWasUpdated = false
+        try {
+            await session.withTransaction(async () => {
+                recordWasUpdated = false
+                const result = await Fuel.updateOne(
+                    { ...filters, status: expenseRecordStatus.PENDING },
+                    {
+                        $set: {
+                            status,
+                            verifiedBy: user._id,
+                            verifiedAt: new Date(),
+                        }
+                    },
+                    { runValidators: true, session }
+                )
+
+                if (!result.modifiedCount) return
+                recordWasUpdated = true
+
+                if (status === expenseRecordStatus.APPROVED) {
+                    const balanceUpdate = await Vehicle.updateOne(
+                        { _id: vehicleId, companyId: user.companyId, isDeleted: false },
+                        { $inc: { fuelBalanceLitres: fuelRecord.qty } },
+                        { session }
+                    )
+                    if (!balanceUpdate.matchedCount) {
+                        throw new Error("Vehicle not found while adding approved fuel balance")
+                    }
                 }
-            },
-            { runValidators: true }
-        )
-
-        if (!result.modifiedCount) return error(res, 409, "Fuel Record was already verified")
-
-        if (status === expenseRecordStatus.APPROVED) {
-            await recalculateApprovedFuelRecords(
-                vehicleId,
-                user.companyId,
-                vehicle.expectedFuelEfficiency
-            )
+            })
+        } finally {
+            await session.endSession()
         }
+
+        if (!recordWasUpdated) return error(res, 409, "Fuel Record was already verified")
 
         const updatedRecord = await Fuel.findById(recordId)
             .populate("vehicleId", "model plateNumber expectedFuelEfficiency")

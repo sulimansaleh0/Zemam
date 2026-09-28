@@ -37,6 +37,15 @@ const taskSchema = new mongoose.Schema({
         type: Number,
         min: 0
     },
+    fuelConsumedLitres: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelConsumptionAppliedAt: {
+        type: Date,
+        default: null
+    },
     pickupLocation: {
         address: { type: String, required: true, trim: true },
         lat: { type: String, required: true, trim: true },

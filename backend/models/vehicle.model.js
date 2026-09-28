@@ -32,6 +32,10 @@ const vehicleSchema = new mongoose.Schema({
         required: true,
         min: 0.1
     },
+    fuelBalanceLitres: {
+        type: Number,
+        default: 0
+    },
     tankCapacity: {
         type: Number,
         required: true,

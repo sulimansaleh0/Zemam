@@ -64,7 +64,6 @@ export interface CreateFuelInput {
   vehicleId: string;
   cost: number;
   qty: number;
-  isFullTank: boolean;
   image: File; // صورة فاتورة الوقود مطلوبة إجبارياً
   location?: FuelLocation;
 }
@@ -81,13 +80,11 @@ export interface FuelStats {
   pending: number;
   approved: number;
   declined: number;
-  fuelIssues: number;
-  fullTankRecords: number;
   averageEfficiency: number;
+  fuelBalanceLitres: number;
 }
 
 export interface FuelFilters {
   status?: FuelStatus | 'all';
   vehicleId?: string;
-  fuelIssue?: boolean | 'all';
 }

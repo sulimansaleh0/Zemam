@@ -71,7 +71,6 @@ export function formatEfficiency(efficiency?: number | null): string {
 export function getFuelVehicleDisplay(v: BackendFuelRecord['vehicleId']): {
   model: string;
   plate: string | number;
-  expectedEfficiency?: number;
 } {
   if (!v) return { model: '—', plate: '—' };
   if (typeof v === 'object') {
@@ -79,7 +78,6 @@ export function getFuelVehicleDisplay(v: BackendFuelRecord['vehicleId']): {
     return {
       model: veh.model || '—',
       plate: veh.plateNumber ?? '—',
-      expectedEfficiency: veh.expectedFuelEfficiency,
     };
   }
   return { model: 'مركبة', plate: v };

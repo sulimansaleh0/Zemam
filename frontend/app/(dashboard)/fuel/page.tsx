@@ -30,8 +30,6 @@ export default function FuelPage() {
     setActiveTab,
     selectedVehicleId,
     setSelectedVehicleId,
-    onlyIssues,
-    setOnlyIssues,
     searchQuery,
     setSearchQuery,
     isCreateModalOpen,
@@ -98,7 +96,7 @@ export default function FuelPage() {
                   <span>إدارة واستهلاك الوقود ({allRecordsCount})</span>
                 </h1>
                 <p className="mt-1 text-xs text-[var(--zd-muted)]">
-                  متابعة فواتير وإيصالات الوقود، تحليل كفاءة الاستهلاك (كم/لتر)، ورصد التنبيهات الذكية للتسريب
+                  متابعة فواتير الوقود ورصيد الوقود المتاح للمركبات
                 </p>
               </div>
 
@@ -152,14 +150,12 @@ export default function FuelPage() {
               onTabChange={setActiveTab}
               selectedVehicleId={selectedVehicleId}
               onVehicleChange={setSelectedVehicleId}
-              onlyIssues={onlyIssues}
-              onToggleIssues={() => setOnlyIssues(!onlyIssues)}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onOpenCreate={() => setIsCreateModalOpen(true)}
               onViewDetails={(record) => setSelectedRecordForDetails(record)}
               onVerifyRecord={(record) => setSelectedRecordForVerify(record)}
-              vehicles={vehicles as any}
+              vehicles={vehicles}
             />
           </div>
         </div>
@@ -171,7 +167,7 @@ export default function FuelPage() {
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateSubmit}
         isLoading={createFuelMutation.isPending}
-        vehicles={vehicles as any}
+        vehicles={vehicles}
       />
 
       <FuelDetailModal

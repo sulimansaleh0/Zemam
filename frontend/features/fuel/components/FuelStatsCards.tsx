@@ -2,9 +2,9 @@
 
 import React from 'react';
 import {
-  AlertTriangle,
   Clock,
   Coins,
+  Droplet,
   Fuel,
   Gauge,
 } from 'lucide-react';
@@ -27,7 +27,7 @@ export function FuelStatsCards({ stats }: FuelStatsCardsProps) {
       isText: true,
     },
     {
-      title: 'إجمالي الاستهلاك (لتر)',
+      title: 'إجمالي الوقود المعبأ',
       value: formatLiters(stats.totalQty),
       icon: Fuel,
       color: 'text-cyan-500',
@@ -53,12 +53,12 @@ export function FuelStatsCards({ stats }: FuelStatsCardsProps) {
       border: 'border-amber-500/20',
     },
     {
-      title: 'تنبيهات استهلاك غير طبيعي',
-      value: stats.fuelIssues,
-      icon: AlertTriangle,
-      color: stats.fuelIssues > 0 ? 'text-rose-500 animate-pulse' : 'text-slate-400',
-      bg: stats.fuelIssues > 0 ? 'bg-rose-500/10' : 'bg-slate-500/10',
-      border: stats.fuelIssues > 0 ? 'border-rose-500/30' : 'border-slate-500/20',
+      title: 'رصيد الوقود الحالي',
+      value: formatLiters(stats.fuelBalanceLitres),
+      icon: Droplet,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10',
+      border: 'border-emerald-500/20',
     },
   ];
 

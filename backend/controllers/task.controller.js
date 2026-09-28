@@ -1,3 +1,4 @@
+const mongoose = require("mongoose")
 const Task = require("../models/task.model")
 const TaskLivePoint = require("../models/taskLivePoint.model")
 const Vehicle = require("../models/vehicle.model")
@@ -9,6 +10,7 @@ const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility
 const { getExpectedEndTime } = require("../utils/taskEndTime")
 const { finalizeTripSummary, stopTelemetryTracking } = require("../services/gpsIngestion.service")
 const { notifyTripCompleted } = require("../services/socket.service")
+const calculateTaskFuelConsumption  = require("../utils/fuelConsumption")
 
 exports.createTask = async (req, res) => {
     const user = req.user
@@ -291,6 +293,50 @@ exports.finishTask = async (req, res) => {
 
         const endOdometer = task.endOdometer
         if (!Number.isFinite(endOdometer)) throw new Error("Task GPS odometer is invalid")
+
+        if (!task.fuelConsumptionAppliedAt) {
+            const fuelConsumedLitres = calculateTaskFuelConsumption({
+                startOdometer: task.startOdometer,
+                endOdometer,
+                expectedFuelEfficiency: vehicle.expectedFuelEfficiency
+            })
+            if (fuelConsumedLitres === null) {
+                return error(res, 409, "Task odometer or vehicle fuel efficiency is invalid")
+            }
+
+            const session = await mongoose.startSession()
+            try {
+                await session.withTransaction(async () => {
+                    const taskUpdate = await Task.updateOne(
+                        { _id: task._id, fuelConsumptionAppliedAt: null },
+                        {
+                            $set: {
+                                fuelConsumedLitres,
+                                fuelConsumptionAppliedAt: new Date()
+                            }
+                        },
+                        { session }
+                    )
+
+                    if (taskUpdate.modifiedCount) {
+                        const balanceUpdate = await Vehicle.updateOne(
+                            {
+                                _id: task.vehicleId,
+                                companyId: user.companyId,
+                                isDeleted: false
+                            },
+                            { $inc: { fuelBalanceLitres: -fuelConsumedLitres } },
+                            { session }
+                        )
+                        if (!balanceUpdate.matchedCount) {
+                            throw new Error("Vehicle not found while applying task fuel consumption")
+                        }
+                    }
+                })
+            } finally {
+                await session.endSession()
+            }
+        }
 
         const vehicleUpdate = await Vehicle.updateOne(
             {

@@ -2,28 +2,20 @@
 
 import React, { useState } from 'react';
 import {
-  AlertTriangle,
   Calendar,
-  CheckCircle2,
-  Coins,
-  Droplet,
   Eye,
   Fuel,
-  Gauge,
   Receipt,
-  ShieldAlert,
   ShieldCheck,
   Truck,
   User,
   X,
-  XCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import {
   getFuelStatusConfig,
   formatCostSAR,
   formatLiters,
-  formatEfficiency,
 } from '../utils/fuelHelpers';
 import type { FuelRecordWithRelations } from '../types/fuel.types';
 
@@ -78,76 +70,6 @@ export function FuelDetailModal({
               </div>
             </div>
 
-            {/* تنبيه الاستهلاك غير الطبيعي أو التسريب المحتمل */}
-            {record.fuelIssue && (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 space-y-2 animate-in fade-in duration-200">
-                <div className="flex items-center gap-2 text-xs font-bold text-rose-400">
-                  <AlertTriangle className="h-4 w-4 text-rose-500" />
-                  <span>تنبيه نظام الذكاء: استهلاك وقود مرتفع بشكل غير طبيعي</span>
-                </div>
-                <p className="text-xs text-rose-300 leading-relaxed">
-                  {record.fuelIssueMessage ||
-                    'تم رصد استهلاك وقود أعلى بكثير من المعدل المتوقع لهذه المركبة. يُنصح بفحص المركبة للتأكد من عدم وجود تسريب في خزان أو دورة الوقود.'}
-                </p>
-                {record.fuelEfficiency && (
-                  <div className="flex items-center gap-4 text-xs pt-1 text-rose-200">
-                    <span>
-                      الكفاءة المسجلة: <strong>{formatEfficiency(record.fuelEfficiency)}</strong>
-                    </span>
-                    {record.expectedEfficiency && (
-                      <span>
-                        الكفاءة المتوقعة للمركبة: <strong>{formatEfficiency(record.expectedEfficiency)}</strong>
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* تحليلات الكفاءة والمسافة عند التعبئة الكاملة */}
-            {record.isFullTank && record.fuelEfficiency && !record.fuelIssue && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                    <Gauge className="h-4 w-4 text-emerald-400" />
-                    <span>كفاءة استهلاك الوقود المحسوبة</span>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    {formatEfficiency(record.fuelEfficiency)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
-                  {record.distanceSinceLastFull && (
-                    <div className="rounded-lg bg-[var(--zd-surface)] p-2.5 border border-[var(--zd-line)]/50">
-                      <p className="text-[10px] text-[var(--zd-muted)]">المسافة منذ آخر تعبئة</p>
-                      <p className="mt-0.5 font-bold text-[var(--zd-text)]">
-                        {record.distanceSinceLastFull.toLocaleString('ar-EG')} كم
-                      </p>
-                    </div>
-                  )}
-
-                  {record.fuelSinceLastFull && (
-                    <div className="rounded-lg bg-[var(--zd-surface)] p-2.5 border border-[var(--zd-line)]/50">
-                      <p className="text-[10px] text-[var(--zd-muted)]">الوقود المستهلك</p>
-                      <p className="mt-0.5 font-bold text-[var(--zd-text)]">
-                        {formatLiters(record.fuelSinceLastFull)}
-                      </p>
-                    </div>
-                  )}
-
-                  {record.expectedEfficiency && (
-                    <div className="rounded-lg bg-[var(--zd-surface)] p-2.5 border border-[var(--zd-line)]/50">
-                      <p className="text-[10px] text-[var(--zd-muted)]">الكفاءة المعيارية للمركبة</p>
-                      <p className="mt-0.5 font-bold text-[var(--zd-text)]">
-                        {formatEfficiency(record.expectedEfficiency)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* بيانات المركبة والسائق */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {/* المركبة */}
@@ -183,12 +105,6 @@ export function FuelDetailModal({
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--zd-line)]/50">
                   <span className="text-[var(--zd-muted)]">البريد الإلكتروني:</span>
                   <span className="font-mono text-[var(--zd-text)]">{record.userEmail}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--zd-muted)]">نوع التعبئة:</span>
-                  <span className="font-bold text-[var(--zd-text)]">
-                    {record.isFullTank ? 'تعبئة خزان كامل (Full Tank)' : 'تعبئة جزئية'}
-                  </span>
                 </div>
               </div>
             </div>

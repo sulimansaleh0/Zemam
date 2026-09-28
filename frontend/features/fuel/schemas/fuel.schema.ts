@@ -16,7 +16,6 @@ export const createFuelSchema = z.object({
         .number({ required_error: 'كمية الوقود (باللتر) مطلوبة', invalid_type_error: 'الكمية يجب أن تكون رقماً' })
         .gt(0, 'كمية الوقود يجب أن تكون أكبر من صفر')
     ),
-  isFullTank: z.boolean({ required_error: 'يرجى تحديد هل تمت تعبئة الخزان بالكامل' }),
 });
 
 export type CreateFuelFormValues = z.infer<typeof createFuelSchema>;

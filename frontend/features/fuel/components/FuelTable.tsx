@@ -2,29 +2,21 @@
 
 import React from 'react';
 import {
-  AlertTriangle,
   Calendar,
-  CheckCircle2,
-  Clock,
-  Coins,
   Droplet,
   Eye,
   Fuel,
   Gauge,
   Plus,
-  Receipt,
   Search,
-  ShieldAlert,
   ShieldCheck,
   Truck,
   User,
-  XCircle,
 } from 'lucide-react';
 import {
   getFuelStatusConfig,
   formatCostSAR,
   formatLiters,
-  formatEfficiency,
 } from '../utils/fuelHelpers';
 import type {
   FuelRecordWithRelations,
@@ -39,8 +31,6 @@ interface FuelTableProps {
   onTabChange: (tab: 'all' | FuelStatus) => void;
   selectedVehicleId: string;
   onVehicleChange: (id: string) => void;
-  onlyIssues: boolean;
-  onToggleIssues: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onOpenCreate: () => void;
@@ -63,8 +53,6 @@ export function FuelTable({
   onTabChange,
   selectedVehicleId,
   onVehicleChange,
-  onlyIssues,
-  onToggleIssues,
   searchQuery,
   onSearchChange,
   onOpenCreate,
@@ -76,7 +64,7 @@ export function FuelTable({
     <div className="space-y-4" dir="rtl">
       {/* ── شريط التحكم والفلترة ── */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* التبويبات وفلاتر التنبيهات والمركبات */}
+        {/* التبويبات وفلتر المركبات */}
         <div className="flex flex-wrap items-center gap-2">
           {/* تبويبات الحالة */}
           <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
@@ -94,19 +82,6 @@ export function FuelTable({
               </button>
             ))}
           </div>
-
-          {/* زر تصفية التنبيهات غير الطبيعية */}
-          <button
-            onClick={onToggleIssues}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-              onlyIssues
-                ? 'border-rose-500/40 bg-rose-500/10 text-rose-400 shadow-xs'
-                : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
-            }`}
-          >
-            <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-            <span>تنبيهات الاستهلاك فقط</span>
-          </button>
 
           {/* فلتر المركبات */}
           <select
@@ -160,11 +135,11 @@ export function FuelTable({
             </div>
             <h3 className="text-sm font-bold text-[var(--zd-text)]">لا توجد سجلات وقود</h3>
             <p className="mt-1 text-xs text-[var(--zd-muted)] max-w-sm mx-auto">
-              {searchQuery || onlyIssues || selectedVehicleId !== 'all'
+              {searchQuery || selectedVehicleId !== 'all'
                 ? 'لا توجد نتائج تطابق معايير الفلترة المحددة.'
                 : 'لم يتم توثيق أي إيصالات وقود بعد. يمكنك البدء بتسجيل الإيصال الأول الآن.'}
             </p>
-            {!searchQuery && !onlyIssues && selectedVehicleId === 'all' && (
+            {!searchQuery && selectedVehicleId === 'all' && (
               <button
                 onClick={onOpenCreate}
                 className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-600 cursor-pointer"
@@ -182,8 +157,8 @@ export function FuelTable({
                   <th className="px-4 py-3.5">المركبة</th>
                   <th className="px-4 py-3.5">مقدم الإيصال</th>
                   <th className="px-4 py-3.5 whitespace-nowrap">الكمية والتكلفة</th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">العداد والتعبئة</th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">كفاءة الاستهلاك</th>
+                  <th className="px-4 py-3.5 whitespace-nowrap">قراءة العداد</th>
+                  <th className="px-4 py-3.5 whitespace-nowrap">الكمية المضافة للرصيد</th>
                   <th className="px-4 py-3.5 text-center">الحالة</th>
                   <th className="px-4 py-3.5 text-center">الإجراءات</th>
                 </tr>
@@ -196,9 +171,7 @@ export function FuelTable({
                   return (
                     <tr
                       key={record._id}
-                      className={`transition-colors hover:bg-[var(--zd-surface-2)]/60 ${
-                        record.fuelIssue ? 'bg-rose-500/5' : ''
-                      }`}
+                      className="transition-colors hover:bg-[var(--zd-surface-2)]/60"
                     >
                       {/* المركبة */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
@@ -243,49 +216,10 @@ export function FuelTable({
                           <Gauge className="h-3 w-3 text-[var(--zd-muted)]" />
                           <span>{Number(record.odometer).toLocaleString('ar-EG')} كم</span>
                         </div>
-                        <div className="mt-1">
-                          {record.isFullTank ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                              تعبئة كاملة (Full)
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--zd-surface-2)] text-[var(--zd-muted)]">
-                              تعبئة جزئية
-                            </span>
-                          )}
-                        </div>
                       </td>
 
-                      {/* كفاءة الاستهلاك ومؤشر التنبيه */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        {record.fuelIssue ? (
-                          <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500 border border-rose-500/20">
-                              <AlertTriangle className="h-3 w-3" />
-                              <span>استهلاك مرتفع / تسريب</span>
-                            </span>
-                            {record.fuelEfficiency && (
-                              <p className="text-[10px] text-rose-400 font-mono">
-                                الكفاءة: {formatEfficiency(record.fuelEfficiency)}
-                              </p>
-                            )}
-                          </div>
-                        ) : record.fuelEfficiency ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500 border border-emerald-500/20">
-                              <span>{formatEfficiency(record.fuelEfficiency)}</span>
-                            </span>
-                            {record.distanceSinceLastFull && (
-                              <p className="text-[10px] text-[var(--zd-muted)] mt-0.5">
-                                قطعت: {record.distanceSinceLastFull.toLocaleString('ar-EG')} كم
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-[var(--zd-muted)]">
-                            {record.isFullTank ? 'تتطلب تعبئة كاملة سابقة' : 'تعبئة جزئية'}
-                          </span>
-                        )}
+                      <td className="px-4 py-3.5 whitespace-nowrap font-bold text-emerald-500">
+                        +{formatLiters(record.qty)}
                       </td>
 
                       {/* الحالة */}

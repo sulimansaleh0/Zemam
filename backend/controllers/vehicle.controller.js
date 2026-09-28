@@ -170,17 +170,7 @@ exports.getVehicleStats = async (req, res) => {
                 { $match: { vehicleId: vehicle._id, companyId: user.companyId, status: expenseRecordStatus.APPROVED } },
                 {
                     $group: {
-                        _id: null, totalFuel: { $sum: "$qty" }, totalFuelCost: { $sum: "$cost" },
-                        efficiencyDistance: {
-                            $sum: {
-                                $cond: [{ $ne: ["$fuelEfficiency", null] }, "$distanceSinceLastFull", 0]
-                            }
-                        },
-                        efficiencyFuel: {
-                            $sum: {
-                                $cond: [{ $ne: ["$fuelEfficiency", null] }, "$fuelSinceLastFull", 0]
-                            }
-                        }
+                        _id: null, totalFuel: { $sum: "$qty" }, totalFuelCost: { $sum: "$cost" }
                     }
                 }
             ]),
@@ -192,11 +182,29 @@ exports.getVehicleStats = async (req, res) => {
                 { $match: { vehicleId: vehicle._id, status: taskStatus.FINISHED } },
                 {
                     $group: {
-                        _id: null, distance: {
+                        _id: null,
+                        distance: {
                             $sum: {
                                 $cond: [
-                                    { $and: [{ $ne: ["$startOdometer", null] }, { $ne: ["$endOdometer", null] }] },
-                                    { $subtract: ["$endOdometer", "$startOdometer"] }, 0
+                                    {
+                                        $and: [
+                                            { $ne: ["$fuelConsumptionAppliedAt", null] },
+                                            { $ne: ["$startOdometer", null] },
+                                            { $ne: ["$endOdometer", null] },
+                                            { $gte: ["$endOdometer", "$startOdometer"] }
+                                        ]
+                                    },
+                                    { $subtract: ["$endOdometer", "$startOdometer"] },
+                                    0
+                                ]
+                            }
+                        },
+                        fuelConsumed: {
+                            $sum: {
+                                $cond: [
+                                    { $ne: ["$fuelConsumptionAppliedAt", null] },
+                                    { $ifNull: ["$fuelConsumedLitres", 0] },
+                                    0
                                 ]
                             }
                         }
@@ -211,7 +219,8 @@ exports.getVehicleStats = async (req, res) => {
                 totalFuel: fuelStats.totalFuel || 0,
                 totalFuelCost: fuelStats.totalFuelCost || 0,
                 totalMaintenanceCost: maintenance[0]?.totalMaintenanceCost || 0,
-                fuelEfficiency: fuelStats.efficiencyFuel ? fuelStats.efficiencyDistance / fuelStats.efficiencyFuel : 0
+                fuelEfficiency: tasks[0]?.fuelConsumed ? tasks[0].distance / tasks[0].fuelConsumed : 0,
+                fuelBalanceLitres: vehicle.fuelBalanceLitres || 0
             }
         })
     } catch (err) {

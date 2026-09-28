@@ -94,7 +94,6 @@ const fuelSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 fuelSchema.index({ vehicleId: 1, createdAt: -1 })
-fuelSchema.index({ vehicleId: 1, companyId: 1, status: 1, odometer: 1, createdAt: 1 })
 
 const Fuel = mongoose.model("fuel", fuelSchema)
 module.exports = Fuel
