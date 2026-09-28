@@ -54,20 +54,25 @@ export function GpsTrackerView() {
     const taskId = selectedVehicle.activeTaskId;
 
     gpsService
-      .getTaskLivePoints(taskId)
+      .getLiveTripPath(taskId)
       .then((res) => {
         if (!isMounted) return;
-        if (res.success && res.data?.points && res.data.points.length > 0) {
-          const coords: [number, number][] = res.data.points.map((p) => [p.lat, p.lng]);
-          const cur = selectedVehicle.currentLocation;
-          if (cur?.lat && cur?.lng) {
-            const last = coords[coords.length - 1];
-            if (!last || Math.abs(last[0] - cur.lat) > 0.00005 || Math.abs(last[1] - cur.lng) > 0.00005) {
-              coords.push([cur.lat, cur.lng]);
+        if (res.success && res.data) {
+          const pts = res.data.path?.points || (res.data as any)?.points;
+          if (pts && pts.length > 0) {
+            const coords: [number, number][] = pts.map((p: { lat: number; lng: number }) => [p.lat, p.lng]);
+            const cur = selectedVehicle.currentLocation;
+            if (cur?.lat && cur?.lng) {
+              const last = coords[coords.length - 1];
+              if (!last || Math.abs(last[0] - cur.lat) > 0.00005 || Math.abs(last[1] - cur.lng) > 0.00005) {
+                coords.push([cur.lat, cur.lng]);
+              }
             }
+            setSelectedVehiclePath(coords);
+            return;
           }
-          setSelectedVehiclePath(coords);
-        } else if (selectedVehicle.currentLocation?.lat && selectedVehicle.currentLocation?.lng) {
+        }
+        if (selectedVehicle.currentLocation?.lat && selectedVehicle.currentLocation?.lng) {
           setSelectedVehiclePath([[selectedVehicle.currentLocation.lat, selectedVehicle.currentLocation.lng]]);
         }
       })

@@ -82,37 +82,21 @@ export const driverTaskService = {
   },
 
   /**
-   * إنهاء وتسليم المهمة مع قراءة العداد وصورة التسليم الميدانية
+   * إنهاء وتسليم المهمة واعتماد مسار الـ GPS تلقائياً
    */
   async finishTask(
     taskId: string,
-    payload: { endOdometer?: number; proofPhotoFile?: File | null }
+    payload?: { endOdometer?: number }
   ): Promise<boolean> {
-    if (navigator.onLine) {
-      const formData = new FormData();
-      if (payload.endOdometer) {
-        formData.append('endOdometer', String(payload.endOdometer));
-      }
-      if (payload.proofPhotoFile) {
-        formData.append('proofPhoto', payload.proofPhotoFile);
-      }
+    const bodyPayload = payload?.endOdometer !== undefined ? { endOdometer: payload.endOdometer } : {};
 
-      let res: Response;
-      if (!payload.proofPhotoFile) {
-        res = await fetch(`/api/task/${taskId}/finish`, {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ endOdometer: payload.endOdometer }),
-        });
-      } else {
-        res = await fetch(`/api/task/${taskId}/finish`, {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: getAuthHeaders(),
-          body: formData,
-        });
-      }
+    if (navigator.onLine) {
+      const res = await fetch(`/api/task/${taskId}/finish`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(bodyPayload),
+      });
 
       if (!res.ok) {
         const error = await res.json();
@@ -125,7 +109,7 @@ export const driverTaskService = {
         type: 'FINISH_TASK',
         url: `/api/task/${taskId}/finish`,
         method: 'PATCH',
-        body: { endOdometer: payload.endOdometer },
+        body: bodyPayload,
         createdAt: Date.now(),
       });
       return true;

@@ -57,7 +57,7 @@ export interface FuelLogPayload {
   liters: number;
   cost: number;
   fuelType: '91' | '95' | 'diesel';
-  odometer: number;
+  odometer?: number;
   notes?: string;
   receiptPhoto?: File | null;
 }

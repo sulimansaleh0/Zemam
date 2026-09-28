@@ -20,8 +20,9 @@ export const createFuelSchema = z.object({
     .preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
       z
-        .number({ required_error: 'قراءة العداد الحالية مطلوبة', invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
+        .number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
         .min(0, 'قراءة العداد لا يمكن أن تكون بالسالب')
+        .optional()
     ),
   isFullTank: z.boolean({ required_error: 'يرجى تحديد هل تمت تعبئة الخزان بالكامل' }),
 });

@@ -24,12 +24,27 @@ export interface TaskLivePointData {
   timestamp: string | number;
 }
 
+export interface LiveTripPathResponse {
+  path: {
+    taskId: string;
+    vehicleId: string;
+    encodedPath: string;
+    points: TaskLivePointData[];
+  };
+}
+
 export interface TaskLivePointsResponse {
   taskId: string;
   points: TaskLivePointData[];
   pickupLocation?: { lat: number | string; lng: number | string; address?: string };
   deliveryLocation?: { lat: number | string; lng: number | string; address?: string };
   status?: string;
+  path?: {
+    taskId: string;
+    vehicleId: string;
+    encodedPath: string;
+    points: TaskLivePointData[];
+  };
 }
 
 export const gpsService = {
@@ -41,10 +56,17 @@ export const gpsService = {
   },
 
   /**
-   * استرجاع النقاط المقطوعة المباشرة لمهمة قيد التنفيذ
+   * استرجاع مسار ونقاط الرحلة الحية لمهمة قيد التنفيذ
    */
-  getTaskLivePoints(taskId: string, signal?: AbortSignal): Promise<ServiceResult<TaskLivePointsResponse>> {
-    return sendRequest<TaskLivePointsResponse>(API_PATHS.GPS.TASK_POINTS(taskId), { signal });
+  getLiveTripPath(taskId: string, signal?: AbortSignal): Promise<ServiceResult<LiveTripPathResponse>> {
+    return sendRequest<LiveTripPathResponse>(API_PATHS.GPS.TRIP_PATH(taskId), { signal });
+  },
+
+  /**
+   * التوافق مع استدعاء النقاط المباشرة لمهمة قيد التنفيذ
+   */
+  getTaskLivePoints(taskId: string, signal?: AbortSignal): Promise<ServiceResult<LiveTripPathResponse>> {
+    return this.getLiveTripPath(taskId, signal);
   },
 
   /**

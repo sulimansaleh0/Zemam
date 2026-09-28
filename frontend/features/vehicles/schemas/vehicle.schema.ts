@@ -15,7 +15,7 @@ export const vehicleFormSchema = z.object({
     .number({ invalid_type_error: 'سنة الصنع يجب أن تكون رقماً' })
     .int('سنة الصنع غير صحيحة')
     .min(1900, 'سنة الصنع يجب أن تكون بعد عام 1900')
-    .max(new Date().getFullYear() + 1, 'سنة الصنع لا تتجاوز العام القادم'),
+    .max(new Date().getFullYear(), 'سنة الصنع لا تتجاوز العام الحالي'),
 
   plateNumber: z
     .string()

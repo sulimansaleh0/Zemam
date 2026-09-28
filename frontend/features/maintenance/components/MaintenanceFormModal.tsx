@@ -239,7 +239,7 @@ export function MaintenanceFormModal({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-[var(--zd-text)]">
-                  قراءة العداد (كم) <span className="text-rose-500">*</span>
+                  قراءة العداد (اختياري)
                 </label>
                 {selectedVehicle?.currentOdometer !== undefined && (
                   <span className="text-[10px] text-[var(--zd-muted)]">
@@ -279,7 +279,7 @@ export function MaintenanceFormModal({
             {/* التكلفة التقديرية */}
             <div>
               <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
-                التكلفة التقديرية (ر.س) <span className="text-rose-500">*</span>
+                التكلفة التقديرية (اختياري)
               </label>
               <div className="relative">
                 <input

@@ -55,11 +55,16 @@ export interface BackendTask {
   companyId: string;
   declineReason?: string;
   tripSummary?: {
+    taskId?: string;
     totalDistanceKm?: number;
     durationMinutes?: number;
     averageSpeed?: number;
     maxSpeed?: number;
     encodedPath?: string;
+    startLocation?: { lat: number; lng: number; address?: string };
+    endLocation?: { lat: number; lng: number; address?: string };
+    startedAt?: string;
+    finishedAt?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -82,7 +87,6 @@ export interface CreateTaskInput {
   teamId?: string;
   startTime: string;
   expectedEndTime?: string;
-  startOdometer?: number;
   pickupLocation: LocationPoint;
   deliveryLocation: LocationPoint;
 }
@@ -95,7 +99,6 @@ export interface UpdateTaskInput {
   teamId?: string;
   startTime?: string;
   expectedEndTime?: string;
-  startOdometer?: number;
   pickupLocation?: LocationPoint;
   deliveryLocation?: LocationPoint;
 }

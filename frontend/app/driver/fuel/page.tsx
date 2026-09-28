@@ -81,11 +81,6 @@ export default function DriverFuelPage() {
       setErrorMessage('يرجى إدخال المبلغ الإجمالي');
       return;
     }
-    if (!odometer || Number(odometer) <= 0) {
-      setErrorMessage('يرجى إدخال قراءة عداد المسافات');
-      return;
-    }
-
     try {
       setIsLoading(true);
       const payload: FuelLogPayload = {
@@ -93,7 +88,7 @@ export default function DriverFuelPage() {
         liters: Number(liters),
         cost: Number(cost),
         fuelType,
-        odometer: Number(odometer),
+        odometer: odometer ? Number(odometer) : undefined,
         notes: notes.trim() || undefined,
         receiptPhoto,
       };
@@ -234,13 +229,15 @@ export default function DriverFuelPage() {
 
             {/* قراءة عداد المسافات */}
             <div className="space-y-1.5 pt-1">
-              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <Gauge className="h-3.5 w-3.5 text-teal-700" />
-                <span>قراءة العداد الحالية (كم):</span>
+              <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Gauge className="h-3.5 w-3.5 text-teal-700" />
+                  <span>قراءة العداد (اختياري):</span>
+                </span>
+                <span className="text-[10px] text-slate-400">تُحدث آلياً من المركبة</span>
               </label>
               <input
                 type="number"
-                required
                 value={odometer}
                 onChange={(e) => setOdometer(e.target.value)}
                 placeholder="مثلاً: 52140"
