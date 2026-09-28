@@ -9,7 +9,6 @@ import {
   Coins,
   Droplet,
   Fuel,
-  Gauge,
   Info,
   Loader2,
   MapPin,
@@ -65,22 +64,16 @@ export function FuelFormModal({
       vehicleId: '',
       cost: undefined,
       qty: undefined,
-      odometer: undefined,
       isFullTank: true,
     },
   });
 
   const selectedVehicleId = watch('vehicleId');
-  const watchedOdometer = watch('odometer');
   const watchedCost = watch('cost');
   const watchedQty = watch('qty');
   const watchedIsFullTank = watch('isFullTank');
 
   const selectedVehicle = vehicles.find((v) => v._id === selectedVehicleId);
-  const isOdometerInvalid =
-    selectedVehicle?.currentOdometer !== undefined &&
-    watchedOdometer !== undefined &&
-    Number(watchedOdometer) < selectedVehicle.currentOdometer;
 
   const isQtyExceedingCapacity = Boolean(
     selectedVehicle?.tankCapacity &&
@@ -153,7 +146,6 @@ export function FuelFormModal({
         vehicleId: values.vehicleId,
         cost: values.cost,
         qty: values.qty,
-        odometer: values.odometer,
         isFullTank: values.isFullTank,
         image: selectedFile,
         location: gpsLocation ? { lat: gpsLocation.lat, lng: gpsLocation.lng } : undefined,
@@ -206,49 +198,8 @@ export function FuelFormModal({
             )}
           </div>
 
-          {/* قراءة العداد والتكلفة والكمية */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* قراءة العداد */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-[var(--zd-text)]">
-                  قراءة العداد (كم) <span className="text-rose-500">*</span>
-                </label>
-                {selectedVehicle?.currentOdometer !== undefined && (
-                  <span className="text-[10px] text-[var(--zd-muted)]">
-                    آخر: {Number(selectedVehicle.currentOdometer).toLocaleString('ar-EG')} كم
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  {...register('odometer')}
-                  placeholder={
-                    selectedVehicle?.currentOdometer !== undefined
-                      ? `مثال: ${selectedVehicle.currentOdometer + 50}`
-                      : 'مثال: 45000'
-                  }
-                  className={`w-full rounded-xl border bg-[var(--zd-surface)] px-3 py-2.5 pl-8 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:outline-none ${
-                    isOdometerInvalid
-                      ? 'border-rose-500 focus:border-rose-500'
-                      : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-                  }`}
-                />
-                <Gauge className="absolute left-2.5 top-3 h-3.5 w-3.5 text-[var(--zd-muted)]" />
-              </div>
-              {errors.odometer && (
-                <p className="mt-1 text-[11px] text-rose-500">{errors.odometer.message}</p>
-              )}
-              {isOdometerInvalid && (
-                <p className="mt-1 text-[10px] text-rose-400 font-medium">
-                  يجب ألا تقل قراءة العداد عن آخر قراءة مسجلة ({selectedVehicle?.currentOdometer} كم)
-                </p>
-              )}
-            </div>
-
+          {/* كمية الوقود والتكلفة */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* كمية الوقود باللتر */}
             <div>
               <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
@@ -443,7 +394,7 @@ export function FuelFormModal({
 
           <button
             type="submit"
-            disabled={isLoading || Boolean(isOdometerInvalid) || Boolean(isQtyExceedingCapacity)}
+            disabled={isLoading || Boolean(isQtyExceedingCapacity)}
             className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-600 transition disabled:opacity-50 cursor-pointer"
           >
             {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

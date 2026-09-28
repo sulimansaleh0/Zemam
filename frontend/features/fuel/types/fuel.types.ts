@@ -64,7 +64,6 @@ export interface CreateFuelInput {
   vehicleId: string;
   cost: number;
   qty: number;
-  odometer?: number;
   isFullTank: boolean;
   image: File; // صورة فاتورة الوقود مطلوبة إجبارياً
   location?: FuelLocation;

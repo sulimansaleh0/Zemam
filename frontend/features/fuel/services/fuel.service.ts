@@ -76,14 +76,8 @@ export const fuelService = {
     formData.append('vehicleId', data.vehicleId);
     formData.append('cost', String(data.cost));
     formData.append('qty', String(data.qty));
-    if (data.odometer !== undefined && data.odometer !== null) {
-      formData.append('odometer', String(data.odometer));
-    }
     formData.append('isFullTank', String(data.isFullTank));
-
-    if (data.image) {
-      formData.append('image', data.image);
-    }
+    formData.append('image', data.image);
 
     if (data.location) {
       if (data.location.lat !== undefined) formData.append('location[lat]', String(data.location.lat));

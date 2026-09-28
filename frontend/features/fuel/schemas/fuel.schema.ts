@@ -16,14 +16,6 @@ export const createFuelSchema = z.object({
         .number({ required_error: 'كمية الوقود (باللتر) مطلوبة', invalid_type_error: 'الكمية يجب أن تكون رقماً' })
         .gt(0, 'كمية الوقود يجب أن تكون أكبر من صفر')
     ),
-  odometer: z
-    .preprocess(
-      (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-      z
-        .number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
-        .min(0, 'قراءة العداد لا يمكن أن تكون بالسالب')
-        .optional()
-    ),
   isFullTank: z.boolean({ required_error: 'يرجى تحديد هل تمت تعبئة الخزان بالكامل' }),
 });
 
