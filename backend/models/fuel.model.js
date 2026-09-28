@@ -67,14 +67,19 @@ const fuelSchema = new mongoose.Schema({
         lng: { type: Number },
         address: { type: String, trim: true }
     },
-    nextOdoMeter: {
-        type: Number,
-        default: null
-    },
     status: {
         type: String,
         enum: [expenseRecordStatus.PENDING, expenseRecordStatus.APPROVED, expenseRecordStatus.DECLINED],
         default: expenseRecordStatus.PENDING
+    },
+    verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        default: null
+    },
+    verifiedAt: {
+        type: Date,
+        default: null
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -89,6 +94,7 @@ const fuelSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 fuelSchema.index({ vehicleId: 1, createdAt: -1 })
+fuelSchema.index({ vehicleId: 1, companyId: 1, status: 1, odometer: 1, createdAt: 1 })
 
 const Fuel = mongoose.model("fuel", fuelSchema)
 module.exports = Fuel

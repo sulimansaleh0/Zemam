@@ -4,7 +4,27 @@ const Task = require("../models/task.model")
 const { userRoles } = require("../data/roles")
 const { mainStatus, taskStatus, expenseRecordStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
-const { calculateFuelMetrics, getFuelIssue } = require("../utils/fuelCalculations")
+const { calculateApprovedFuelMetrics } = require("../utils/fuelCalculations")
+
+const recalculateApprovedFuelRecords = async (vehicleId, companyId, expectedFuelEfficiency) => {
+    const approvedRecords = await Fuel.find({
+        vehicleId,
+        companyId,
+        status: expenseRecordStatus.APPROVED
+    })
+        .select("_id odometer qty isFullTank status createdAt")
+        .sort({ createdAt: 1, _id: 1 })
+
+    const metrics = calculateApprovedFuelMetrics(approvedRecords, expectedFuelEfficiency)
+    if (metrics.length) {
+        await Fuel.bulkWrite(metrics.map(({ _id, ...fields }) => ({
+            updateOne: {
+                filter: { _id, status: expenseRecordStatus.APPROVED },
+                update: { $set: fields }
+            }
+        })))
+    }
+}
 
 exports.createFuelRecord = async (req, res) => {
     const user = req.user
@@ -86,6 +106,7 @@ exports.listFuelRecords = async (req, res) => {
         const records = await Fuel.find(filters)
             .populate("vehicleId", "model plateNumber")
             .populate("userId", "name email")
+            .populate("verifiedBy", "name email")
             .sort({ createdAt: -1 })
         success(res, 200, { records })
     } catch (err) {
@@ -116,10 +137,42 @@ exports.getFuelStats = async (req, res) => {
                     pending: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.PENDING] }, 1, 0] } },
                     approved: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, 1, 0] } },
                     declined: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.DECLINED] }, 1, 0] } },
-                    fuelIssues: { $sum: { $cond: ["$fuelIssue", 1, 0] } },
-                    fullTankRecords: { $sum: { $cond: ["$isFullTank", 1, 0] } },
-                    efficiencySum: { $sum: { $cond: [{ $ne: ["$fuelEfficiency", null] }, "$fuelEfficiency", 0] } },
-                    efficiencyCount: { $sum: { $cond: [{ $ne: ["$fuelEfficiency", null] }, 1, 0] } }
+                    fuelIssues: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$fuelIssue"] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    fullTankRecords: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$isFullTank"] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    efficiencyDistance: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, { $ne: ["$fuelEfficiency", null] }] },
+                                "$distanceSinceLastFull",
+                                0
+                            ]
+                        }
+                    },
+                    efficiencyFuel: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, { $ne: ["$fuelEfficiency", null] }] },
+                                "$fuelSinceLastFull",
+                                0
+                            ]
+                        }
+                    }
                 }
             },
             {
@@ -135,8 +188,8 @@ exports.getFuelStats = async (req, res) => {
                     fullTankRecords: 1,
                     averageEfficiency: {
                         $cond: [
-                            { $gt: ["$efficiencyCount", 0] },
-                            { $divide: ["$efficiencySum", "$efficiencyCount"] },
+                            { $gt: ["$efficiencyFuel", 0] },
+                            { $divide: ["$efficiencyDistance", "$efficiencyFuel"] },
                             0
                         ]
                     }
@@ -177,66 +230,76 @@ exports.verifyFuelRecord = async (req, res) => {
             filters.teamId = user.teamId
 
         const fuelRecord = await Fuel.findOne({ ...filters, status: expenseRecordStatus.PENDING })
-            .populate("vehicleId", "expectedFuelEfficiency tankCapacity")
 
         if (!fuelRecord || !fuelRecord.vehicleId) return error(res, 404, "Fuel Record or vehicle not found")
-        if (fuelRecord.qty > fuelRecord.vehicleId.tankCapacity) {
-            return error(res, 400, "Fuel quantity cannot exceed the vehicle tank capacity")
-        }
 
-        const vehicleId = fuelRecord.vehicleId._id
-        const update = { status }
-        if (status === expenseRecordStatus.APPROVED && fuelRecord.isFullTank) {
-            const previousFullTank = await Fuel.findOne({
-                vehicleId,
-                companyId: user.companyId,
-                isFullTank: true,
-                status: expenseRecordStatus.APPROVED,
-                odometer: { $lt: fuelRecord.odometer }
-            }).sort({ odometer: -1, createdAt: -1 })
+        const vehicleId = fuelRecord.vehicleId
+        const vehicle = await Vehicle.findOne({
+            _id: vehicleId,
+            companyId: user.companyId
+        }).select("expectedFuelEfficiency tankCapacity currentOdometer")
+        if (!vehicle) return error(res, 404, "Fuel Record vehicle not found")
 
-            if (previousFullTank) {
-                const fuelSinceLastFull = await Fuel.aggregate([
-                    {
-                        $match: {
-                            vehicleId,
-                            companyId: user.companyId,
-                            odometer: { $gt: previousFullTank.odometer, $lte: fuelRecord.odometer },
-                            $or: [
-                                { status: expenseRecordStatus.APPROVED },
-                                { _id: fuelRecord._id }
-                            ]
-                        }
-                    },
-                    { $group: { _id: null, total: { $sum: "$qty" } } }
-                ])
-                const totalFuel = fuelSinceLastFull[0]?.total || fuelRecord.qty
-                const metrics = calculateFuelMetrics({
-                    totalFuel,
-                    currentOdometer: fuelRecord.odometer,
-                    previousOdometer: previousFullTank.odometer
-                })
-
-                if (metrics) {
-                    Object.assign(update, metrics, getFuelIssue({
-                        fuelEfficiency: metrics.fuelEfficiency,
-                        expectedFuelEfficiency: fuelRecord.vehicleId.expectedFuelEfficiency
-                    }))
-                }
+        if (status === expenseRecordStatus.APPROVED) {
+            if (!fuelRecord.image) {
+                return error(res, 400, "A fuel receipt image is required")
+            }
+            if (!Number.isFinite(fuelRecord.cost) || fuelRecord.cost < 0) {
+                return error(res, 400, "Fuel cost must be a non-negative number")
+            }
+            if (!Number.isFinite(fuelRecord.qty) || fuelRecord.qty <= 0) {
+                return error(res, 400, "Fuel quantity must be greater than zero")
+            }
+            if (fuelRecord.qty > vehicle.tankCapacity) {
+                return error(res, 400, "Fuel quantity cannot exceed the vehicle tank capacity")
+            }
+            if (
+                !Number.isFinite(fuelRecord.odometer) ||
+                fuelRecord.odometer < 0 ||
+                fuelRecord.odometer > vehicle.currentOdometer
+            ) {
+                return error(res, 409, "Fuel record odometer is not valid for the vehicle")
+            }
+            if (!Number.isFinite(vehicle.expectedFuelEfficiency) || vehicle.expectedFuelEfficiency <= 0) {
+                return error(res, 409, "Vehicle expected fuel efficiency is not configured")
             }
         }
 
+        const verifiedAt = new Date()
         const result = await Fuel.updateOne(
             { ...filters, status: expenseRecordStatus.PENDING },
-            update,
+            {
+                $set: {
+                    status,
+                    verifiedBy: user._id,
+                    verifiedAt,
+                    ...(status === expenseRecordStatus.DECLINED ? {
+                        distanceSinceLastFull: null,
+                        fuelSinceLastFull: null,
+                        fuelEfficiency: null,
+                        fuelIssue: false,
+                        fuelIssueType: null,
+                        fuelIssueMessage: null
+                    } : {})
+                }
+            },
             { runValidators: true }
         )
 
         if (!result.modifiedCount) return error(res, 409, "Fuel Record was already verified")
 
+        if (status === expenseRecordStatus.APPROVED) {
+            await recalculateApprovedFuelRecords(
+                vehicleId,
+                user.companyId,
+                vehicle.expectedFuelEfficiency
+            )
+        }
+
         const updatedRecord = await Fuel.findById(recordId)
             .populate("vehicleId", "model plateNumber expectedFuelEfficiency")
             .populate("userId", "name email")
+            .populate("verifiedBy", "name email")
 
         success(res, 200, { record: updatedRecord })
     } catch (err) {

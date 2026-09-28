@@ -167,12 +167,20 @@ exports.getVehicleStats = async (req, res) => {
         if (!vehicle) return error(res, 404, "Vehicle not found")
         const [fuel, maintenance, tasks] = await Promise.all([
             Fuel.aggregate([
-                { $match: { vehicleId: vehicle._id, status: expenseRecordStatus.APPROVED } },
+                { $match: { vehicleId: vehicle._id, companyId: user.companyId, status: expenseRecordStatus.APPROVED } },
                 {
                     $group: {
                         _id: null, totalFuel: { $sum: "$qty" }, totalFuelCost: { $sum: "$cost" },
-                        efficiencySum: { $sum: { $ifNull: ["$fuelEfficiency", 0] } },
-                        efficiencyCount: { $sum: { $cond: [{ $ne: ["$fuelEfficiency", null] }, 1, 0] } }
+                        efficiencyDistance: {
+                            $sum: {
+                                $cond: [{ $ne: ["$fuelEfficiency", null] }, "$distanceSinceLastFull", 0]
+                            }
+                        },
+                        efficiencyFuel: {
+                            $sum: {
+                                $cond: [{ $ne: ["$fuelEfficiency", null] }, "$fuelSinceLastFull", 0]
+                            }
+                        }
                     }
                 }
             ]),
@@ -203,7 +211,7 @@ exports.getVehicleStats = async (req, res) => {
                 totalFuel: fuelStats.totalFuel || 0,
                 totalFuelCost: fuelStats.totalFuelCost || 0,
                 totalMaintenanceCost: maintenance[0]?.totalMaintenanceCost || 0,
-                fuelEfficiency: fuelStats.efficiencyCount ? fuelStats.efficiencySum / fuelStats.efficiencyCount : 0
+                fuelEfficiency: fuelStats.efficiencyFuel ? fuelStats.efficiencyDistance / fuelStats.efficiencyFuel : 0
             }
         })
     } catch (err) {
