@@ -83,6 +83,7 @@ export function VehiclesTable({
       const matchesSearch =
         !q ||
         item.model.toLowerCase().includes(q) ||
+        (item.vehicleType && item.vehicleType.toLowerCase().includes(q)) ||
         String(item.plateNumber).includes(q) ||
         (item.driverName && item.driverName.toLowerCase().includes(q)) ||
         (item.driverEmail && item.driverEmail.toLowerCase().includes(q));
@@ -129,6 +130,7 @@ export function VehiclesTable({
                   <span className="bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[10px] font-mono">
                     {vehicle.year}
                   </span>
+                  <span>{vehicle.vehicleType === 'truck' ? 'شاحنة' : vehicle.vehicleType === 'van' ? 'فان / حافلة' : 'سيارة خفيفة'}</span>
                 </div>
               </div>
             </div>

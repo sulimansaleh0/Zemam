@@ -23,22 +23,36 @@ exports.createVehicleSchema = [
         .isString()
         .withMessage("Plate number must be a string"),
     body("tankCapacity")
-        .optional()
+        .notEmpty()
+        .withMessage("Tank capacity is required")
         .isFloat({ gt: 0 })
         .withMessage("Tank capacity must be greater than zero"),
     body("fuelType")
-        .optional()
+        .notEmpty()
+        .withMessage("Fuel type is required")
         .isIn(["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"])
         .withMessage("Invalid fuel type"),
 
     body("vehicleType")
-        .optional()
+        .notEmpty()
+        .withMessage("Vehicle type is required")
         .isIn(Object.values(vehicleTypes))
         .withMessage("Invalid vehicle type"),
     body("expectedFuelEfficiency")
         .notEmpty()
         .isFloat({ gt: 0 })
-        .withMessage("Expected fuel efficiency must be greater than zero")
+        .withMessage("Expected fuel efficiency must be greater than zero"),
+    body("licenseNumber")
+        .trim()
+        .notEmpty()
+        .withMessage("License number is required")
+        .isString()
+        .withMessage("License number must be a string"),
+    body("licenseExpiry")
+        .notEmpty()
+        .withMessage("License expiry is required")
+        .isISO8601()
+        .withMessage("License expiry must be a valid date")
 ];
 
 exports.updateVehicleStatusSchema = [

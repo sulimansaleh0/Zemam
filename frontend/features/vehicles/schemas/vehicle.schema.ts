@@ -22,26 +22,23 @@ export const vehicleFormSchema = z.object({
     .trim()
     .min(1, 'رقم اللوحة مطلوب'),
 
-  vehicleType: z.enum(['normal', 'van', 'truck']).default('normal'),
+  vehicleType: z.enum(['normal', 'van', 'truck'], {
+    required_error: 'يرجى اختيار فئة المركبة',
+  }),
   tankCapacity: z.coerce
     .number({ invalid_type_error: 'سعة الخزان يجب أن تكون رقماً' })
     .min(1, 'سعة الخزان يجب أن تكون أكبر من 0')
-    .max(2000, 'سعة الخزان لا تتجاوز 2000 لتر')
-    .optional(),
-  fuelType: z.string().optional(),
-  currentOdometer: z.coerce
-    .number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
-    .min(0, 'قراءة العداد لا يمكن أن تكون سالبة')
-    .default(0),
+    .max(2000, 'سعة الخزان لا تتجاوز 2000 لتر'),
+  fuelType: z.enum(['بنزين 91', 'بنزين 95', 'ديزل', 'Diesel', 'هجين', 'Hybrid', 'كهربائي', 'EV'], {
+    required_error: 'يرجى اختيار نوع الوقود',
+  }),
   expectedFuelEfficiency: z.coerce
     .number({ invalid_type_error: 'كفاءة الوقود يجب أن تكون رقماً' })
-    .min(0.1, 'كفاءة الوقود يجب أن تكون أكبر من 0.1')
-    .default(10),
-  licenseNumber: z.string().trim().optional(),
-  licenseExpiry: z.string().optional(),
+    .min(0.1, 'كفاءة الوقود يجب أن تكون أكبر من 0.1'),
+  licenseNumber: z.string().trim().min(1, 'رقم رخصة السير مطلوب'),
+  licenseExpiry: z.string().min(1, 'تاريخ انتهاء الاستمارة مطلوب'),
   insuranceCompany: z.string().trim().optional(),
   insuranceNumber: z.string().trim().optional(),
-  insuranceType: z.enum(['comprehensive', 'third_party']).optional(),
   insuranceExpiry: z.string().optional(),
   driverId: z.string().optional(),
   teamId: z.string().optional(),

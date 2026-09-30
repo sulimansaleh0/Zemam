@@ -18,8 +18,10 @@ import {
   Fuel,
   Gauge,
   Edit2,
+  ClipboardList,
 } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
+import { useTasks } from '@/features/tasks';
 import {
   useVehicleDetailPage,
   VehicleDetailCards,
@@ -37,6 +39,7 @@ export default function VehicleDetailPage() {
   const { addToast } = useToast();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const { data: vehicleTasks = [], isLoading: isLoadingTasks, isError: isTasksError } = useTasks(vehicleId);
 
   const {
     vehicle,
@@ -133,7 +136,7 @@ export default function VehicleDetailPage() {
           <Header
             onMenu={() => setMenuOpen(true)}
             searchQuery=""
-            onSearchChange={() => {}}
+            onSearchChange={() => { }}
             userName={userName}
           />
 
@@ -185,11 +188,10 @@ export default function VehicleDetailPage() {
                   onClick={handleToggleStatus}
                   disabled={isChangingStatus || vehicle.status === 'in_maintenance'}
                   title={vehicle.status === 'in_maintenance' ? 'لا يمكن تغيير الحالة قبل مراجعة طلب الصيانة' : undefined}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isActive
-                      ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
-                      : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isActive
+                    ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                    : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                    }`}
                 >
                   <Power className="w-3.5 h-3.5" />
                   <span>
@@ -206,11 +208,10 @@ export default function VehicleDetailPage() {
                       type="button"
                       onClick={() => setIsDeleteOpen(true)}
                       title={isDeleteBlocked ? 'لا يمكن حذف المركبة أثناء وجودها في مهمة أو قيد الصيانة' : undefined}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
-                        isDeleteBlocked
-                          ? 'border-neutral-300 dark:border-neutral-700 text-[var(--muted)] opacity-60'
-                          : 'border-rose-500/20 text-rose-500 hover:bg-rose-500/10'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${isDeleteBlocked
+                        ? 'border-neutral-300 dark:border-neutral-700 text-[var(--muted)] opacity-60'
+                        : 'border-rose-500/20 text-rose-500 hover:bg-rose-500/10'
+                        }`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>حذف المركبة</span>
@@ -313,6 +314,42 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
             </div>
+
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--text)]">
+                  <ClipboardList className="h-4 w-4 text-[var(--primary)]" />
+                  مهام المركبة
+                </h2>
+                {isLoadingTasks && <Loader2 className="h-4 w-4 animate-spin text-[var(--muted)]" />}
+              </div>
+              {isTasksError ? (
+                <p className="px-5 py-6 text-xs text-rose-500">تعذر تحميل مهام المركبة.</p>
+              ) : isLoadingTasks ? (
+                <p className="px-5 py-6 text-xs text-[var(--muted)]">جارٍ تحميل المهام...</p>
+              ) : vehicleTasks.length === 0 ? (
+                <p className="px-5 py-6 text-xs text-[var(--muted)]">لا توجد مهام مسجلة لهذه المركبة.</p>
+              ) : (
+                <div className="divide-y divide-[var(--border)]">
+                  {vehicleTasks.map((task) => (
+                    <article key={task._id} className="grid gap-2 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-xs font-semibold text-[var(--text)]">
+                          {task.title || task.description}
+                        </h3>
+                        {task.title && <p className="mt-1 line-clamp-2 text-[11px] text-[var(--muted)]">{task.description}</p>}
+                        <p className="mt-1 text-[11px] text-[var(--muted)]">
+                          {task.driverName || 'بدون سائق'} · {task.formattedStartTime}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[var(--text)]">
+                        {task.status === 'pending' ? 'قيد الانتظار' : task.status === 'inprogress' ? 'قيد التنفيذ' : task.status === 'finished' ? 'مكتملة' : 'مرفوضة'}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         </div>
       </div>

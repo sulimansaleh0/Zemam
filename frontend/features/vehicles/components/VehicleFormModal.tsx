@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Car,
@@ -54,42 +54,32 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
   // If fleet manager, filter drivers to only their team
   const filteredDrivers = isFleetManager && userTeamId
     ? availableDrivers.filter((d) => {
-        const dTeamId = getVehicleTeamId(d.teamId);
-        return String(dTeamId) === String(userTeamId);
-      })
+      const dTeamId = getVehicleTeamId(d.teamId);
+      return String(dTeamId) === String(userTeamId);
+    })
     : availableDrivers;
 
   const {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleFormSchema),
     defaultValues: {
       model: '',
-      year: new Date().getFullYear(),
       plateNumber: '',
-      vehicleType: 'normal',
-      tankCapacity: 60,
-      fuelType: 'بنزين 91',
-      currentOdometer: 0,
-      expectedFuelEfficiency: 12,
       licenseNumber: '',
       licenseExpiry: '',
-      insuranceCompany: '',
-      insuranceNumber: '',
-      insuranceType: 'comprehensive',
-      insuranceExpiry: '',
       teamId: isFleetManager && userTeamId ? userTeamId : '',
       driverId: '',
     },
   });
 
-  const selectedVehicleType = watch('vehicleType') || 'normal';
-  const selectedDriverId = watch('driverId');
+  const selectedVehicleType = useWatch({ control, name: 'vehicleType' });
+  const selectedDriverId = useWatch({ control, name: 'driverId' });
 
   // Reset form when modal opens
   useEffect(() => {
@@ -98,19 +88,9 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
       setFormError(null);
       reset({
         model: '',
-        year: new Date().getFullYear(),
         plateNumber: '',
-        vehicleType: 'normal',
-        tankCapacity: 60,
-        fuelType: 'بنزين 91',
-        currentOdometer: 0,
-        expectedFuelEfficiency: 12,
         licenseNumber: '',
         licenseExpiry: '',
-        insuranceCompany: '',
-        insuranceNumber: '',
-        insuranceType: 'comprehensive',
-        insuranceExpiry: '',
         teamId: isFleetManager && userTeamId ? userTeamId : '',
         driverId: '',
       });
@@ -119,7 +99,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
 
   // Check driver eligibility for selected vehicle type
   const selectedDriverObj = filteredDrivers.find((d) => d._id === selectedDriverId);
-  const driverEligibility = selectedDriverObj
+  const driverEligibility = selectedDriverObj && selectedVehicleType
     ? checkDriverVehicleEligibility(selectedDriverObj, { vehicleType: selectedVehicleType })
     : null;
 
@@ -137,16 +117,14 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
         year: Number(values.year),
         plateNumber: String(values.plateNumber).trim(),
         vehicleType: values.vehicleType,
-        tankCapacity: values.tankCapacity ? Number(values.tankCapacity) : undefined,
+        tankCapacity: Number(values.tankCapacity),
         fuelType: values.fuelType,
-        currentOdometer: Number(values.currentOdometer) || 0,
-        expectedFuelEfficiency: Number(values.expectedFuelEfficiency) || 12,
-        licenseNumber: values.licenseNumber?.trim() || undefined,
-        licenseExpiry: values.licenseExpiry ? new Date(values.licenseExpiry).toISOString() : undefined,
-        insuranceCompany: values.insuranceCompany?.trim() || undefined,
-        insuranceNumber: values.insuranceNumber?.trim() || undefined,
-        insuranceType: values.insuranceType,
-        insuranceExpiry: values.insuranceExpiry ? new Date(values.insuranceExpiry).toISOString() : undefined,
+        expectedFuelEfficiency: Number(values.expectedFuelEfficiency),
+        licenseNumber: values.licenseNumber.trim(),
+        licenseExpiry: new Date(values.licenseExpiry).toISOString(),
+        ...(values.insuranceCompany?.trim() ? { insuranceCompany: values.insuranceCompany.trim() } : {}),
+        ...(values.insuranceNumber?.trim() ? { insuranceNumber: values.insuranceNumber.trim() } : {}),
+        ...(values.insuranceExpiry ? { insuranceExpiry: new Date(values.insuranceExpiry).toISOString() } : {}),
         teamId: assignedTeamId,
       });
 
@@ -161,8 +139,8 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
       }
 
       onClose();
-    } catch (err: any) {
-      setFormError(err?.message || 'تعذر تسجيل المركبة، يرجى التحقق من البيانات والمحاولة مجدداً');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'تعذر تسجيل المركبة، يرجى التحقق من البيانات والمحاولة مجدداً');
     }
   };
 
@@ -190,11 +168,10 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
           <button
             type="button"
             onClick={() => setActiveTab('basic')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'basic'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'basic'
+              ? 'border-[var(--primary)] text-[var(--primary)]'
+              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <Car className="w-3.5 h-3.5" />
             <span>1. الهيكل واللوحة</span>
@@ -203,24 +180,22 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
           <button
             type="button"
             onClick={() => setActiveTab('specs')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'specs'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'specs'
+              ? 'border-[var(--primary)] text-[var(--primary)]'
+              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <Fuel className="w-3.5 h-3.5" />
-            <span>2. الوقود والعداد</span>
+            <span>2. الوقود والكفاءة</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('docs')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'docs'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'docs'
+              ? 'border-[var(--primary)] text-[var(--primary)]'
+              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <Shield className="w-3.5 h-3.5" />
             <span>3. الرخصة والتأمين</span>
@@ -229,11 +204,10 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
           <button
             type="button"
             onClick={() => setActiveTab('assign')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'assign'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'assign'
+              ? 'border-[var(--primary)] text-[var(--primary)]'
+              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <Users className="w-3.5 h-3.5" />
             <span>4. الفريق والسائق</span>
@@ -255,11 +229,11 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                   <input
                     type="text"
                     placeholder="مثال: تويوتا هايلوكس أو مرسيدس آكتروس"
+                    required
                     {...register('model')}
                     disabled={isPending}
-                    className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${
-                      errors.model ? 'border-rose-500' : 'border-[var(--border)]'
-                    }`}
+                    className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${errors.model ? 'border-rose-500' : 'border-[var(--border)]'
+                      }`}
                   />
                 </div>
                 {errors.model && (
@@ -281,11 +255,13 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                     <input
                       type="number"
                       placeholder="2024"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      required
                       {...register('year')}
                       disabled={isPending}
-                      className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${
-                        errors.year ? 'border-rose-500' : 'border-[var(--border)]'
-                      }`}
+                      className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${errors.year ? 'border-rose-500' : 'border-[var(--border)]'
+                        }`}
                     />
                   </div>
                   {errors.year && (
@@ -303,14 +279,14 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                   <div className="relative">
                     <Hash className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
                     <input
-                      type="number"
-                      placeholder="1234"
+                      type="text"
+                      placeholder="1234 أو أ ب ج 1234"
                       dir="ltr"
+                      required
                       {...register('plateNumber')}
                       disabled={isPending}
-                      className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${
-                        errors.plateNumber ? 'border-rose-500' : 'border-[var(--border)]'
-                      }`}
+                      className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${errors.plateNumber ? 'border-rose-500' : 'border-[var(--border)]'
+                        }`}
                     />
                   </div>
                   {errors.plateNumber && (
@@ -324,7 +300,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
               {/* Vehicle Type (Arab hierarchy) */}
               <div>
                 <label className="block text-xs font-semibold text-[var(--text)] mb-2">
-                  فئة ونوع المركبة (المطابقة لرخص القيادة)
+                  فئة ونوع المركبة (المطابقة لرخص القيادة) <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
@@ -336,12 +312,11 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                     return (
                       <div
                         key={cat.id}
-                        onClick={() => setValue('vehicleType', cat.id as any)}
-                        className={`p-3 rounded-xl border text-right cursor-pointer transition-all ${
-                          isSelected
-                            ? 'border-[var(--primary)] bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]'
-                            : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
-                        }`}
+                        onClick={() => setValue('vehicleType', cat.id as VehicleFormValues['vehicleType'], { shouldValidate: true })}
+                        className={`p-3 rounded-xl border text-right cursor-pointer transition-all ${isSelected
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]'
+                          : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-[var(--text)]">{cat.label}</span>
@@ -352,6 +327,9 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                     );
                   })}
                 </div>
+                {errors.vehicleType && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">{errors.vehicleType.message}</span>
+                )}
               </div>
             </div>
           )}
@@ -363,33 +341,40 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                 {/* Fuel Type */}
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    نوع الوقود المعتمد
+                    نوع الوقود المعتمد <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <Fuel className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <select
                       {...register('fuelType')}
+                      required
                       className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
                     >
+                      <option value="">اختر نوع الوقود</option>
                       <option value="بنزين 91">بنزين 91</option>
                       <option value="بنزين 95">بنزين 95</option>
                       <option value="ديزل">ديزل</option>
-                      <option value="هجين (هايبرد)">هجين (هايبرد)</option>
+                      <option value="هجين">هجين (هايبرد)</option>
                       <option value="كهربائي">كهربائي</option>
                     </select>
                   </div>
+                  {errors.fuelType && (
+                    <span className="text-[11px] text-rose-500 mt-1 block">{errors.fuelType.message}</span>
+                  )}
                 </div>
 
                 {/* Tank Capacity */}
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    سعة خزان الوقود (لتر)
+                    سعة خزان الوقود (لتر) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <Fuel className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="number"
                       placeholder="60"
+                      min="1"
+                      required
                       {...register('tankCapacity')}
                       className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                     />
@@ -403,31 +388,10 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Current Odometer */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    قراءة العداد الحالية (كم)
-                  </label>
-                  <div className="relative">
-                    <Gauge className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      placeholder="0"
-                      {...register('currentOdometer')}
-                      className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
-                    />
-                  </div>
-                  {errors.currentOdometer && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {errors.currentOdometer.message}
-                    </span>
-                  )}
-                </div>
-
                 {/* Expected Fuel Efficiency */}
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    كفاءة الاستهلاك المتوقعة (كم/لتر)
+                    كفاءة الاستهلاك المتوقعة (كم/لتر) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <Gauge className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
@@ -435,6 +399,8 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                       type="number"
                       step="0.1"
                       placeholder="12"
+                      min="0.1"
+                      required
                       {...register('expectedFuelEfficiency')}
                       className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                     />
@@ -461,21 +427,23 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      رقم رخصة السير
+                      رقم رخصة السير <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="مثال: 987654321"
+                      required
                       {...register('licenseNumber')}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      تاريخ انتهاء الاستمارة
+                      تاريخ انتهاء الاستمارة <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="date"
+                      required
                       {...register('licenseExpiry')}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                     />
@@ -503,19 +471,6 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                         className="w-full pr-8 pl-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      نوع التأمين
-                    </label>
-                    <select
-                      {...register('insuranceType')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                    >
-                      <option value="comprehensive">تأمين شامل</option>
-                      <option value="third_party">ضد الغير (إلزامي)</option>
-                    </select>
                   </div>
 
                   <div>
@@ -603,11 +558,10 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
                 {/* Driver Eligibility Alert */}
                 {selectedDriverObj && driverEligibility && (
                   <div
-                    className={`mt-2 p-2.5 rounded-xl border text-xs flex items-center gap-2 ${
-                      driverEligibility.eligible
-                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                        : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                    }`}
+                    className={`mt-2 p-2.5 rounded-xl border text-xs flex items-center gap-2 ${driverEligibility.eligible
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                      }`}
                   >
                     {driverEligibility.eligible ? (
                       <>

@@ -20,7 +20,7 @@ export interface BackendVehicle {
   _id: string;
   model: string;          // اسم وموديل المركبة
   year: number;           // سنة الصنع
-  plateNumber: string | number; // رقم اللوحة (يدعم النصوص والأرقام العربية والإنجليزية)
+  plateNumber: string; // رقم اللوحة (يدعم النصوص والأرقام العربية والإنجليزية)
   vehicleType?: 'normal' | 'van' | 'truck'; // نوع المركبة (خفيف / متوسط / ثقيل)
   tankCapacity?: number;  // سعة خزان الوقود باللتر
   fuelBalanceLitres?: number; // رصيد الوقود التقديري باللتر
@@ -31,10 +31,12 @@ export interface BackendVehicle {
   status: VehicleStatus;  // حالة المركبة (active / inactive / in_maintenance)
   insuranceNumber?: string; // رقم وثيقة التأمين
   insuranceCompany?: string; // شركة التأمين
-  insuranceType?: 'comprehensive' | 'third_party'; // نوع التأمين (شامل / ضد الغير)
   insuranceExpiry?: string; // تاريخ انتهاء التأمين
   licenseNumber?: string;   // رقم رخصة السير / الاستمارة
   licenseExpiry?: string;   // تاريخ انتهاء رخصة السير
+  issuingAuthority?: string;
+  currentLocation?: { lat?: number; lng?: number; speed?: number; heading?: number; updatedAt?: string };
+  gpsStatus?: string;
   teamId?: string | TeamSummary | null;
   companyId: string;
   driverId?: string | DriverSummary | null; // معرف أو كائن السائق المعين (إن وجد)
@@ -58,7 +60,7 @@ export interface VehicleWithRelations extends BackendVehicle {
 export interface CreateVehicleInput {
   model: string;
   year: number;
-  plateNumber: string | number;
+  plateNumber: string;
   teamId?: string;
   vehicleType?: 'normal' | 'van' | 'truck';
   tankCapacity?: number;
@@ -69,7 +71,6 @@ export interface CreateVehicleInput {
   licenseExpiry?: string;
   insuranceCompany?: string;
   insuranceNumber?: string;
-  insuranceType?: 'comprehensive' | 'third_party';
   insuranceExpiry?: string;
   driverId?: string;
 }
@@ -100,7 +101,6 @@ export interface UpdateVehicleInput {
   issuingAuthority?: string;
   insuranceCompany?: string;
   insuranceNumber?: string;
-  insuranceType?: 'comprehensive' | 'third_party';
   insuranceExpiry?: string;
 }
 

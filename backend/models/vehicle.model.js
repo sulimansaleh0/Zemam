@@ -20,7 +20,7 @@ const vehicleSchema = new mongoose.Schema({
     vehicleType: {
         type: String,
         enum: Object.values(vehicleTypes),
-        default: vehicleTypes.NORMAL
+        required: true
     },
     currentOdometer: {
         type: Number,
@@ -39,24 +39,25 @@ const vehicleSchema = new mongoose.Schema({
     tankCapacity: {
         type: Number,
         required: true,
-        min: 0,
-        default: 50
+        min: 0
     },
     fuelType: {
         type: String,
         enum: fuelTypes,
-        default: fuelTypes[0]
+        required: true
     },
-    licenseNumber: String,
+    licenseNumber: {
+        type: String,
+        required: true
+    },
     issuingAuthority: String,
     insuranceNumber: String,
     insuranceCompany: String,
-    insuranceType: {
-        type: String,
-        enum: ["comprehensive", "third_party"]
-    },
     insuranceExpiry: Date,
-    licenseExpiry: Date,
+    licenseExpiry: {
+        type: Date,
+        required: true
+    },
     isInTask: {
         type: Boolean,
         default: false

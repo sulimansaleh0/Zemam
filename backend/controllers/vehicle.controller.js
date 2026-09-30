@@ -14,7 +14,7 @@ exports.createVehicle = async (req, res) => {
     const teamId = req.teamId
     const { model, year, plateNumber, vehicleType, driverId, expectedFuelEfficiency,
         tankCapacity, fuelType, licenseNumber, licenseExpiry, issuingAuthority,
-        insuranceNumber, insuranceCompany, insuranceType, insuranceExpiry } = req.body
+        insuranceNumber, insuranceCompany, insuranceExpiry } = req.body
     const selectedVehicleType = vehicleType || vehicleTypes.NORMAL
     try {
         const existingVehicle = await Vehicle.findOne({
@@ -54,7 +54,6 @@ exports.createVehicle = async (req, res) => {
             issuingAuthority,
             insuranceNumber,
             insuranceCompany,
-            insuranceType,
             insuranceExpiry,
             teamId,
             companyId: user.companyId,
@@ -131,7 +130,7 @@ exports.updateVehicle = async (req, res) => {
     const allowedFields = ["model", "year", "plateNumber", "vehicleType",
         "expectedFuelEfficiency", "tankCapacity", "fuelType", "licenseNumber",
         "licenseExpiry", "issuingAuthority", "insuranceNumber", "insuranceCompany",
-        "insuranceType", "insuranceExpiry"]
+        "insuranceExpiry"]
     for (const field of allowedFields) {
         if (req.body[field] !== undefined) updates[field] = req.body[field]
     }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Car, Building2, User, UserCheck, Unlink, Link2, Fuel, FileText, Shield } from 'lucide-react';
+import { Car, Building2, User, UserCheck, Unlink, Link2, Fuel, FileText, Shield, Gauge } from 'lucide-react';
 import type { VehicleWithRelations } from '../types/vehicle.types';
 
 interface TeamObject {
@@ -46,6 +46,12 @@ export function VehicleDetailCards({
           <div className="flex items-center justify-between">
             <span className="text-[var(--muted)]">سنة الصنع:</span>
             <span className="font-semibold text-[var(--text)] font-manrope">{vehicle.year}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">نوع المركبة:</span>
+            <span className="font-semibold text-[var(--text)]">
+              {vehicle.vehicleType === 'truck' ? 'شاحنة' : vehicle.vehicleType === 'van' ? 'فان / حافلة' : 'سيارة خفيفة'}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[var(--muted)]">رقم اللوحة:</span>
@@ -190,9 +196,9 @@ export function VehicleDetailCards({
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[var(--muted)]">الكفاءة المتوقعة:</span>
-            <span className="font-mono text-[var(--text)]">
-              {vehicle.expectedFuelEfficiency ? `${vehicle.expectedFuelEfficiency} كم/لتر` : 'غير محدد'}
+            <span className="text-[var(--muted)]">رصيد الوقود:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.fuelBalanceLitres?.toLocaleString() ?? 0} لتر
             </span>
           </div>
         </div>
@@ -211,6 +217,12 @@ export function VehicleDetailCards({
               {vehicle.licenseNumber || 'غير مسجل'}
             </span>
           </div>
+          {vehicle.issuingAuthority && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">جهة الإصدار:</span>
+              <span className="font-semibold text-[var(--text)]">{vehicle.issuingAuthority}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-[var(--muted)]">تاريخ الانتهاء:</span>
             <span className="font-bold text-[var(--text)]">
@@ -223,11 +235,10 @@ export function VehicleDetailCards({
             <span className="text-[var(--muted)]">حالة الاستمارة:</span>
             {vehicle.licenseExpiry ? (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  new Date(vehicle.licenseExpiry) < new Date()
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                }`}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${new Date(vehicle.licenseExpiry) < new Date()
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  }`}
               >
                 {new Date(vehicle.licenseExpiry) < new Date() ? 'منتهية الصلاحية' : 'سارية'}
               </span>
@@ -246,15 +257,15 @@ export function VehicleDetailCards({
         </span>
         <div className="space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[var(--muted)]">شركة التأمين:</span>
-            <span className="font-semibold text-[var(--text)]">
-              {vehicle.insuranceCompany || 'غير مسجل'}
+            <span className="text-[var(--muted)]">رقم الوثيقة:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.insuranceNumber || 'غير مسجل'}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[var(--muted)]">نوع التأمين:</span>
+            <span className="text-[var(--muted)]">شركة التأمين:</span>
             <span className="font-semibold text-[var(--text)]">
-              {vehicle.insuranceType === 'third_party' ? 'ضد الغير (إلزامي)' : 'تأمين شامل'}
+              {vehicle.insuranceCompany || 'غير مسجل'}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -269,11 +280,10 @@ export function VehicleDetailCards({
             <span className="text-[var(--muted)]">حالة التأمين:</span>
             {vehicle.insuranceExpiry ? (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  new Date(vehicle.insuranceExpiry) < new Date()
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                }`}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${new Date(vehicle.insuranceExpiry) < new Date()
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  }`}
               >
                 {new Date(vehicle.insuranceExpiry) < new Date() ? 'منتهي الصلاحية' : 'ساري'}
               </span>
@@ -281,6 +291,48 @@ export function VehicleDetailCards({
               <span className="text-[var(--muted)]">غير مدخل</span>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* GPS status and last known position */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <Gauge className="w-4 h-4 text-sky-500" />
+          حالة التتبع والموقع
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">حالة GPS:</span>
+            <span className="font-semibold text-[var(--text)]">{vehicle.gpsStatus || 'غير متاح'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">آخر موقع:</span>
+            <span className="font-mono text-[var(--text)]" dir="ltr">
+              {vehicle.currentLocation?.lat != null && vehicle.currentLocation?.lng != null
+                ? `${vehicle.currentLocation.lat}, ${vehicle.currentLocation.lng}`
+                : 'غير متاح'}
+            </span>
+          </div>
+          {vehicle.currentLocation?.speed != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">السرعة:</span>
+              <span className="font-mono text-[var(--text)]">{vehicle.currentLocation.speed} كم/س</span>
+            </div>
+          )}
+          {vehicle.currentLocation?.heading != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">الاتجاه:</span>
+              <span className="font-mono text-[var(--text)]">{vehicle.currentLocation.heading}°</span>
+            </div>
+          )}
+          {vehicle.currentLocation?.updatedAt && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">تحديث الموقع:</span>
+              <span className="text-[var(--text)]">
+                {new Date(vehicle.currentLocation.updatedAt).toLocaleString('ar-EG')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

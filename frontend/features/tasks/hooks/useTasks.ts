@@ -26,16 +26,17 @@ import type {
 export const TASK_QUERY_KEYS = {
   all: ['tasks'] as const,
   detail: (id: string) => ['tasks', id] as const,
+  vehicle: (vehicleId: string) => ['tasks', 'vehicle', vehicleId] as const,
 };
 
 /**
  * Hook لجلب جميع المهام مع العلاقات
  */
-export function useTasks() {
+export function useTasks(vehicleId?: string) {
   return useQuery({
-    queryKey: TASK_QUERY_KEYS.all,
+    queryKey: vehicleId ? TASK_QUERY_KEYS.vehicle(vehicleId) : TASK_QUERY_KEYS.all,
     queryFn: async ({ signal }) => {
-      const result = await taskService.getTasks(signal);
+      const result = await taskService.getTasks(signal, vehicleId);
       if (!result.success) {
         if (result.message === 'Request cancelled') return [];
         throw new Error(result.message);

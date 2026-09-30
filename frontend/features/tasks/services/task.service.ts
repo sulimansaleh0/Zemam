@@ -19,8 +19,11 @@ export const taskService = {
   /**
    * جلب قائمة جميع المهام للشركة أو الفريق الحالي
    */
-  getTasks(signal?: AbortSignal): Promise<ServiceResult<ListTasksResponse>> {
-    return sendRequest<ListTasksResponse>(API_PATHS.TASKS.LIST, { signal });
+  getTasks(signal?: AbortSignal, vehicleId?: string): Promise<ServiceResult<ListTasksResponse>> {
+    const path = vehicleId
+      ? `${API_PATHS.TASKS.LIST}?vehicleId=${encodeURIComponent(vehicleId)}`
+      : API_PATHS.TASKS.LIST;
+    return sendRequest<ListTasksResponse>(path, { signal });
   },
 
   /**
