@@ -1,20 +1,18 @@
 'use client';
 
 import {
-  AlertTriangle,
   CalendarDays,
   Package,
-  SlidersHorizontal,
   Truck,
+  Users,
   UsersRound,
   Wrench,
 } from 'lucide-react';
 import {
-  AiRecommendations,
   AlertsAndDrivers,
+  DashboardDrivers,
   Header,
   KpiCard,
-  LiveMapPanel,
   Sidebar,
   TodayTasksList,
   TrendChart,
@@ -38,16 +36,12 @@ export default function DashboardPage() {
     userName,
     menuOpen,
     setMenuOpen,
-    searchQuery,
-    setSearchQuery,
-    doneTasks,
-    toggleTask,
     logout,
   } = useDashboard();
 
-  const { data: vehiclesList = [] } = useVehicles();
-  const { data: driversList = [] } = useDriversList();
-  const { data: teamsList = [] } = useTeams();
+  const { data: vehiclesList = [], isLoading: isLoadingVehicles } = useVehicles();
+  const { data: driversList = [], isLoading: isLoadingDrivers } = useDriversList();
+  const { data: teamsList = [], isLoading: isLoadingTeams } = useTeams();
 
   // Fleet manager team stats query
   const { data: teamStatics } = useQuery({
@@ -94,22 +88,22 @@ export default function DashboardPage() {
   const fleetFuelCost = typeof teamStatics?.FuelRecordsCost === 'number'
     ? teamStatics.FuelRecordsCost
     : Array.isArray(teamStatics?.FuelRecordsCost)
-    ? (teamStatics.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
-    : 0;
+    ? (teamStatics.FuelRecordsCost as { totalCost?: number }[]).reduce((acc, record) => acc + (record.totalCost || 0), 0)
+    : null;
 
   const fleetMaintenanceCost = typeof teamStatics?.maintenanceRecordsCost === 'number'
     ? teamStatics.maintenanceRecordsCost
     : Array.isArray(teamStatics?.maintenanceRecordsCost)
-    ? (teamStatics.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
-    : 0;
+    ? (teamStatics.maintenanceRecordsCost as { totalCost?: number }[]).reduce((acc, record) => acc + (record.totalCost || 0), 0)
+    : null;
 
   const companyFuelCost = typeof companyStatics?.FuelRecordsCost === 'number'
     ? companyStatics.FuelRecordsCost
-    : 0;
+    : null;
 
   const companyMaintenanceCost = typeof companyStatics?.maintenanceRecordsCost === 'number'
     ? companyStatics.maintenanceRecordsCost
-    : 0;
+    : null;
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -135,8 +129,7 @@ export default function DashboardPage() {
         <div className="min-w-0 flex-1">
           <Header
             onMenu={() => setMenuOpen(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            showSearch={false}
             userName={userName}
           />
 
@@ -171,33 +164,41 @@ export default function DashboardPage() {
             </section>
 
             {/* ── Real Dynamic KPIs Grid ── */}
-            <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
               {isFleetManager ? (
                 <>
                   <KpiCard
+                    icon={Users}
+                    label="الفريق"
+                    value={isLoadingTeams ? '—' : fleetManagerTeam ? '1' : '0'}
+                    change={isLoadingTeams ? 'جارٍ التحميل' : 'الفريق الحالي'}
+                    color="bg-[#57d0bf]"
+                    note={isLoadingTeams ? 'جارٍ تحميل بيانات الفريق' : fleetManagerTeam?.name || 'لا يوجد فريق مرتبط بالحساب'}
+                  />
+                  <KpiCard
                     icon={Truck}
                     label="مركبات فريقي"
-                    value={String(displayedVehicles.length)}
-                    change={`${activeVehiclesCount} نشطة`}
+                    value={isLoadingVehicles ? '—' : String(displayedVehicles.length)}
+                    change={isLoadingVehicles ? 'جارٍ التحميل' : `${activeVehiclesCount} نشطة`}
                     color="bg-[#5d8cff]"
                     note={fleetManagerTeam ? `فريق ${fleetManagerTeam.name}` : 'فريقك الحالي'}
                   />
                   <KpiCard
                     icon={UsersRound}
                     label="سائقو فريقي"
-                    value={String(displayedDrivers.length)}
-                    change={`${activeDriversCount} نشط`}
+                    value={isLoadingDrivers ? '—' : String(displayedDrivers.length)}
+                    change={isLoadingDrivers ? 'جارٍ التحميل' : `${activeDriversCount} نشط`}
                     color="bg-[#57d0bf]"
                     note="كادر السائقين بالفريق"
                   />
                   <KpiCard
                     icon={Package}
                     label="مهام الفريق"
-                    value={teamStatics ? `${teamStatics.finishedTasks ?? 0} / ${teamStatics.totalTasks ?? 0}` : '0'}
+                    value={teamStatics ? `${teamStatics.finishedTasks ?? 0} / ${teamStatics.totalTasks ?? 0}` : '—'}
                     change={
                       teamStatics?.totalTasks
                         ? `${Math.round(((teamStatics.finishedTasks ?? 0) / (teamStatics.totalTasks || 1)) * 100)}% إنجاز`
-                        : 'جاهزية تامة'
+                        : teamStatics ? 'لا توجد مهام مسجلة' : 'جارٍ التحميل'
                     }
                     color="bg-[#eab66b]"
                     note="المهام المنفذة للفريق"
@@ -206,14 +207,14 @@ export default function DashboardPage() {
                     icon={Wrench}
                     label="تكاليف التشغيل"
                     value={
-                      teamStatics
+                      fleetFuelCost !== null && fleetMaintenanceCost !== null
                         ? `${(fleetFuelCost + fleetMaintenanceCost).toLocaleString('ar-SA')} ر.س`
-                        : '0 ر.س'
+                        : '—'
                     }
                     change={
-                      teamStatics
+                      fleetMaintenanceCost !== null
                         ? `صيانة: ${fleetMaintenanceCost.toLocaleString('ar-SA')} ر.س`
-                        : 'مستقر'
+                        : 'جارٍ التحميل'
                     }
                     color="bg-[#10b981]"
                     note="إجمالي وقود وصيانة الفريق"
@@ -222,33 +223,41 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <KpiCard
+                    icon={Users}
+                    label="إجمالي الفرق"
+                    value={isLoadingTeams ? '—' : String(teamsList.length)}
+                    change={isLoadingTeams ? 'جارٍ التحميل' : 'فرق مسجلة'}
+                    color="bg-[#57d0bf]"
+                    note="الفرق التشغيلية بالشركة"
+                  />
+                  <KpiCard
                     icon={Truck}
                     label="إجمالي المركبات"
-                    value={String(companyStatics?.totalVehicles ?? vehiclesList.length)}
-                    change={`${companyStatics?.activeVehicles ?? vehiclesList.filter((v) => v.status === 'active').length} نشطة`}
+                    value={companyStatics ? String(companyStatics.totalVehicles ?? 0) : isLoadingVehicles ? '—' : String(vehiclesList.length)}
+                    change={companyStatics
+                      ? `${companyStatics.activeVehicles ?? 0} نشطة`
+                      : isLoadingVehicles
+                      ? 'جارٍ التحميل'
+                      : `${vehiclesList.filter((v) => v.status === 'active').length} نشطة`}
                     color="bg-[#5d8cff]"
                     note="مسجلة في أسطول الشركة"
                   />
                   <KpiCard
                     icon={UsersRound}
                     label="إجمالي السائقين"
-                    value={String(driversList.length)}
-                    change={`${driversList.filter((d) => d.status === 'active').length} نشط`}
+                    value={isLoadingDrivers ? '—' : String(driversList.length)}
+                    change={isLoadingDrivers ? 'جارٍ التحميل' : `${driversList.filter((d) => d.status === 'active').length} نشط`}
                     color="bg-[#57d0bf]"
                     note="في جميع الفرق التشغيلية"
                   />
                   <KpiCard
                     icon={Package}
                     label="إنجاز المهام"
-                    value={
-                      companyStatics
-                        ? `${companyStatics.finishedTasks ?? 0} / ${companyStatics.totalTasks ?? 0}`
-                        : `${teamsList.length} فرق`
-                    }
+                    value={companyStatics ? `${companyStatics.finishedTasks ?? 0} / ${companyStatics.totalTasks ?? 0}` : '—'}
                     change={
                       companyStatics?.totalTasks
                         ? `${Math.round(((companyStatics.finishedTasks ?? 0) / (companyStatics.totalTasks || 1)) * 100)}% إنجاز`
-                        : `${teamsList.length} فرق معتمدة`
+                        : companyStatics ? 'لا توجد مهام مسجلة' : 'جارٍ التحميل'
                     }
                     color="bg-[#eab66b]"
                     note="المهام المنفذة للشركة"
@@ -257,14 +266,14 @@ export default function DashboardPage() {
                     icon={Wrench}
                     label="إجمالي المصروفات"
                     value={
-                      companyStatics
+                      companyFuelCost !== null && companyMaintenanceCost !== null
                         ? `${(companyFuelCost + companyMaintenanceCost).toLocaleString('ar-SA')} ر.س`
-                        : '0 ر.س'
+                        : '—'
                     }
                     change={
-                      companyStatics
+                      companyMaintenanceCost !== null
                         ? `صيانة: ${companyMaintenanceCost.toLocaleString('ar-SA')} ر.س`
-                        : 'مستقر'
+                        : 'جارٍ التحميل'
                     }
                     color="bg-[#10b981]"
                     note="إجمالي وقود وصيانة الأسطول"
@@ -279,23 +288,22 @@ export default function DashboardPage() {
               <VehicleStatusDonut />
             </section>
 
-            {/* ── Map, Tasks & AI Grid ── */}
-            <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <LiveMapPanel />
-              <TodayTasksList doneTasks={doneTasks} onToggleTask={toggleTask} />
-              <AiRecommendations />
+            {/* ── Tasks Grid ── */}
+            <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
+              <TodayTasksList />
+              <DashboardDrivers />
             </section>
 
-            {/* ── Alerts & Drivers Table Grid ── */}
+            {/* ── Operational Alerts ── */}
             <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <AlertsAndDrivers />
             </section>
 
             {/* ── Footer ── */}
             <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--zd-line)] pt-5 text-[10px] text-[var(--zd-muted)] transition-colors">
-              <span>زمام لإدارة الأساطيل · بيانات العرض توضيحية</span>
+              <span>زمام لإدارة الأساطيل · لوحة التشغيل</span>
               <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--zd-teal)]" /> جميع الأنظمة تعمل بشكل طبيعي
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--zd-teal)]" /> البيانات المسجلة في النظام
               </span>
             </footer>
           </div>

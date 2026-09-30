@@ -21,6 +21,7 @@ import {
   type RouteData,
 } from '../utils/mapHelpers';
 import type { LocationPoint } from '../types/task.types';
+import { getCurrentLocation } from '@/shared/lib/navigatorClient';
 
 // Dynamic import with SSR disabled for Leaflet map canvas
 const LeafletMapCanvas = dynamic(() => import('./LeafletMapCanvas'), {
@@ -177,20 +178,13 @@ export function TaskRouteMapPicker({
   };
 
   // جلب إحداثيات موقع المستخدم الحالي بالـ GPS
-  const handleUseCurrentLocation = () => {
-    if (typeof window === 'undefined' || !navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        await handleMapClick(lat, lng);
-      },
-      (err) => {
-        console.warn('Geolocation error:', err);
-      },
-      { timeout: 8000 }
-    );
+  const handleUseCurrentLocation = async () => {
+    try {
+      const { lat, lng } = await getCurrentLocation();
+      await handleMapClick(lat, lng);
+    } catch (err) {
+      console.warn('Geolocation error:', err);
+    }
   };
 
   return (
@@ -214,11 +208,10 @@ export function TaskRouteMapPicker({
           <button
             type="button"
             onClick={() => setActiveTarget('pickup')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTarget === 'pickup'
-                ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
-                : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
-            }`}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${activeTarget === 'pickup'
+              ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
+              : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
+              }`}
           >
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             <span>الانطلاق A</span>
@@ -227,11 +220,10 @@ export function TaskRouteMapPicker({
           <button
             type="button"
             onClick={() => setActiveTarget('delivery')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTarget === 'delivery'
-                ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40'
-                : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
-            }`}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${activeTarget === 'delivery'
+              ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40'
+              : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
+              }`}
           >
             <span className="h-2 w-2 rounded-full bg-blue-400" />
             <span>التسليم B</span>
@@ -248,9 +240,8 @@ export function TaskRouteMapPicker({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`ابحث عن اسم مكان أو حي لـ ${
-                activeTarget === 'pickup' ? 'نقطة الانطلاق A' : 'نقطة التسليم B'
-              }...`}
+              placeholder={`ابحث عن اسم مكان أو حي لـ ${activeTarget === 'pickup' ? 'نقطة الانطلاق A' : 'نقطة التسليم B'
+                }...`}
               className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2 pr-9 pl-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
             />
             {isSearching && (

@@ -23,6 +23,7 @@ import {
   emitDriverLocation,
   getGpsSocket,
 } from '@/features/gps/services/gpsSocket';
+import { watchCurrentLocation, type Coordinates } from '@/shared/lib/navigatorClient';
 import { calculateHaversineDistance } from '@/features/gps/utils/gpsHelpers';
 import type { DriverTelemetryPayload } from '@/features/gps/types/gps.types';
 import {
@@ -92,7 +93,7 @@ export default function DriverMobileTrackingPage() {
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
 
   // المراجع (Refs)
-  const watchIdRef = useRef<number | null>(null);
+  const locationWatchCleanupRef = useRef<(() => void) | null>(null);
   const broadcastIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const latestCoordsRef = useRef<{
     lat: number;
@@ -132,7 +133,7 @@ export default function DriverMobileTrackingPage() {
           setPlateNumber(vList[0].plate);
         }
       }
-    } catch {}
+    } catch { }
 
     // 2. جلب المهام
     try {
@@ -166,7 +167,7 @@ export default function DriverMobileTrackingPage() {
           }
         }
       }
-    } catch {} finally {
+    } catch { } finally {
       setIsLoadingData(false);
     }
   }, []);
@@ -214,7 +215,7 @@ export default function DriverMobileTrackingPage() {
           setSuccessNotice(`تمت مزامنة ${actionsRes.succeeded} عملية ميدانية مخزنة.`);
           setTimeout(() => setSuccessNotice(null), 3000);
         }
-      } catch {}
+      } catch { }
     };
 
     const handleOnline = () => {
@@ -228,7 +229,7 @@ export default function DriverMobileTrackingPage() {
 
     getQueuedTelemetry().then((q) => setOfflineQueueCount(q.length));
     if (navigator.onLine) {
-      driverTaskService.flushOfflineActions().catch(() => {});
+      driverTaskService.flushOfflineActions().catch(() => { });
     }
 
     return () => {
@@ -262,16 +263,15 @@ export default function DriverMobileTrackingPage() {
 
   // معالجة نبضة الـ GPS الحقيقية
   const handlePositionSuccess = useCallback(
-    async (position: GeolocationPosition) => {
-      const { latitude, longitude, speed, heading, accuracy } = position.coords;
+    async ({ lat, lng, speed, heading, accuracy }: Coordinates) => {
       const now = Date.now();
 
       const speedKmH = speed !== null && speed >= 0 ? Math.round(speed * 3.6) : 0;
       const headingDeg = heading !== null && !isNaN(heading) ? Math.round(heading) : 0;
 
       const coords = {
-        lat: latitude,
-        lng: longitude,
+        lat,
+        lng,
         speed: speedKmH,
         heading: headingDeg,
         accuracy: Math.round(accuracy),
@@ -284,8 +284,8 @@ export default function DriverMobileTrackingPage() {
         const delta = calculateHaversineDistance(
           lastEmittedCoordsRef.current.lat,
           lastEmittedCoordsRef.current.lng,
-          latitude,
-          longitude
+          lat,
+          lng
         );
         if (delta > 0.001) {
           setTripStats((prev) => ({
@@ -302,8 +302,8 @@ export default function DriverMobileTrackingPage() {
           vehicleId,
           taskId: taskId.trim() || undefined,
           companyId: user?.companyId,
-          lat: latitude,
-          lng: longitude,
+          lat,
+          lng,
           speed: speedKmH,
           heading: headingDeg,
           accuracy: Math.round(accuracy),
@@ -323,7 +323,7 @@ export default function DriverMobileTrackingPage() {
         }
 
         lastEmittedTimeRef.current = now;
-        lastEmittedCoordsRef.current = { lat: latitude, lng: longitude };
+        lastEmittedCoordsRef.current = { lat, lng };
       }
     },
     [vehicleId, taskId, user?.companyId]
@@ -356,14 +356,7 @@ export default function DriverMobileTrackingPage() {
     setErrorMessage(null);
     setSuccessNotice(null);
 
-    if (!navigator.geolocation) {
-      setErrorMessage('المتصفح لا يدعم ميزة تحديد الموقع (Geolocation).');
-      return;
-    }
-
-    requestWakeLock();
-
-    const id = navigator.geolocation.watchPosition(
+    const stopWatching = watchCurrentLocation(
       handlePositionSuccess,
       handlePositionError,
       {
@@ -373,7 +366,13 @@ export default function DriverMobileTrackingPage() {
       }
     );
 
-    watchIdRef.current = id;
+    if (!stopWatching) {
+      setErrorMessage('المتصفح لا يدعم ميزة تحديد الموقع (Geolocation).');
+      return;
+    }
+
+    requestWakeLock();
+    locationWatchCleanupRef.current = stopWatching;
 
     if (broadcastIntervalRef.current) clearInterval(broadcastIntervalRef.current);
     broadcastIntervalRef.current = setInterval(async () => {
@@ -417,10 +416,8 @@ export default function DriverMobileTrackingPage() {
 
   // إيقاف البث
   const stopBroadcasting = () => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    locationWatchCleanupRef.current?.();
+    locationWatchCleanupRef.current = null;
     if (broadcastIntervalRef.current) {
       clearInterval(broadcastIntervalRef.current);
       broadcastIntervalRef.current = null;
@@ -485,9 +482,7 @@ export default function DriverMobileTrackingPage() {
 
   useEffect(() => {
     return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
+      locationWatchCleanupRef.current?.();
       if (broadcastIntervalRef.current) {
         clearInterval(broadcastIntervalRef.current);
       }
@@ -539,13 +534,12 @@ export default function DriverMobileTrackingPage() {
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center justify-center rounded-2xl bg-teal-50/80 border border-teal-100 p-2.5 min-w-[76px]">
               <span
-                className={`text-3xl font-black font-mono tracking-tight leading-none ${
-                  (currentCoords?.speed || 0) > 80
-                    ? 'text-rose-600'
-                    : (currentCoords?.speed || 0) > 50
+                className={`text-3xl font-black font-mono tracking-tight leading-none ${(currentCoords?.speed || 0) > 80
+                  ? 'text-rose-600'
+                  : (currentCoords?.speed || 0) > 50
                     ? 'text-amber-600'
                     : 'text-teal-800'
-                }`}
+                  }`}
               >
                 {currentCoords?.speed !== undefined ? currentCoords.speed : 0}
               </span>
@@ -597,19 +591,18 @@ export default function DriverMobileTrackingPage() {
 
             {activeTask ? (
               <span
-                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                  activeTask.status === 'inprogress'
-                    ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                    : activeTask.status === 'finished'
+                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${activeTask.status === 'inprogress'
+                  ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                  : activeTask.status === 'finished'
                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}
+                  }`}
               >
                 {activeTask.status === 'inprogress'
                   ? 'قيد التنفيذ 🟢'
                   : activeTask.status === 'finished'
-                  ? 'مكتملة 🏁'
-                  : 'في الانتظار ⏳'}
+                    ? 'مكتملة 🏁'
+                    : 'في الانتظار ⏳'}
               </span>
             ) : (
               <span className="text-[11px] text-slate-400">لا توجد مهمة</span>
@@ -655,11 +648,10 @@ export default function DriverMobileTrackingPage() {
                 <div className="flex items-center gap-2">
                   {activeTask.deliveryLocation && (
                     <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${
-                        activeTask.deliveryLocation.lat || ''
-                      },${activeTask.deliveryLocation.lng || ''}&destination_place_id=${encodeURIComponent(
-                        activeTask.deliveryLocation.address || ''
-                      )}`}
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${activeTask.deliveryLocation.lat || ''
+                        },${activeTask.deliveryLocation.lng || ''}&destination_place_id=${encodeURIComponent(
+                          activeTask.deliveryLocation.address || ''
+                        )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-teal-200 bg-teal-50/80 hover:bg-teal-100/80 py-2.5 text-xs font-bold text-teal-800 transition-colors"
@@ -687,11 +679,10 @@ export default function DriverMobileTrackingPage() {
                     {/* زر بدء / إيقاف البث */}
                     <button
                       onClick={isBroadcasting ? stopBroadcasting : startBroadcasting}
-                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-bold shadow-xs transition-all active:scale-98 cursor-pointer ${
-                        isBroadcasting
-                          ? 'bg-rose-100 border border-rose-300 text-rose-700 hover:bg-rose-200'
-                          : 'bg-teal-700 hover:bg-teal-800 text-white'
-                      }`}
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-bold shadow-xs transition-all active:scale-98 cursor-pointer ${isBroadcasting
+                        ? 'bg-rose-100 border border-rose-300 text-rose-700 hover:bg-rose-200'
+                        : 'bg-teal-700 hover:bg-teal-800 text-white'
+                        }`}
                     >
                       <Radio className={`h-3.5 w-3.5 ${isBroadcasting ? '' : 'animate-pulse'}`} />
                       <span>{isBroadcasting ? 'إيقاف البث ⏹' : 'بدء البث 📡'}</span>

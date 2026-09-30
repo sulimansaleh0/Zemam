@@ -9,6 +9,7 @@ import {
   Pin,
 } from 'lucide-react';
 import type { VehicleLiveTelemetry } from '../types/gps.types';
+import { getCurrentLocation } from '@/shared/lib/navigatorClient';
 import {
   createUnifiedVehicleMarker,
   createUnifiedLocationPin,
@@ -78,7 +79,7 @@ export default function GpsMapCanvas({
           initialZoom = 13;
         }
       }
-    } catch {}
+    } catch { }
 
     const map = L.map(containerRef.current, {
       center: initialCenter,
@@ -97,18 +98,15 @@ export default function GpsMapCanvas({
     mapRef.current = map;
 
     // محاولة التقاط موقع المتصفح تلقائياً إذا لم يكن هناك مركز محفوظ
-    if (!localStorage.getItem(COMPANY_HQ_STORAGE_KEY) && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
+    if (!localStorage.getItem(COMPANY_HQ_STORAGE_KEY)) {
+      void getCurrentLocation()
+        .then(({ lat, lng }) => {
           if (mapRef.current && !hasAutoCenteredRef.current) {
-            const userCenter: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-            mapRef.current.setView(userCenter, 13);
+            mapRef.current.setView([lat, lng], 13);
             hasAutoCenteredRef.current = true;
           }
-        },
-        () => {},
-        { timeout: 5000, enableHighAccuracy: false }
-      );
+        })
+        .catch(() => { });
     }
 
     const resizeTimer = setTimeout(() => {
@@ -274,7 +272,7 @@ export default function GpsMapCanvas({
           const bounds = L.latLngBounds(activePolyline);
           map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
           hasFittedPolylineRef.current = true;
-        } catch {}
+        } catch { }
       }
     } else {
       hasFittedPolylineRef.current = false;
@@ -316,15 +314,17 @@ export default function GpsMapCanvas({
   };
 
   const handleLocateMe = () => {
-    if (!navigator.geolocation || !mapRef.current) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        mapRef.current?.flyTo([pos.coords.latitude, pos.coords.longitude], 14, {
+    if (!mapRef.current) return;
+    void getCurrentLocation()
+      .then(({ lat, lng }) => {
+        mapRef.current?.flyTo([lat, lng], 14, {
           duration: 1.5,
         });
-      },
-      (err) => alert('تعذر التقاط موقع المتصفح: ' + err.message)
-    );
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        alert('تعذر التقاط موقع المتصفح: ' + message);
+      });
   };
 
   const handleSaveCompanyHq = () => {

@@ -15,6 +15,7 @@ import {
 import { DriverHeader } from '@/features/driver/components/DriverHeader';
 import { driverTaskService } from '@/features/driver/services/driverTaskService';
 import type { MaintenanceReportPayload } from '@/features/driver/types/driverPwa.types';
+import { getCurrentLocation } from '@/shared/lib/navigatorClient';
 
 const INSPECTION_ITEMS = [
   { id: 'oil', label: 'مستوى زيت المحرك وسوائل التبريد' },
@@ -66,21 +67,13 @@ export default function DriverMaintenancePage() {
             setVehicleId(list[0].id);
           }
         }
-      } catch {}
+      } catch { }
     }
     loadVehicles();
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCurrentCoords({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-        },
-        () => {}
-      );
-    }
+    void getCurrentLocation()
+      .then(setCurrentCoords)
+      .catch(() => { });
   }, []);
 
   const handleToggleCheck = (id: string) => {
@@ -167,21 +160,19 @@ export default function DriverMaintenancePage() {
         <div className="flex items-center gap-1.5 rounded-2xl bg-white p-1.5 border border-slate-200 shadow-xs text-xs">
           <button
             onClick={() => setActiveTab('report')}
-            className={`flex-1 py-2.5 rounded-xl font-bold transition-all text-center cursor-pointer ${
-              activeTab === 'report'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`flex-1 py-2.5 rounded-xl font-bold transition-all text-center cursor-pointer ${activeTab === 'report'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             بلاغ عطل أو طوارئ (SOS)
           </button>
           <button
             onClick={() => setActiveTab('inspection')}
-            className={`flex-1 py-2.5 rounded-xl font-bold transition-all text-center cursor-pointer ${
-              activeTab === 'inspection'
-                ? 'bg-teal-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`flex-1 py-2.5 rounded-xl font-bold transition-all text-center cursor-pointer ${activeTab === 'inspection'
+              ? 'bg-teal-700 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             فحص ما قبل الانطلاق
           </button>
@@ -246,11 +237,10 @@ export default function DriverMaintenancePage() {
                       key={item.id}
                       type="button"
                       onClick={() => setType(item.id as any)}
-                      className={`py-2.5 rounded-xl transition-all cursor-pointer ${
-                        type === item.id
-                          ? 'bg-rose-50 text-rose-700 border border-rose-300 shadow-xs'
-                          : 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      }`}
+                      className={`py-2.5 rounded-xl transition-all cursor-pointer ${type === item.id
+                        ? 'bg-rose-50 text-rose-700 border border-rose-300 shadow-xs'
+                        : 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -271,11 +261,10 @@ export default function DriverMaintenancePage() {
                       key={item.id}
                       type="button"
                       onClick={() => setUrgency(item.id as any)}
-                      className={`py-2 rounded-xl transition-all cursor-pointer ${
-                        urgency === item.id
-                          ? 'bg-amber-100 text-amber-800 font-bold border border-amber-300 shadow-xs'
-                          : 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      }`}
+                      className={`py-2 rounded-xl transition-all cursor-pointer ${urgency === item.id
+                        ? 'bg-amber-100 text-amber-800 font-bold border border-amber-300 shadow-xs'
+                        : 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -390,19 +379,17 @@ export default function DriverMaintenancePage() {
                     <div
                       key={item.id}
                       onClick={() => handleToggleCheck(item.id)}
-                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                        isChecked
-                          ? 'border-teal-300 bg-teal-50/70 text-slate-900'
-                          : 'border-slate-200 bg-slate-50/80 text-slate-700'
-                      }`}
+                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${isChecked
+                        ? 'border-teal-300 bg-teal-50/70 text-slate-900'
+                        : 'border-slate-200 bg-slate-50/80 text-slate-700'
+                        }`}
                     >
                       <span className="text-xs font-semibold">{item.label}</span>
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-lg border ${
-                          isChecked
-                            ? 'border-teal-700 bg-teal-700 text-white'
-                            : 'border-slate-300 bg-white text-transparent'
-                        }`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-lg border ${isChecked
+                          ? 'border-teal-700 bg-teal-700 text-white'
+                          : 'border-slate-300 bg-white text-transparent'
+                          }`}
                       >
                         ✓
                       </div>

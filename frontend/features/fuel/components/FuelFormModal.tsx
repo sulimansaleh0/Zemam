@@ -25,6 +25,7 @@ import {
 } from '../schemas/fuel.schema';
 import type { CreateFuelInput } from '../types/fuel.types';
 import type { BackendVehicle } from '@/features/vehicles';
+import { getCurrentLocation } from '@/shared/lib/navigatorClient';
 
 interface FuelFormModalProps {
   isOpen: boolean;
@@ -83,27 +84,17 @@ export function FuelFormModal({
       ? (Number(watchedCost) / Number(watchedQty)).toFixed(2)
       : null;
 
-  const handleGetLocation = () => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      setLocationError('خدمة تحديد الموقع الجغرافي (GPS) غير متوفرة في هذا المتصفح.');
-      return;
-    }
+  const handleGetLocation = async () => {
     setIsGettingLocation(true);
     setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setGpsLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setIsGettingLocation(false);
-      },
-      () => {
-        setLocationError('تعذر تحديد الموقع الجغرافي. يرجى تفعيل إذن الوصول للموقع.');
-        setIsGettingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+    try {
+      const location = await getCurrentLocation();
+      setGpsLocation(location);
+    } catch {
+      setLocationError('تعذر تحديد الموقع الجغرافي. يرجى تفعيل إذن الوصول للموقع.');
+    } finally {
+      setIsGettingLocation(false);
+    }
   };
 
   const handleClose = () => {
