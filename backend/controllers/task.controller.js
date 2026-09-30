@@ -10,7 +10,7 @@ const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility
 const { getExpectedEndTime } = require("../utils/taskEndTime")
 const { finalizeTripSummary, stopTelemetryTracking } = require("../services/gpsIngestion.service")
 const { notifyTripCompleted } = require("../services/socket.service")
-const calculateTaskFuelConsumption  = require("../utils/fuelConsumption")
+const { calculateTaskFuelConsumption } = require("../utils/fuelConsumption")
 
 exports.createTask = async (req, res) => {
     const user = req.user

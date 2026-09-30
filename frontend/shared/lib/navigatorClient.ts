@@ -15,8 +15,7 @@ export function getCurrentLocation(): Promise<Coordinates> {
 
         navigator.geolocation.getCurrentPosition(
             ({ coords }) => {
-                resolve({ lat: coords.latitude, lng: coords.longitude, speed: coords.speed, heading: coords.heading, accuracy: coords.accuracy })
-                console.log('Current location:', { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy });
+                resolve({ lat: coords.latitude, lng: coords.longitude, speed: coords.speed, heading: coords.heading, accuracy: coords.accuracy });
             },
             reject,
             {

@@ -207,7 +207,7 @@ export default function DriverMobileTrackingPage() {
               if (existingPoints.length > 0) {
                 setTraversedPath(existingPoints);
               }
-            } catch (err) {}
+            } catch (err) { }
           }
         }
       }
@@ -267,7 +267,6 @@ export default function DriverMobileTrackingPage() {
       } catch (err) {
         console.warn('[Driver] flushOfflineQueue error:', err);
       }
-      } catch { }
     };
 
     const handleOnline = () => {
@@ -279,9 +278,13 @@ export default function DriverMobileTrackingPage() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    getQueuedTelemetry().then((q) => setOfflineQueueCount(q.length));
+    setIsOnline(navigator.onLine);
     if (navigator.onLine) {
-      driverTaskService.flushOfflineActions().catch(() => { });
+      flushOfflineQueue();
+    } else {
+      getQueuedTelemetry()
+        .then((queued) => setOfflineQueueCount(queued.length))
+        .catch((err) => console.warn('[Driver] readOfflineQueue error:', err));
     }
 
     return () => {
@@ -318,11 +321,6 @@ export default function DriverMobileTrackingPage() {
     async ({ lat, lng, speed, heading, accuracy }: Coordinates) => {
       const now = Date.now();
 
-      // 1. فلترة الدقة (GPS Drift Filter): استبعاد القراءات الضعيفة التي تسبب قفزات وتشتتاً في المسار
-      if (accuracy > 35) {
-        return;
-      }
-
       const speedKmH = speed !== null && speed >= 0 ? Math.round(speed * 3.6) : 0;
       const headingDeg = heading !== null && !isNaN(heading) ? Math.round(heading) : 0;
 
@@ -333,9 +331,6 @@ export default function DriverMobileTrackingPage() {
         heading: headingDeg,
         accuracy: Math.round(accuracy),
       };
-
-      latestCoordsRef.current = coords;
-      setCurrentCoords(coords);
 
       let deltaMeters = 0;
       if (lastEmittedCoordsRef.current) {
@@ -362,15 +357,18 @@ export default function DriverMobileTrackingPage() {
         }
       }
 
+      latestCoordsRef.current = coords;
+      setCurrentCoords(coords);
+
       // تحديث مسار الرسم المحلي: أضف النقطة فقط إذا تحركت المركبة مسافة حقيقية (لا تقل عن 5 أمتار)
       setTraversedPath((prev) => {
         if (prev.length === 0) {
-          return [{ lat: latitude, lng: longitude, speed: speedKmH, heading: headingDeg, timestamp: now }];
+          return [{ lat, lng, speed: speedKmH, heading: headingDeg, timestamp: now }];
         }
         const last = prev[prev.length - 1];
-        const distFromLast = calculateHaversineDistance(last.lat, last.lng, latitude, longitude) * 1000;
+        const distFromLast = calculateHaversineDistance(last.lat, last.lng, lat, lng) * 1000;
         if (distFromLast >= 5) {
-          return [...prev, { lat: latitude, lng: longitude, speed: speedKmH, heading: headingDeg, timestamp: now }];
+          return [...prev, { lat, lng, speed: speedKmH, heading: headingDeg, timestamp: now }];
         }
         return prev;
       });

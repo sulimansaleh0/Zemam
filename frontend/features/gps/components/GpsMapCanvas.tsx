@@ -141,9 +141,9 @@ export default function GpsMapCanvas({
     });
 
     // التقاط الموقع الأولي تلقائياً إذا لم يكن هناك مركز محفوظ
-    if (!localStorage.getItem(COMPANY_HQ_STORAGE_KEY) && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
+    if (!localStorage.getItem(COMPANY_HQ_STORAGE_KEY)) {
+      void getCurrentLocation()
+        .then(({ lat, lng }) => {
           if (mapRef.current && !hasAutoCenteredRef.current) {
             mapRef.current.setView([lat, lng], 13);
             hasAutoCenteredRef.current = true;
@@ -405,17 +405,16 @@ export default function GpsMapCanvas({
     }
   };
 
-  const handleLocateMe = () => {
-    if (!navigator.geolocation || !mapRef.current) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        mapRef.current?.flyTo([pos.coords.latitude, pos.coords.longitude], 15, {
-          duration: 1.2,
-        });
-      },
-      (err) => alert('تعذر التقاط موقع المتصفح: ' + err.message),
-      { enableHighAccuracy: true }
-    );
+  const handleLocateMe = async () => {
+    if (!mapRef.current) return;
+
+    try {
+      const { lat, lng } = await getCurrentLocation();
+      mapRef.current?.flyTo([lat, lng], 15, { duration: 1.2 });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'تعذر تحديد الموقع';
+      alert('تعذر التقاط موقع المتصفح: ' + message);
+    }
   };
 
   const handleSaveCompanyHq = () => {
