@@ -308,7 +308,7 @@ export function TaskRouteMapPicker({
         </span>
       </div>
 
-      {/* ── لوحة الخريطة التفاعلية ── */}
+      {/* ── لوحة الخريطة التفاعلية وتخطيط المسارات ── */}
       <LeafletMapCanvas
         pickupPosition={hasPickup ? [pickupLat, pickupLng] : null}
         deliveryPosition={hasDelivery ? [deliveryLat, deliveryLng] : null}
@@ -316,7 +316,8 @@ export function TaskRouteMapPicker({
         onMapClick={handleMapClick}
         onPickupDrag={handlePickupDrag}
         onDeliveryDrag={handleDeliveryDrag}
-        className="h-[250px] w-full shadow-inner rounded-xl"
+        showGeofence={true}
+        className="h-[300px] w-full shadow-inner rounded-2xl"
       />
 
       {/* ── ملخص المسار والمسافة الحقيقية والوقت المقدر ── */}

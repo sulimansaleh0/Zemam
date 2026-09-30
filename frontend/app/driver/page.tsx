@@ -82,6 +82,10 @@ export default function DriverMobileTrackingPage() {
     accuracy: number;
   } | null>(null);
 
+  const [traversedPath, setTraversedPath] = useState<
+    Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }>
+  >([]);
+
   const [tripStats, setTripStats] = useState({
     sentPointsCount: 0,
     totalDistanceMeters: 0,
@@ -279,6 +283,17 @@ export default function DriverMobileTrackingPage() {
 
       latestCoordsRef.current = coords;
       setCurrentCoords(coords);
+
+      setTraversedPath((prev) => {
+        if (prev.length === 0) {
+          return [{ lat: latitude, lng: longitude, speed: speedKmH, heading: headingDeg, timestamp: now }];
+        }
+        const last = prev[prev.length - 1];
+        if (Math.abs(last.lat - latitude) > 0.00005 || Math.abs(last.lng - longitude) > 0.00005) {
+          return [...prev, { lat: latitude, lng: longitude, speed: speedKmH, heading: headingDeg, timestamp: now }];
+        }
+        return prev;
+      });
 
       if (lastEmittedCoordsRef.current) {
         const delta = calculateHaversineDistance(
@@ -529,7 +544,8 @@ export default function DriverMobileTrackingPage() {
             pickupCoords={activeTask?.pickupLocation}
             deliveryCoords={activeTask?.deliveryLocation}
             plateNumber={plateNumber}
-            className="w-full h-[290px]"
+            traversedPath={traversedPath}
+            className="w-full"
           />
         </div>
 

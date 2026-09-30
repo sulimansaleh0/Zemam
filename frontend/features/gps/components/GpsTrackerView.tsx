@@ -41,7 +41,9 @@ export function GpsTrackerView() {
   const [activeTripSummary, setActiveTripSummary] = useState<TripSummary | null>(null);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [selectedVehiclePath, setSelectedVehiclePath] = useState<[number, number][]>([]);
+  const [selectedVehiclePath, setSelectedVehiclePath] = useState<
+    Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: string | number }>
+  >([]);
 
   // استرجاع النقاط المقطوعة الحية للمركبة المحددة أثناء قيامها بمهمة
   useEffect(() => {
@@ -60,20 +62,40 @@ export function GpsTrackerView() {
         if (res.success && res.data) {
           const pts = res.data.path?.points || (res.data as any)?.points;
           if (pts && pts.length > 0) {
-            const coords: [number, number][] = pts.map((p: { lat: number; lng: number }) => [p.lat, p.lng]);
+            const trajectoryPoints = pts.map((p: any) => ({
+              lat: p.lat,
+              lng: p.lng,
+              speed: p.speed,
+              heading: p.heading,
+              timestamp: p.timestamp,
+            }));
             const cur = selectedVehicle.currentLocation;
             if (cur?.lat && cur?.lng) {
-              const last = coords[coords.length - 1];
-              if (!last || Math.abs(last[0] - cur.lat) > 0.00005 || Math.abs(last[1] - cur.lng) > 0.00005) {
-                coords.push([cur.lat, cur.lng]);
+              const last = trajectoryPoints[trajectoryPoints.length - 1];
+              if (!last || Math.abs(last.lat - cur.lat) > 0.00005 || Math.abs(last.lng - cur.lng) > 0.00005) {
+                trajectoryPoints.push({
+                  lat: cur.lat,
+                  lng: cur.lng,
+                  speed: cur.speed,
+                  heading: cur.heading,
+                  timestamp: Date.now(),
+                });
               }
             }
-            setSelectedVehiclePath(coords);
+            setSelectedVehiclePath(trajectoryPoints);
             return;
           }
         }
         if (selectedVehicle.currentLocation?.lat && selectedVehicle.currentLocation?.lng) {
-          setSelectedVehiclePath([[selectedVehicle.currentLocation.lat, selectedVehicle.currentLocation.lng]]);
+          setSelectedVehiclePath([
+            {
+              lat: selectedVehicle.currentLocation.lat,
+              lng: selectedVehicle.currentLocation.lng,
+              speed: selectedVehicle.currentLocation.speed,
+              heading: selectedVehicle.currentLocation.heading,
+              timestamp: Date.now(),
+            },
+          ]);
         }
       })
       .catch(() => {});
@@ -90,16 +112,25 @@ export function GpsTrackerView() {
     }
     const curLat = selectedVehicle.currentLocation.lat;
     const curLng = selectedVehicle.currentLocation.lng;
+    const curSpeed = selectedVehicle.currentLocation.speed;
+    const curHeading = selectedVehicle.currentLocation.heading;
 
     setSelectedVehiclePath((prev) => {
-      if (prev.length === 0) return [[curLat, curLng]];
+      const newPt = {
+        lat: curLat,
+        lng: curLng,
+        speed: curSpeed,
+        heading: curHeading,
+        timestamp: Date.now(),
+      };
+      if (prev.length === 0) return [newPt];
       const last = prev[prev.length - 1];
-      if (Math.abs(last[0] - curLat) > 0.00005 || Math.abs(last[1] - curLng) > 0.00005) {
-        return [...prev, [curLat, curLng]];
+      if (Math.abs(last.lat - curLat) > 0.00005 || Math.abs(last.lng - curLng) > 0.00005) {
+        return [...prev, newPt];
       }
       return prev;
     });
-  }, [selectedVehicle?.currentLocation?.lat, selectedVehicle?.currentLocation?.lng]);
+  }, [selectedVehicle?.currentLocation?.lat, selectedVehicle?.currentLocation?.lng, selectedVehicle?.currentLocation?.speed, selectedVehicle?.currentLocation?.heading]);
 
   // استعراض ملخص آخر رحلة منتهية للمركبة
   const handleViewRecentTrip = async (vehicleId: string) => {

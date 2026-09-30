@@ -237,7 +237,8 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                       pickupPosition={[pickupLat, pickupLng]}
                       deliveryPosition={[deliveryLat, deliveryLng]}
                       routeCoordinates={decodedTripPath || routeData?.coordinates}
-                      className="h-[250px] w-full rounded-xl"
+                      showGeofence={true}
+                      className="h-[280px] w-full rounded-2xl"
                       readOnly={true}
                     />
 
