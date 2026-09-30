@@ -1,7 +1,7 @@
 import { sendRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type { ServiceResult } from '@/shared/types/api.types';
-import type { VehicleLiveTelemetry, TripSummary } from '../types/gps.types';
+import type { VehicleLiveTelemetry, TripSummary, DriverTelemetryPayload } from '../types/gps.types';
 
 export interface LiveFleetResponse {
   vehicles: VehicleLiveTelemetry[];
@@ -81,5 +81,22 @@ export const gpsService = {
    */
   getVehicleHistory(vehicleId: string, signal?: AbortSignal): Promise<ServiceResult<VehicleHistoryResponse>> {
     return sendRequest<VehicleHistoryResponse>(API_PATHS.GPS.VEHICLE_HISTORY(vehicleId), { signal });
+  },
+
+  /**
+   * إرسال حزمة نبضات تتبع مخزنة أثناء انقطاع الإنترنت (Batch Telemetry Sync)
+   */
+  sendBatchTelemetry(
+    points: DriverTelemetryPayload[],
+    signal?: AbortSignal
+  ): Promise<ServiceResult<{ message: string; processedCount: number; droppedCount: number }>> {
+    return sendRequest<{ message: string; processedCount: number; droppedCount: number }>(
+      API_PATHS.GPS.BATCH_TELEMETRY,
+      {
+        method: 'POST',
+        body: JSON.stringify({ points }),
+        signal,
+      }
+    );
   },
 };

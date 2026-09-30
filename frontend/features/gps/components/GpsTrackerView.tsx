@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Compass,
@@ -12,6 +12,8 @@ import { FleetGpsSidebar } from './FleetGpsSidebar';
 import { VehicleTelemetryDrawer } from './VehicleTelemetryDrawer';
 import { TripSummaryModal } from './TripSummaryModal';
 import { gpsService } from '../services/gps.service';
+import { getGpsSocket } from '../services/gpsSocket';
+import { calculateHaversineDistance } from '../utils/gpsHelpers';
 import type { TripSummary } from '../types/gps.types';
 
 // استيراد خريطة Leaflet ديناميكياً مع تعطيل SSR
@@ -45,67 +47,53 @@ export function GpsTrackerView() {
     Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: string | number }>
   >([]);
 
-  // استرجاع النقاط المقطوعة الحية للمركبة المحددة أثناء قيامها بمهمة
+  // استرجاع النقاط المقطوعة الحية للمهمة
+  const fetchLivePath = useCallback(async (taskId: string) => {
+    try {
+      const res = await gpsService.getLiveTripPath(taskId);
+      if (res.success && res.data) {
+        const pts = res.data.path?.points || (res.data as any)?.points;
+        if (pts && pts.length > 0) {
+          const trajectoryPoints = pts.map((p: any) => ({
+            lat: p.lat,
+            lng: p.lng,
+            speed: p.speed,
+            heading: p.heading,
+            timestamp: p.timestamp,
+          }));
+          setSelectedVehiclePath(trajectoryPoints);
+          return;
+        }
+      }
+    } catch {}
+  }, []);
+
+  // استرجاع المسار الأولي عند اختيار المركبة أو تغير المهمة
   useEffect(() => {
     if (!selectedVehicle?.isInTask || !selectedVehicle?.activeTaskId) {
       setSelectedVehiclePath([]);
       return;
     }
 
-    let isMounted = true;
-    const taskId = selectedVehicle.activeTaskId;
+    fetchLivePath(selectedVehicle.activeTaskId);
+  }, [selectedVehicle?.vehicleId, selectedVehicle?.activeTaskId, fetchLivePath]);
 
-    gpsService
-      .getLiveTripPath(taskId)
-      .then((res) => {
-        if (!isMounted) return;
-        if (res.success && res.data) {
-          const pts = res.data.path?.points || (res.data as any)?.points;
-          if (pts && pts.length > 0) {
-            const trajectoryPoints = pts.map((p: any) => ({
-              lat: p.lat,
-              lng: p.lng,
-              speed: p.speed,
-              heading: p.heading,
-              timestamp: p.timestamp,
-            }));
-            const cur = selectedVehicle.currentLocation;
-            if (cur?.lat && cur?.lng) {
-              const last = trajectoryPoints[trajectoryPoints.length - 1];
-              if (!last || Math.abs(last.lat - cur.lat) > 0.00005 || Math.abs(last.lng - cur.lng) > 0.00005) {
-                trajectoryPoints.push({
-                  lat: cur.lat,
-                  lng: cur.lng,
-                  speed: cur.speed,
-                  heading: cur.heading,
-                  timestamp: Date.now(),
-                });
-              }
-            }
-            setSelectedVehiclePath(trajectoryPoints);
-            return;
-          }
-        }
-        if (selectedVehicle.currentLocation?.lat && selectedVehicle.currentLocation?.lng) {
-          setSelectedVehiclePath([
-            {
-              lat: selectedVehicle.currentLocation.lat,
-              lng: selectedVehicle.currentLocation.lng,
-              speed: selectedVehicle.currentLocation.speed,
-              heading: selectedVehicle.currentLocation.heading,
-              timestamp: Date.now(),
-            },
-          ]);
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
+  // الاستماع لحدث مزامنة مسار المهمة بعد عودة السائق من وضع عدم الاتصال (Offline Sync Event)
+  useEffect(() => {
+    const socket = getGpsSocket();
+    const onPathSynced = (data: { taskId: string; vehicleId: string }) => {
+      if (selectedVehicle?.activeTaskId && data.taskId === selectedVehicle.activeTaskId) {
+        fetchLivePath(data.taskId);
+      }
     };
-  }, [selectedVehicle?.vehicleId, selectedVehicle?.activeTaskId]);
 
-  // تحديث مسار المركبة المباشر عند تحركها
+    socket.on('task:path_synced', onPathSynced);
+    return () => {
+      socket.off('task:path_synced', onPathSynced);
+    };
+  }, [selectedVehicle?.activeTaskId, fetchLivePath]);
+
+  // تحديث مسار المركبة المباشر عند تحركها، وتفادي رسم خطوط مستقيمة عند القفزات المتباعدة
   useEffect(() => {
     if (!selectedVehicle?.isInTask || !selectedVehicle?.currentLocation?.lat || !selectedVehicle?.currentLocation?.lng) {
       return;
@@ -125,12 +113,28 @@ export function GpsTrackerView() {
       };
       if (prev.length === 0) return [newPt];
       const last = prev[prev.length - 1];
+
+      // إذا كانت المسافة بين آخر نقطة مرسومة والموقع الجديد أكثر من 100 متر (دلالة على فجوة انقطاع نت)
+      // نقوم بإعادة جلب المسار الكامل من الخادم فوراً لملء المنحنيات بالنقاط الحقيقية بدلاً من رسم خط مستقيم
+      const distKm = calculateHaversineDistance(last.lat, last.lng, curLat, curLng);
+      if (distKm > 0.1 && selectedVehicle.activeTaskId) {
+        fetchLivePath(selectedVehicle.activeTaskId);
+        return prev;
+      }
+
       if (Math.abs(last.lat - curLat) > 0.00005 || Math.abs(last.lng - curLng) > 0.00005) {
         return [...prev, newPt];
       }
       return prev;
     });
-  }, [selectedVehicle?.currentLocation?.lat, selectedVehicle?.currentLocation?.lng, selectedVehicle?.currentLocation?.speed, selectedVehicle?.currentLocation?.heading]);
+  }, [
+    selectedVehicle?.currentLocation?.lat,
+    selectedVehicle?.currentLocation?.lng,
+    selectedVehicle?.currentLocation?.speed,
+    selectedVehicle?.currentLocation?.heading,
+    selectedVehicle?.activeTaskId,
+    fetchLivePath,
+  ]);
 
   // استعراض ملخص آخر رحلة منتهية للمركبة
   const handleViewRecentTrip = async (vehicleId: string) => {

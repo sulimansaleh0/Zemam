@@ -282,9 +282,32 @@ async function finalizeTripSummary(task) {
     const coordinatePairs = [];
 
     if (points && points.length > 0) {
+        let lastValidPoint = null;
         for (let i = 0; i < points.length; i++) {
             const p = points[i];
+
+            // Filter out poor accuracy points from historical summary
+            if (p.accuracy && p.accuracy > 35) {
+                continue;
+            }
+
+            if (lastValidPoint) {
+                const legDist = calculateHaversineDistance(lastValidPoint.lat, lastValidPoint.lng, p.lat, p.lng);
+                const elapsedHours = (new Date(p.timestamp).getTime() - new Date(lastValidPoint.timestamp).getTime()) / 3600000;
+                const segmentSpeed = elapsedHours > 0 ? legDist / elapsedHours : 0;
+
+                // Ignore GPS jitter and impossible jumps (over 180 km/h)
+                if (elapsedHours > 0 && segmentSpeed > 180) {
+                    continue; // Skip spike point
+                }
+
+                if (legDist > 0.002 && elapsedHours > 0) {
+                    totalDistanceKm += legDist;
+                }
+            }
+
             coordinatePairs.push([p.lat, p.lng]);
+            lastValidPoint = p;
 
             if (p.speed > maxSpeed) {
                 maxSpeed = p.speed;
@@ -293,17 +316,6 @@ async function finalizeTripSummary(task) {
             if (p.speed > 0) {
                 speedSum += p.speed;
                 movingPointsCount++;
-            }
-
-            if (i > 0) {
-                const prev = points[i - 1];
-                const legDist = calculateHaversineDistance(prev.lat, prev.lng, p.lat, p.lng);
-                const elapsedHours = (new Date(p.timestamp).getTime() - new Date(prev.timestamp).getTime()) / 3600000;
-                const segmentSpeed = elapsedHours > 0 ? legDist / elapsedHours : 0;
-                // Ignore GPS jitter and impossible jumps, but allow valid sparse updates.
-                if (legDist > 0.002 && elapsedHours > 0 && segmentSpeed <= 180) {
-                    totalDistanceKm += legDist;
-                }
             }
         }
     }
@@ -357,10 +369,199 @@ async function finalizeTripSummary(task) {
     return tripSummary;
 }
 
+/**
+ * Ingest an array of telemetry points collected while offline or buffered
+ */
+async function ingestBatchTelemetry({
+    driverId,
+    companyId,
+    teamId,
+    points
+}) {
+    if (!Array.isArray(points) || points.length === 0) {
+        return { processedCount: 0, droppedCount: 0 };
+    }
+
+    // Sort strictly by timestamp ascending
+    const sorted = [...points].sort((a, b) => {
+        const tA = new Date(a.timestamp || 0).getTime();
+        const tB = new Date(b.timestamp || 0).getTime();
+        return tA - tB;
+    });
+
+    const firstPoint = sorted[0];
+    const vehicleId = firstPoint.vehicleId;
+    const taskId = firstPoint.taskId;
+
+    const authorizedSource = await authorizeTelemetrySource({
+        vehicleId,
+        taskId,
+        driverId,
+        companyId,
+        teamId
+    });
+    const resolvedTaskId = authorizedSource.taskId;
+    const canonicalVehicleId = authorizedSource.vehicle._id.toString();
+
+    const cleanPointsToInsert = [];
+    let lastValidPoint = null;
+    let droppedCount = 0;
+
+    for (const p of sorted) {
+        const numLat = Number(p.lat);
+        const numLng = Number(p.lng);
+        const accuracy = Number(p.accuracy) || 0;
+        let speed = Math.max(0, Number(p.speed) || 0);
+        const heading = Math.max(0, Math.min(360, Number(p.heading) || 0));
+        const timestamp = new Date(p.timestamp || Date.now());
+
+        // Validate basic coordinates
+        if (
+            !Number.isFinite(numLat) ||
+            !Number.isFinite(numLng) ||
+            numLat < -90 ||
+            numLat > 90 ||
+            numLng < -180 ||
+            numLng > 180 ||
+            Number.isNaN(timestamp.getTime())
+        ) {
+            droppedCount++;
+            continue;
+        }
+
+        // 1. Accuracy filter: drop degraded points from lost A-GPS (accuracy > 35m)
+        if (accuracy > 35) {
+            droppedCount++;
+            continue;
+        }
+
+        if (lastValidPoint) {
+            const distKm = calculateHaversineDistance(
+                lastValidPoint.lat,
+                lastValidPoint.lng,
+                numLat,
+                numLng
+            );
+            const timeDiffSec = (timestamp.getTime() - lastValidPoint.timestamp.getTime()) / 1000;
+
+            // 2. Teleportation / Cell-tower spike check:
+            // If elapsed time is positive and implied speed > 180 km/h, drop as unrealistic outlier jump
+            if (timeDiffSec > 0) {
+                const impliedSpeed = (distKm / (timeDiffSec / 3600));
+                if (impliedSpeed > 180) {
+                    droppedCount++;
+                    continue;
+                }
+            }
+
+            // 3. Stationary duplicate check:
+            // If movement is under 3 meters and speed is near 0, and time diff is under 20 seconds, drop redundant point
+            if (distKm < 0.003 && speed < 3 && timeDiffSec < 20) {
+                droppedCount++;
+                continue;
+            }
+        }
+
+        const pointDoc = {
+            taskId: resolvedTaskId,
+            vehicleId: authorizedSource.vehicle._id,
+            driverId,
+            companyId,
+            teamId,
+            lat: numLat,
+            lng: numLng,
+            speed,
+            heading,
+            accuracy,
+            timestamp
+        };
+
+        cleanPointsToInsert.push(pointDoc);
+        lastValidPoint = pointDoc;
+    }
+
+    if (cleanPointsToInsert.length > 0) {
+        // Bulk insert points into TaskLivePoint
+        if (resolvedTaskId) {
+            await TaskLivePoint.insertMany(cleanPointsToInsert, { ordered: true });
+        }
+
+        const newestPoint = cleanPointsToInsert[cleanPointsToInsert.length - 1];
+
+        // Update in-memory latest position
+        latestPositions.set(canonicalVehicleId, {
+            lat: newestPoint.lat,
+            lng: newestPoint.lng,
+            speed: newestPoint.speed,
+            heading: newestPoint.heading,
+            updatedAt: newestPoint.timestamp
+        });
+
+        // Update vehicle's live state in MongoDB
+        const computedStatus = newestPoint.speed >= 3 ? gpsStatus.MOVING : (resolvedTaskId ? gpsStatus.IDLE : gpsStatus.AVAILABLE);
+
+        const updatedVehicle = await Vehicle.findOneAndUpdate(
+            {
+                _id: authorizedSource.vehicle._id,
+                companyId,
+                teamId,
+                status: vehicleStatus.ACTIVE,
+                isDeleted: false
+            },
+            {
+                $set: {
+                    currentLocation: {
+                        lat: newestPoint.lat,
+                        lng: newestPoint.lng,
+                        speed: Math.round(newestPoint.speed * 10) / 10,
+                        heading: Math.round(newestPoint.heading),
+                        updatedAt: newestPoint.timestamp
+                    },
+                    gpsStatus: computedStatus
+                }
+            },
+            { returnDocument: 'after' }
+        )
+            .populate("driverId", "name email phone avatar")
+            .populate("teamId", "name");
+
+        return {
+            processedCount: cleanPointsToInsert.length,
+            droppedCount,
+            latestTelemetry: updatedVehicle ? {
+                vehicleId: updatedVehicle._id.toString(),
+                plateNumber: updatedVehicle.plateNumber,
+                model: updatedVehicle.model,
+                year: updatedVehicle.year,
+                vehicleType: updatedVehicle.vehicleType,
+                teamId: updatedVehicle.teamId?._id ? updatedVehicle.teamId._id.toString() : updatedVehicle.teamId?.toString(),
+                teamName: updatedVehicle.teamId?.name,
+                driverId: updatedVehicle.driverId?._id ? updatedVehicle.driverId._id.toString() : updatedVehicle.driverId?.toString(),
+                driverName: updatedVehicle.driverId?.name,
+                driverPhone: updatedVehicle.driverId?.phone,
+                driverAvatar: updatedVehicle.driverId?.avatar,
+                currentLocation: {
+                    lat: newestPoint.lat,
+                    lng: newestPoint.lng,
+                    speed: Math.round(newestPoint.speed * 10) / 10,
+                    heading: Math.round(newestPoint.heading),
+                    updatedAt: newestPoint.timestamp.toISOString()
+                },
+                gpsStatus: computedStatus,
+                isInTask: !!resolvedTaskId,
+                activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined
+            } : null
+        };
+    }
+
+    return { processedCount: 0, droppedCount };
+}
+
 module.exports = {
     calculateHaversineDistance,
     encodePolyline,
     stopTelemetryTracking,
     processTelemetryUpdate,
-    finalizeTripSummary
+    finalizeTripSummary,
+    ingestBatchTelemetry
 };

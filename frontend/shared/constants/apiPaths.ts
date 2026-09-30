@@ -98,5 +98,6 @@ export const API_PATHS = {
     TASK_POINTS: (taskId: string) => `api/gps/trip-path/${taskId}`,
     TRIP_SUMMARY: (taskId: string) => `api/gps/trip-summary/${taskId}`,
     VEHICLE_HISTORY: (vehicleId: string) => `api/gps/history/${vehicleId}`,
+    BATCH_TELEMETRY: 'api/gps/telemetry/batch',
   },
 } as const;
