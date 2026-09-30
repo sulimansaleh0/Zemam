@@ -34,6 +34,7 @@ import {
 import { DriverHeader } from '@/features/driver/components/DriverHeader';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { driverTaskService } from '@/features/driver/services/driverTaskService';
+import { gpsService } from '@/features/gps/services/gps.service';
 
 // استيراد خريطة الـ Leaflet ديناميكياً لتجنب مشاكل الـ SSR
 const DriverLiveMap = dynamic(
@@ -82,6 +83,10 @@ export default function DriverMobileTrackingPage() {
     heading: number;
     accuracy: number;
   } | null>(null);
+
+  const [traversedPath, setTraversedPath] = useState<
+    Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }>
+  >([]);
 
   const [tripStats, setTripStats] = useState({
     sentPointsCount: 0,
@@ -165,6 +170,45 @@ export default function DriverMobileTrackingPage() {
             setVehicleId(vId);
             if (vObj.plateNumber) setPlateNumber(vObj.plateNumber);
           }
+
+          // استعادة مسار المهمة الحالية لتجنب ظهور خط مستقيم بعد إعادة التحميل
+          if (chosen.status === 'inprogress') {
+            try {
+              const [pathRes, queued] = await Promise.all([
+                gpsService.getLiveTripPath(chosen._id),
+                getQueuedTelemetry(),
+              ]);
+              const existingPoints: Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }> = [];
+              if (pathRes.success && pathRes.data?.path?.points) {
+                pathRes.data.path.points.forEach((p) => {
+                  existingPoints.push({
+                    lat: p.lat,
+                    lng: p.lng,
+                    speed: p.speed,
+                    heading: p.heading,
+                    timestamp: typeof p.timestamp === 'string' ? new Date(p.timestamp).getTime() : p.timestamp,
+                  });
+                });
+              }
+              // دمج أي نقاط في طابور الـ offline
+              if (queued && queued.length > 0) {
+                queued.forEach((q) => {
+                  if (q.lat && q.lng) {
+                    existingPoints.push({
+                      lat: q.lat,
+                      lng: q.lng,
+                      speed: q.speed,
+                      heading: q.heading,
+                      timestamp: q.timestamp,
+                    });
+                  }
+                });
+              }
+              if (existingPoints.length > 0) {
+                setTraversedPath(existingPoints);
+              }
+            } catch (err) {}
+          }
         }
       }
     } catch { } finally {
@@ -203,11 +247,16 @@ export default function DriverMobileTrackingPage() {
       try {
         const queued = await getQueuedTelemetry();
         if (queued.length > 0) {
-          queued.forEach((payload) => emitDriverLocation(payload));
-          await clearQueuedTelemetry();
-          setOfflineQueueCount(0);
-          setSuccessNotice(`تمت مزامنة ${queued.length} نبضة مخزنة تلقائياً.`);
-          setTimeout(() => setSuccessNotice(null), 3000);
+          // فرز النقاط تصاعدياً بدقة حسب الطابع الزمني
+          const sorted = [...queued].sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+          const res = await gpsService.sendBatchTelemetry(sorted);
+          if (res.success) {
+            await clearQueuedTelemetry();
+            setOfflineQueueCount(0);
+            const count = res.data?.processedCount || sorted.length;
+            setSuccessNotice(`تمت مزامنة ${count} نبضة مخزنة بدقة متناهية.`);
+            setTimeout(() => setSuccessNotice(null), 3500);
+          }
         }
 
         const actionsRes = await driverTaskService.flushOfflineActions();
@@ -215,6 +264,9 @@ export default function DriverMobileTrackingPage() {
           setSuccessNotice(`تمت مزامنة ${actionsRes.succeeded} عملية ميدانية مخزنة.`);
           setTimeout(() => setSuccessNotice(null), 3000);
         }
+      } catch (err) {
+        console.warn('[Driver] flushOfflineQueue error:', err);
+      }
       } catch { }
     };
 
@@ -266,6 +318,11 @@ export default function DriverMobileTrackingPage() {
     async ({ lat, lng, speed, heading, accuracy }: Coordinates) => {
       const now = Date.now();
 
+      // 1. فلترة الدقة (GPS Drift Filter): استبعاد القراءات الضعيفة التي تسبب قفزات وتشتتاً في المسار
+      if (accuracy > 35) {
+        return;
+      }
+
       const speedKmH = speed !== null && speed >= 0 ? Math.round(speed * 3.6) : 0;
       const headingDeg = heading !== null && !isNaN(heading) ? Math.round(heading) : 0;
 
@@ -280,24 +337,54 @@ export default function DriverMobileTrackingPage() {
       latestCoordsRef.current = coords;
       setCurrentCoords(coords);
 
+      let deltaMeters = 0;
       if (lastEmittedCoordsRef.current) {
-        const delta = calculateHaversineDistance(
+        const deltaKm = calculateHaversineDistance(
           lastEmittedCoordsRef.current.lat,
           lastEmittedCoordsRef.current.lng,
           lat,
           lng
         );
-        if (delta > 0.001) {
+        deltaMeters = deltaKm * 1000;
+
+        // 2. فحص القفزة المستحيلة (أكثر من 180 كم/ساعة) - حماية ضد شطحات أبراج الاتصال عند انقطاع/عودة النت
+        const elapsedSec = (now - lastEmittedTimeRef.current) / 1000;
+        if (elapsedSec > 0 && (deltaKm / (elapsedSec / 3600)) > 180) {
+          return;
+        }
+
+        if (deltaKm > 0.001) {
           setTripStats((prev) => ({
             ...prev,
-            totalDistanceMeters: prev.totalDistanceMeters + delta * 1000,
+            totalDistanceMeters: prev.totalDistanceMeters + deltaMeters,
             maxSpeed: Math.max(prev.maxSpeed, speedKmH),
           }));
         }
       }
 
+      // تحديث مسار الرسم المحلي: أضف النقطة فقط إذا تحركت المركبة مسافة حقيقية (لا تقل عن 5 أمتار)
+      setTraversedPath((prev) => {
+        if (prev.length === 0) {
+          return [{ lat: latitude, lng: longitude, speed: speedKmH, heading: headingDeg, timestamp: now }];
+        }
+        const last = prev[prev.length - 1];
+        const distFromLast = calculateHaversineDistance(last.lat, last.lng, latitude, longitude) * 1000;
+        if (distFromLast >= 5) {
+          return [...prev, { lat: latitude, lng: longitude, speed: speedKmH, heading: headingDeg, timestamp: now }];
+        }
+        return prev;
+      });
+
+      // قرار البث أو الحفظ في الـ Buffer:
+      // نرسل أو نخزن فقط إذا:
+      // أ) تحركت المركبة مسافة >= 5 أمتار
+      // ب) أو السرعة >= 3 كم/ساعة ومضت ثانية على الأقل
+      // ج) أو مضى 15 ثانية كنبضة حياة (Heartbeat) حتى لو كانت المركبة متوقفة
       const timeElapsed = now - lastEmittedTimeRef.current;
-      if (timeElapsed >= 1000) {
+      const isMoved = deltaMeters >= 5 || speedKmH >= 3;
+      const isHeartbeat = timeElapsed >= 15000;
+
+      if ((isMoved && timeElapsed >= 1000) || isHeartbeat) {
         const payload: DriverTelemetryPayload = {
           vehicleId,
           taskId: taskId.trim() || undefined,
@@ -374,41 +461,31 @@ export default function DriverMobileTrackingPage() {
     requestWakeLock();
     locationWatchCleanupRef.current = stopWatching;
 
+    // مؤقت نبضات احتياطي خفيف كل 10 ثوانٍ للتأكد من بث الموقع في حال توقف المركبة أثناء الاتصال
     if (broadcastIntervalRef.current) clearInterval(broadcastIntervalRef.current);
     broadcastIntervalRef.current = setInterval(async () => {
       const coords = latestCoordsRef.current;
       if (!coords || !vehicleId) return;
 
       const now = Date.now();
-      if (now - lastEmittedTimeRef.current < 900) return;
-
-      const payload: DriverTelemetryPayload = {
-        vehicleId,
-        taskId: taskId.trim() || undefined,
-        companyId: user?.companyId,
-        lat: coords.lat,
-        lng: coords.lng,
-        speed: coords.speed,
-        heading: coords.heading,
-        accuracy: coords.accuracy,
-        timestamp: now,
-      };
+      if (now - lastEmittedTimeRef.current < 9500) return;
 
       if (navigator.onLine) {
+        const payload: DriverTelemetryPayload = {
+          vehicleId,
+          taskId: taskId.trim() || undefined,
+          companyId: user?.companyId,
+          lat: coords.lat,
+          lng: coords.lng,
+          speed: coords.speed,
+          heading: coords.heading,
+          accuracy: coords.accuracy,
+          timestamp: now,
+        };
         emitDriverLocation(payload);
-        setTripStats((prev) => ({
-          ...prev,
-          sentPointsCount: prev.sentPointsCount + 1,
-          startTime: prev.startTime || now,
-        }));
-      } else {
-        await queueTelemetryPoint(payload);
-        setOfflineQueueCount((c) => c + 1);
+        lastEmittedTimeRef.current = now;
       }
-
-      lastEmittedTimeRef.current = now;
-      lastEmittedCoordsRef.current = { lat: coords.lat, lng: coords.lng };
-    }, 1000);
+    }, 10000);
 
     setIsBroadcasting(true);
     setTripStats((prev) => ({ ...prev, startTime: Date.now() }));
@@ -524,7 +601,8 @@ export default function DriverMobileTrackingPage() {
             pickupCoords={activeTask?.pickupLocation}
             deliveryCoords={activeTask?.deliveryLocation}
             plateNumber={plateNumber}
-            className="w-full h-[290px]"
+            traversedPath={traversedPath}
+            className="w-full"
           />
         </div>
 

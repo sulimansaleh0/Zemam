@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Compass,
@@ -12,6 +12,8 @@ import { FleetGpsSidebar } from './FleetGpsSidebar';
 import { VehicleTelemetryDrawer } from './VehicleTelemetryDrawer';
 import { TripSummaryModal } from './TripSummaryModal';
 import { gpsService } from '../services/gps.service';
+import { getGpsSocket } from '../services/gpsSocket';
+import { calculateHaversineDistance } from '../utils/gpsHelpers';
 import type { TripSummary } from '../types/gps.types';
 
 // استيراد خريطة Leaflet ديناميكياً مع تعطيل SSR
@@ -41,65 +43,98 @@ export function GpsTrackerView() {
   const [activeTripSummary, setActiveTripSummary] = useState<TripSummary | null>(null);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [selectedVehiclePath, setSelectedVehiclePath] = useState<[number, number][]>([]);
+  const [selectedVehiclePath, setSelectedVehiclePath] = useState<
+    Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: string | number }>
+  >([]);
 
-  // استرجاع النقاط المقطوعة الحية للمركبة المحددة أثناء قيامها بمهمة
+  // استرجاع النقاط المقطوعة الحية للمهمة
+  const fetchLivePath = useCallback(async (taskId: string) => {
+    try {
+      const res = await gpsService.getLiveTripPath(taskId);
+      if (res.success && res.data) {
+        const pts = res.data.path?.points || (res.data as any)?.points;
+        if (pts && pts.length > 0) {
+          const trajectoryPoints = pts.map((p: any) => ({
+            lat: p.lat,
+            lng: p.lng,
+            speed: p.speed,
+            heading: p.heading,
+            timestamp: p.timestamp,
+          }));
+          setSelectedVehiclePath(trajectoryPoints);
+          return;
+        }
+      }
+    } catch {}
+  }, []);
+
+  // استرجاع المسار الأولي عند اختيار المركبة أو تغير المهمة
   useEffect(() => {
     if (!selectedVehicle?.isInTask || !selectedVehicle?.activeTaskId) {
       setSelectedVehiclePath([]);
       return;
     }
 
-    let isMounted = true;
-    const taskId = selectedVehicle.activeTaskId;
+    fetchLivePath(selectedVehicle.activeTaskId);
+  }, [selectedVehicle?.vehicleId, selectedVehicle?.activeTaskId, fetchLivePath]);
 
-    gpsService
-      .getLiveTripPath(taskId)
-      .then((res) => {
-        if (!isMounted) return;
-        if (res.success && res.data) {
-          const pts = res.data.path?.points || (res.data as any)?.points;
-          if (pts && pts.length > 0) {
-            const coords: [number, number][] = pts.map((p: { lat: number; lng: number }) => [p.lat, p.lng]);
-            const cur = selectedVehicle.currentLocation;
-            if (cur?.lat && cur?.lng) {
-              const last = coords[coords.length - 1];
-              if (!last || Math.abs(last[0] - cur.lat) > 0.00005 || Math.abs(last[1] - cur.lng) > 0.00005) {
-                coords.push([cur.lat, cur.lng]);
-              }
-            }
-            setSelectedVehiclePath(coords);
-            return;
-          }
-        }
-        if (selectedVehicle.currentLocation?.lat && selectedVehicle.currentLocation?.lng) {
-          setSelectedVehiclePath([[selectedVehicle.currentLocation.lat, selectedVehicle.currentLocation.lng]]);
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
+  // الاستماع لحدث مزامنة مسار المهمة بعد عودة السائق من وضع عدم الاتصال (Offline Sync Event)
+  useEffect(() => {
+    const socket = getGpsSocket();
+    const onPathSynced = (data: { taskId: string; vehicleId: string }) => {
+      if (selectedVehicle?.activeTaskId && data.taskId === selectedVehicle.activeTaskId) {
+        fetchLivePath(data.taskId);
+      }
     };
-  }, [selectedVehicle?.vehicleId, selectedVehicle?.activeTaskId]);
 
-  // تحديث مسار المركبة المباشر عند تحركها
+    socket.on('task:path_synced', onPathSynced);
+    return () => {
+      socket.off('task:path_synced', onPathSynced);
+    };
+  }, [selectedVehicle?.activeTaskId, fetchLivePath]);
+
+  // تحديث مسار المركبة المباشر عند تحركها، وتفادي رسم خطوط مستقيمة عند القفزات المتباعدة
   useEffect(() => {
     if (!selectedVehicle?.isInTask || !selectedVehicle?.currentLocation?.lat || !selectedVehicle?.currentLocation?.lng) {
       return;
     }
     const curLat = selectedVehicle.currentLocation.lat;
     const curLng = selectedVehicle.currentLocation.lng;
+    const curSpeed = selectedVehicle.currentLocation.speed;
+    const curHeading = selectedVehicle.currentLocation.heading;
 
     setSelectedVehiclePath((prev) => {
-      if (prev.length === 0) return [[curLat, curLng]];
+      const newPt = {
+        lat: curLat,
+        lng: curLng,
+        speed: curSpeed,
+        heading: curHeading,
+        timestamp: Date.now(),
+      };
+      if (prev.length === 0) return [newPt];
       const last = prev[prev.length - 1];
-      if (Math.abs(last[0] - curLat) > 0.00005 || Math.abs(last[1] - curLng) > 0.00005) {
-        return [...prev, [curLat, curLng]];
+
+      // إذا كانت المسافة بين آخر نقطة مرسومة والموقع الجديد أكثر من 100 متر (دلالة على فجوة انقطاع نت)
+      // نقوم بإعادة جلب المسار الكامل من الخادم فوراً لملء المنحنيات بالنقاط الحقيقية بدلاً من رسم خط مستقيم
+      const distKm = calculateHaversineDistance(last.lat, last.lng, curLat, curLng);
+      if (distKm > 0.1 && selectedVehicle.activeTaskId) {
+        fetchLivePath(selectedVehicle.activeTaskId);
+        return prev;
+      }
+
+      if (Math.abs(last.lat - curLat) > 0.00005 || Math.abs(last.lng - curLng) > 0.00005) {
+        return [...prev, newPt];
       }
       return prev;
     });
-  }, [selectedVehicle?.currentLocation?.lat, selectedVehicle?.currentLocation?.lng]);
+  }, [
+    selectedVehicle?.currentLocation?.lat,
+    selectedVehicle?.currentLocation?.lng,
+    selectedVehicle?.currentLocation?.speed,
+    selectedVehicle?.currentLocation?.heading,
+    selectedVehicle?.activeTaskId,
+    fetchLivePath,
+  ]);
 
   // استعراض ملخص آخر رحلة منتهية للمركبة
   const handleViewRecentTrip = async (vehicleId: string) => {

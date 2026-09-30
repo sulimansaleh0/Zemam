@@ -61,6 +61,10 @@ export async function fetchDrivingRoute(
       const coordinates: [number, number][] = route.geometry.coordinates.map(
         ([lng, lat]: [number, number]) => [lat, lng]
       );
+      if (coordinates.length > 0) {
+        coordinates[0] = start;
+        coordinates[coordinates.length - 1] = end;
+      }
       const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
       const durationMinutes = Math.max(1, Math.round(route.duration / 60));
 

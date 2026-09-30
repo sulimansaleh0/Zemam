@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middlewares/verifyToken");
-const { getLiveFleet, getTripSummary, getVehicleHistory, getLiveTripPath } = require("../controllers/gps.controller");
+const { getLiveFleet, getTripSummary, getVehicleHistory, getLiveTripPath, ingestBatchTelemetry } = require("../controllers/gps.controller");
 const getTeam = require("../middlewares/getTeam");
 
 router.use(verifyToken)
@@ -11,5 +11,6 @@ router.get("/live", getLiveFleet);
 router.get("/trip-path/:taskId", getLiveTripPath);
 router.get("/trip-summary/:taskId", getTripSummary);
 router.get("/history/:vehicleId", getVehicleHistory);
+router.post("/telemetry/batch", ingestBatchTelemetry);
 
 module.exports = router;

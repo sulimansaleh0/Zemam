@@ -1,31 +1,43 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import {
-  Locate,
-  Maximize2,
-  Pin,
-} from 'lucide-react';
 import type { VehicleLiveTelemetry } from '../types/gps.types';
 import { getCurrentLocation } from '@/shared/lib/navigatorClient';
 import {
   createUnifiedVehicleMarker,
   createUnifiedLocationPin,
   createBreadcrumbDot,
-  UNIFIED_MAP_TILE_URL,
-  UNIFIED_MAP_ATTRIBUTION,
+  MAP_TILE_STYLES,
+  type MapTileStyleId,
 } from '../utils/mapMarkers';
+import { MapControls } from './MapControls';
 
 const COMPANY_HQ_STORAGE_KEY = 'zemam_company_hq_center';
+const MAP_STYLE_STORAGE_KEY = 'zemam_map_style_preference';
+
+export interface TrajectoryPoint {
+  lat: number;
+  lng: number;
+  speed?: number;
+  heading?: number;
+  timestamp?: string | number;
+}
 
 interface GpsMapCanvasProps {
   vehicles: VehicleLiveTelemetry[];
   selectedVehicleId: string | null;
   onSelectVehicle?: (vehicleId: string) => void;
-  activePolyline?: [number, number][];
+  activePolyline?: Array<[number, number] | TrajectoryPoint>;
   className?: string;
+}
+
+function normalizePoint(p: [number, number] | TrajectoryPoint): TrajectoryPoint {
+  if (Array.isArray(p)) {
+    return { lat: p[0], lng: p[1] };
+  }
+  return p;
 }
 
 function createVehicleMarkerIcon(v: VehicleLiveTelemetry, isSelected: boolean) {
@@ -34,6 +46,7 @@ function createVehicleMarkerIcon(v: VehicleLiveTelemetry, isSelected: boolean) {
     speed: v.currentLocation?.speed,
     heading: v.currentLocation?.heading,
     status: v.gpsStatus,
+    vehicleType: v.vehicleType || 'normal',
     isSelected,
   });
 }
@@ -47,15 +60,20 @@ export default function GpsMapCanvas({
 }: GpsMapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const polylineRef = useRef<L.Polyline | null>(null);
   const polylineCasingRef = useRef<L.Polyline | null>(null);
   const startPointMarkerRef = useRef<L.Marker | null>(null);
+  const geofenceCircleRef = useRef<L.Circle | null>(null);
   const waypointsLayerRef = useRef<L.LayerGroup | null>(null);
+
   const hasAutoCenteredRef = useRef(false);
   const hasFittedFleetRef = useRef(false);
   const hasFittedPolylineRef = useRef(false);
 
+  const [currentStyleId, setCurrentStyleId] = useState<MapTileStyleId>('voyager');
+  const [isFollowingVehicle, setIsFollowingVehicle] = useState(false);
   const [hqSavedNotice, setHqSavedNotice] = useState(false);
 
   const onSelectVehicleRef = useRef(onSelectVehicle);
@@ -63,12 +81,22 @@ export default function GpsMapCanvas({
     onSelectVehicleRef.current = onSelectVehicle;
   }, [onSelectVehicle]);
 
-  // 1. تهيئة الخريطة وتحديد المركز الذكي
+  // استرجاع تفضيل نمط الخريطة المحفوظ
+  useEffect(() => {
+    try {
+      const savedStyle = localStorage.getItem(MAP_STYLE_STORAGE_KEY) as MapTileStyleId;
+      if (savedStyle && MAP_TILE_STYLES[savedStyle]) {
+        setCurrentStyleId(savedStyle);
+      }
+    } catch { }
+  }, []);
+
+  // 1. تهيئة خريطة Leaflet
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     let initialCenter: [number, number] = [31.9522, 35.2332];
-    let initialZoom = 9;
+    let initialZoom = 10;
 
     try {
       const savedHq = localStorage.getItem(COMPANY_HQ_STORAGE_KEY);
@@ -87,20 +115,35 @@ export default function GpsMapCanvas({
       zoomControl: false,
     });
 
-    // وضع أزرار التقريب في الزاوية العلوية المقابلة لمنع أي تداخل
-    L.control.zoom({ position: 'topright' }).addTo(map);
+    // موضع أزرار التقريب والتصغير في الزاوية السفلية لمنع أي تداخل مع الرأس
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    L.tileLayer(UNIFIED_MAP_TILE_URL, {
-      maxZoom: 19,
-      attribution: UNIFIED_MAP_ATTRIBUTION,
+    // مقياس الرسم المتري في الزاوية السفلية (Scale bar in meters & km)
+    L.control.scale({ imperial: false, metric: true, position: 'bottomright' }).addTo(map);
+
+    // طبقة البلاطات الأولى
+    const initialStyleConfig = MAP_TILE_STYLES[currentStyleId] || MAP_TILE_STYLES.voyager;
+    const tileLayer = L.tileLayer(initialStyleConfig.url, {
+      maxZoom: initialStyleConfig.maxZoom,
+      attribution: initialStyleConfig.attribution,
+      subdomains: (initialStyleConfig.subdomains as any) || 'abc',
     }).addTo(map);
 
+    tileLayerRef.current = tileLayer;
     mapRef.current = map;
 
-    // محاولة التقاط موقع المتصفح تلقائياً إذا لم يكن هناك مركز محفوظ
-    if (!localStorage.getItem(COMPANY_HQ_STORAGE_KEY)) {
-      void getCurrentLocation()
-        .then(({ lat, lng }) => {
+    // طبقة نقاط المسار
+    waypointsLayerRef.current = L.layerGroup().addTo(map);
+
+    // إلغاء وضع التتبع التلقائي عند قيام المستخدم بسحب الخريطة يدوياً
+    map.on('dragstart', () => {
+      setIsFollowingVehicle(false);
+    });
+
+    // التقاط الموقع الأولي تلقائياً إذا لم يكن هناك مركز محفوظ
+    if (!localStorage.getItem(COMPANY_HQ_STORAGE_KEY) && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
           if (mapRef.current && !hasAutoCenteredRef.current) {
             mapRef.current.setView([lat, lng], 13);
             hasAutoCenteredRef.current = true;
@@ -120,7 +163,32 @@ export default function GpsMapCanvas({
     };
   }, []);
 
-  // 2. تحديث زاوية الرؤية تلقائياً لتشمل كامل أسطول الشركة
+  // 2. تحديث طبقة البلاطات عند تغيير نمط الخريطة
+  const handleStyleChange = useCallback((newStyleId: MapTileStyleId) => {
+    setCurrentStyleId(newStyleId);
+    try {
+      localStorage.setItem(MAP_STYLE_STORAGE_KEY, newStyleId);
+    } catch { }
+
+    const map = mapRef.current;
+    if (!map) return;
+
+    const styleConfig = MAP_TILE_STYLES[newStyleId] || MAP_TILE_STYLES.voyager;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    const newLayer = L.tileLayer(styleConfig.url, {
+      maxZoom: styleConfig.maxZoom,
+      attribution: styleConfig.attribution,
+      subdomains: (styleConfig.subdomains as any) || 'abc',
+    }).addTo(map);
+
+    tileLayerRef.current = newLayer;
+  }, []);
+
+  // 3. ضبط زاوية الرؤية لتشمل كامل الأسطول عند التحميل
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -137,16 +205,16 @@ export default function GpsMapCanvas({
 
     if (validCoords.length > 0 && !hasFittedFleetRef.current && !selectedVehicleId) {
       if (validCoords.length === 1) {
-        map.setView(validCoords[0], 15, { animate: true });
+        map.setView(validCoords[0], 14, { animate: true });
       } else {
         const bounds = L.latLngBounds(validCoords);
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+        map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15 });
       }
       hasFittedFleetRef.current = true;
     }
   }, [vehicles, selectedVehicleId]);
 
-  // 3. تحديث مؤشرات المركبات الحية
+  // 4. تحديث مؤشرات المركبات الحية وحركتها
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -167,17 +235,19 @@ export default function GpsMapCanvas({
       if (existingMarker) {
         existingMarker.setLatLng([lat, lng]);
         existingMarker.setIcon(createVehicleMarkerIcon(v, isSelected));
-        if (isSelected) {
-          map.panTo([lat, lng], { animate: true, duration: 0.5 });
+        if (isSelected && isFollowingVehicle) {
+          map.panTo([lat, lng], { animate: true, duration: 0.6 });
         }
       } else {
         const marker = L.marker([lat, lng], {
           icon: createVehicleMarkerIcon(v, isSelected),
+          zIndexOffset: isSelected ? 1000 : 200,
         }).addTo(map);
 
         marker.on('click', () => {
           if (onSelectVehicleRef.current) {
             onSelectVehicleRef.current(v.vehicleId);
+            setIsFollowingVehicle(true);
           }
         });
 
@@ -185,15 +255,16 @@ export default function GpsMapCanvas({
       }
     });
 
+    // إزالة المركبات غير المتواجدة
     markersRef.current.forEach((marker, vehicleId) => {
       if (!activeVehicleIds.has(vehicleId)) {
         marker.remove();
         markersRef.current.delete(vehicleId);
       }
     });
-  }, [vehicles, selectedVehicleId]);
+  }, [vehicles, selectedVehicleId, isFollowingVehicle]);
 
-  // 4. التمركز على مركبة محددة عند النقر عليها
+  // 5. التمركز على المركبة المحددة بسلاسة
   useEffect(() => {
     hasFittedPolylineRef.current = false;
     const map = mapRef.current;
@@ -201,14 +272,14 @@ export default function GpsMapCanvas({
 
     const v = vehicles.find((item) => item.vehicleId === selectedVehicleId);
     if (v?.currentLocation?.lat && v?.currentLocation?.lng) {
-      map.flyTo([v.currentLocation.lat, v.currentLocation.lng], 15, {
+      map.flyTo([v.currentLocation.lat, v.currentLocation.lng], 16, {
         animate: true,
-        duration: 1.0,
+        duration: 0.9,
       });
     }
   }, [selectedVehicleId]);
 
-  // 5. رسم مسار الرحلة وتحديد النقاط المقطوعة
+  // 6. رسم خط السير الفعلي، نطاق الوصول الجغرافي، ونقاط الأثر الملونة
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -218,59 +289,76 @@ export default function GpsMapCanvas({
     }
 
     if (activePolyline && activePolyline.length > 1) {
-      // الغلاف الخارجي المتوهج
+      const normalizedPoints = activePolyline.map(normalizePoint);
+      const latLngs: [number, number][] = normalizedPoints.map((p) => [p.lat, p.lng]);
+
+      // الغلاف الخارجي النيوني المتوهج (Outer Glow Casing)
       if (!polylineCasingRef.current) {
-        polylineCasingRef.current = L.polyline(activePolyline, {
-          color: '#1d4ed8',
+        polylineCasingRef.current = L.polyline(latLngs, {
+          color: '#0284c7',
           weight: 9,
           opacity: 0.35,
           lineJoin: 'round',
           lineCap: 'round',
         }).addTo(map);
       } else {
-        polylineCasingRef.current.setLatLngs(activePolyline);
+        polylineCasingRef.current.setLatLngs(latLngs);
       }
 
-      // خط السير الرئيسي المقطوع
+      // خط السير الرئيسي المقطوع الصلب
       if (!polylineRef.current) {
-        polylineRef.current = L.polyline(activePolyline, {
-          color: '#2563eb',
-          weight: 5,
+        polylineRef.current = L.polyline(latLngs, {
+          color: '#0284c7',
+          weight: 4.5,
           opacity: 0.95,
           lineJoin: 'round',
           lineCap: 'round',
         }).addTo(map);
       } else {
-        polylineRef.current.setLatLngs(activePolyline);
+        polylineRef.current.setLatLngs(latLngs);
       }
 
-      // مؤشر نقطة البداية
-      const startCoord = activePolyline[0];
+      // دبوس نقطة الانطلاق
+      const startCoord = latLngs[0];
       if (!startPointMarkerRef.current) {
         startPointMarkerRef.current = L.marker(startCoord, {
-          icon: createUnifiedLocationPin('start'),
+          icon: createUnifiedLocationPin('start', 'نقطة الانطلاق'),
         }).addTo(map);
       } else {
         startPointMarkerRef.current.setLatLng(startCoord);
       }
 
-      // النقاط المقطوعة (Breadcrumb Trail Dots)
+      // دائرة النطاق الجغرافي لانطلاق الرحلة (Geofence Arrival Zone - 80m)
+      if (!geofenceCircleRef.current) {
+        geofenceCircleRef.current = L.circle(startCoord, {
+          radius: 80,
+          color: '#10b981',
+          weight: 1.5,
+          dashArray: '4, 4',
+          fillColor: '#10b981',
+          fillOpacity: 0.12,
+        }).addTo(map);
+      } else {
+        geofenceCircleRef.current.setLatLng(startCoord);
+      }
+
+      // رسم نقاط الأثر المقطوعة بدقة وتلوينها بالسرعة (Breadcrumbs)
       if (waypointsLayerRef.current) {
         waypointsLayerRef.current.clearLayers();
-        const step = activePolyline.length > 50 ? Math.ceil(activePolyline.length / 50) : 1;
-        activePolyline.forEach((pt, i) => {
-          if (i === 0 || i === activePolyline.length - 1) return;
+        const step = normalizedPoints.length > 60 ? Math.ceil(normalizedPoints.length / 60) : 1;
+        normalizedPoints.forEach((pt, i) => {
+          if (i === 0 || i === normalizedPoints.length - 1) return;
           if (i % step !== 0) return;
 
-          const dot = createBreadcrumbDot(pt[0], pt[1], i + 1);
+          const dot = createBreadcrumbDot(pt.lat, pt.lng, i + 1, pt.speed, pt.timestamp);
           dot.addTo(waypointsLayerRef.current!);
         });
       }
 
       if (!hasFittedPolylineRef.current) {
         try {
-          const bounds = L.latLngBounds(activePolyline);
-          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+          const bounds = L.latLngBounds(latLngs);
+          map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
           hasFittedPolylineRef.current = true;
         } catch { }
       }
@@ -288,13 +376,17 @@ export default function GpsMapCanvas({
         startPointMarkerRef.current.remove();
         startPointMarkerRef.current = null;
       }
+      if (geofenceCircleRef.current) {
+        geofenceCircleRef.current.remove();
+        geofenceCircleRef.current = null;
+      }
       if (waypointsLayerRef.current) {
         waypointsLayerRef.current.clearLayers();
       }
     }
   }, [activePolyline]);
 
-  // دوال الإجراءات
+  // دوال التحكم
   const handleFitAllFleet = () => {
     const map = mapRef.current;
     if (!map) return;
@@ -305,7 +397,7 @@ export default function GpsMapCanvas({
 
     if (validCoords.length > 0) {
       if (validCoords.length === 1) {
-        map.flyTo(validCoords[0], 14);
+        map.flyTo(validCoords[0], 14, { duration: 1 });
       } else {
         const bounds = L.latLngBounds(validCoords);
         map.fitBounds(bounds, { padding: [70, 70], maxZoom: 14 });
@@ -314,17 +406,16 @@ export default function GpsMapCanvas({
   };
 
   const handleLocateMe = () => {
-    if (!mapRef.current) return;
-    void getCurrentLocation()
-      .then(({ lat, lng }) => {
-        mapRef.current?.flyTo([lat, lng], 14, {
-          duration: 1.5,
+    if (!navigator.geolocation || !mapRef.current) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        mapRef.current?.flyTo([pos.coords.latitude, pos.coords.longitude], 15, {
+          duration: 1.2,
         });
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        alert('تعذر التقاط موقع المتصفح: ' + message);
-      });
+      },
+      (err) => alert('تعذر التقاط موقع المتصفح: ' + err.message),
+      { enableHighAccuracy: true }
+    );
   };
 
   const handleSaveCompanyHq = () => {
@@ -338,49 +429,33 @@ export default function GpsMapCanvas({
     setTimeout(() => setHqSavedNotice(false), 3000);
   };
 
+  const selectedVehicle = vehicles.find((v) => v.vehicleId === selectedVehicleId);
+
   return (
     <div className={`relative h-full w-full overflow-hidden ${className}`}>
       {/* حاوية الخريطة */}
       <div ref={containerRef} className="h-full w-full" />
 
-      {/* شريط أدوات الخريطة الأفقي في الزاوية العلوية (بدون تداخل) */}
-      <div className="absolute top-3 start-3 z-[500] flex items-center gap-1.5 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)]/95 p-1 shadow-md backdrop-blur-md">
-        <button
-          onClick={handleFitAllFleet}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--zd-text)] hover:bg-[var(--zd-surface-2)] transition-colors cursor-pointer"
-          title="تركيز الكاميرا على كامل أسطول الشركة"
-        >
-          <Maximize2 className="h-3.5 w-3.5 text-blue-500" />
-          <span className="hidden md:inline">كل الأسطول</span>
-        </button>
-
-        <div className="h-3.5 w-px bg-[var(--zd-line)]" />
-
-        <button
-          onClick={handleLocateMe}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--zd-text)] hover:bg-[var(--zd-surface-2)] transition-colors cursor-pointer"
-          title="التمركز على موقعي الجغرافي الحالي"
-        >
-          <Locate className="h-3.5 w-3.5 text-emerald-500" />
-          <span className="hidden md:inline">موقعي</span>
-        </button>
-
-        <div className="h-3.5 w-px bg-[var(--zd-line)]" />
-
-        <button
-          onClick={handleSaveCompanyHq}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--zd-text)] hover:bg-[var(--zd-surface-2)] transition-colors cursor-pointer"
-          title="حفظ هذا المركز كمقر دائم للشركة"
-        >
-          <Pin className="h-3.5 w-3.5 text-amber-500" />
-          <span className="hidden md:inline">تعيين كمقر</span>
-        </button>
+      {/* شريط أدوات الخريطة الموحد في الزاوية العلوية المقابلة */}
+      <div className="absolute top-3 start-3">
+        <MapControls
+          currentStyleId={currentStyleId}
+          onStyleChange={handleStyleChange}
+          onFitFleet={handleFitAllFleet}
+          onLocateMe={handleLocateMe}
+          onSaveHq={handleSaveCompanyHq}
+          hasSelectedVehicle={!!selectedVehicleId}
+          isFollowingVehicle={isFollowingVehicle}
+          onToggleFollowVehicle={() => setIsFollowingVehicle(!isFollowingVehicle)}
+          selectedVehiclePlate={selectedVehicle?.plateNumber}
+          containerElement={containerRef.current}
+        />
       </div>
 
       {/* إشعار حفظ مقر الشركة بنجاح */}
       {hqSavedNotice && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[600] flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-xl">
-          <span>✓ تم حفظ المركز كمقر دائم للشركة</span>
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[600] flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-xl animate-in fade-in">
+          <span>✓ تم تعيين هذا المركز كمقر رسمي معتمد للمنشأة</span>
         </div>
       )}
     </div>

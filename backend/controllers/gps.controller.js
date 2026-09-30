@@ -2,9 +2,10 @@ const mongoose = require("mongoose");
 const Vehicle = require("../models/vehicle.model");
 const Task = require("../models/task.model");
 const TaskLivePoint = require("../models/taskLivePoint.model");
-const { encodePolyline } = require("../services/gpsIngestion.service");
+const { encodePolyline, calculateHaversineDistance, ingestBatchTelemetry } = require("../services/gpsIngestion.service");
 const { success, error, serverError } = require("../utils/responses");
 const { taskStatus, mainStatus } = require("../data/status");
+const { userRoles } = require("../data/roles");
 const fallBackTripSummary = require("../utils/fallBackTripSummary");
 
 /**
@@ -115,14 +116,30 @@ exports.getLiveTripPath = async (req, res) => {
             .select("lat lng speed heading accuracy timestamp")
             .lean();
 
-        const coordinates = points.map((point) => [point.lat, point.lng]);
+        // Clean coordinates: filter out bad accuracy (> 35m) and extreme teleportation jumps
+        const validPoints = [];
+        let prevValid = null;
+        for (const pt of points) {
+            if (pt.accuracy && pt.accuracy > 35) continue;
+            if (prevValid) {
+                const legDist = calculateHaversineDistance(prevValid.lat, prevValid.lng, pt.lat, pt.lng);
+                const elapsedHours = (new Date(pt.timestamp).getTime() - new Date(prevValid.timestamp).getTime()) / 3600000;
+                if (elapsedHours > 0 && (legDist / elapsedHours) > 180) {
+                    continue; // Skip spike
+                }
+            }
+            validPoints.push(pt);
+            prevValid = pt;
+        }
+
+        const coordinates = validPoints.map((point) => [point.lat, point.lng]);
 
         return success(res, 200, {
             path: {
                 taskId: task._id.toString(),
                 vehicleId: task.vehicleId.toString(),
                 encodedPath: encodePolyline(coordinates),
-                points
+                points: validPoints
             }
         });
     } catch (err) {
@@ -244,5 +261,63 @@ exports.getVehicleHistory = async (req, res) => {
     } catch (err) {
         console.error("❌ [GPS Controller] Error fetching vehicle history:", err);
         return serverError(res);
+    }
+};
+
+/**
+ * POST /api/gps/telemetry/batch
+ * Ingests a batch of telemetry points recorded while driver was offline
+ */
+exports.ingestBatchTelemetry = async (req, res) => {
+    const user = req.user;
+    const teamId = req.teamId;
+    const { points } = req.body;
+
+    if (user.role !== userRoles.DRIVER) {
+        return error(res, 403, "Only drivers can upload telemetry batches");
+    }
+
+    if (!Array.isArray(points) || points.length === 0) {
+        return error(res, 400, "A non-empty points array is required");
+    }
+
+    try {
+        const result = await ingestBatchTelemetry({
+            driverId: user._id,
+            companyId: user.companyId,
+            teamId,
+            points
+        });
+
+        // Broadcast latest location to fleet tracking rooms
+        if (result.latestTelemetry) {
+            try {
+                const { getIO } = require("../services/socket.service");
+                const io = getIO();
+                io.to(`company_${user.companyId}`).emit("vehicle:location_changed", result.latestTelemetry);
+                if (teamId) {
+                    io.to(`team_${teamId}`).emit("vehicle:location_changed", result.latestTelemetry);
+                }
+                // Notify task path updated
+                if (result.latestTelemetry.activeTaskId) {
+                    io.to(`company_${user.companyId}`).emit("task:path_synced", {
+                        taskId: result.latestTelemetry.activeTaskId,
+                        vehicleId: result.latestTelemetry.vehicleId,
+                        syncedCount: result.processedCount
+                    });
+                }
+            } catch (socketErr) {
+                console.warn("[GPS Controller] Could not broadcast batch telemetry socket update:", socketErr.message);
+            }
+        }
+
+        return success(res, 200, {
+            message: `Successfully ingested ${result.processedCount} points (${result.droppedCount} outliers filtered)`,
+            processedCount: result.processedCount,
+            droppedCount: result.droppedCount
+        });
+    } catch (err) {
+        console.error("❌ [GPS Controller] Error ingesting batch telemetry:", err);
+        return error(res, 400, err.message || "Failed to ingest telemetry batch");
     }
 };
