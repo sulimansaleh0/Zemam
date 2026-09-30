@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
 import { teamService } from '../services/team.service';
-import { calculateTeamVehicleCounts } from '../utils/teamHelpers';
+import { calculateTeamDriverCounts, calculateTeamVehicleCounts } from '../utils/teamHelpers';
 import { useDriversList, useRemoveDriverFromTeam, getDriverTeamId } from '@/features/drivers';
 import { useVehicles, useRemoveVehicleFromTeam, getVehicleTeamId } from '@/features/vehicles';
 import { useManagers, useDisableManager, type FleetManager } from '@/features/managers';
@@ -206,6 +206,7 @@ export function useTeamsPage() {
   } = useTeams();
 
   const { data: vehiclesList = [] } = useVehicles();
+  const { data: driversList = [] } = useDriversList();
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -235,6 +236,9 @@ export function useTeamsPage() {
   const vehicleCounts = useMemo(() => {
     return calculateTeamVehicleCounts(vehiclesList);
   }, [vehiclesList]);
+  const driverCounts = useMemo(() => {
+    return calculateTeamDriverCounts(driversList);
+  }, [driversList]);
 
   const userName = user?.name || user?.email?.split('@')[0] || '';
 
@@ -272,6 +276,7 @@ export function useTeamsPage() {
     teamsList,
     vehiclesList,
     vehicleCounts,
+    driverCounts,
     isLoading,
     isError,
     error,
@@ -319,7 +324,11 @@ export function useTeamDetailPage(teamId: string) {
 
   // Team detail queries
   const { data: team, isLoading, isError, error } = useTeamDetail(teamId);
-  const { data: statics } = useTeamStatics(teamId);
+  const {
+    data: statics,
+    isError: isStaticsError,
+    error: staticsError,
+  } = useTeamStatics(teamId);
 
   // Related data
   const { data: allDrivers = [] } = useDriversList();
@@ -333,7 +342,6 @@ export function useTeamDetailPage(teamId: string) {
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
   const [isAddResourcesModalOpen, setIsAddResourcesModalOpen] = useState(false);
 
   useEffect(() => {
@@ -360,8 +368,8 @@ export function useTeamDetailPage(teamId: string) {
     typeof team?.managerId === 'object' && team?.managerId !== null
       ? team.managerId._id
       : typeof team?.managerId === 'string'
-      ? team.managerId
-      : null;
+        ? team.managerId
+        : null;
 
   const managerObj = useMemo(() => {
     if (!managerId) return null;
@@ -406,6 +414,8 @@ export function useTeamDetailPage(teamId: string) {
     // Data
     team,
     statics,
+    isStaticsError,
+    staticsError,
     teamDrivers,
     teamVehicles,
     managerId,
@@ -419,8 +429,6 @@ export function useTeamDetailPage(teamId: string) {
     setIsEditModalOpen,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
-    isAssignManagerModalOpen,
-    setIsAssignManagerModalOpen,
     isAddResourcesModalOpen,
     setIsAddResourcesModalOpen,
 

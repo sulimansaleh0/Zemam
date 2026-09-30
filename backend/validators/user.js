@@ -132,8 +132,9 @@ exports.createFleetManagerSchema = [
         .isEmail()
         .withMessage("Not valid email"),
     body("name")
-        .optional({ values: "falsy" })
         .trim()
+        .notEmpty()
+        .withMessage("Name is required")
         .isString()
         .withMessage("Name must be a string"),
     body("phone")

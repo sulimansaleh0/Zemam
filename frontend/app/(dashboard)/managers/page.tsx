@@ -12,10 +12,12 @@ import {
   ManagerStatsCards,
   ManagerDetailModal,
   type FleetManager,
+  type ManagerFilterStatus,
 } from '@/features/managers';
 
 export default function ManagersPage() {
   const [selectedManagerForDetail, setSelectedManagerForDetail] = useState<FleetManager | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ManagerFilterStatus>('all');
   const {
     isFleetManager,
     userName,
@@ -72,7 +74,7 @@ export default function ManagersPage() {
           <Header
             onMenu={() => setMenuOpen(true)}
             searchQuery=""
-            onSearchChange={() => {}}
+            onSearchChange={() => { }}
             userName={userName}
           />
 
@@ -106,14 +108,16 @@ export default function ManagersPage() {
                   <span>تحديث</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenAdd()}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>إضافة مدير أسطول</span>
-                </button>
+                {statusFilter !== 'inactive' && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAdd()}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>إضافة مدير أسطول</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -152,6 +156,8 @@ export default function ManagersPage() {
                 managers={managersList}
                 teams={teamsList}
                 isLoading={isLoading}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
                 onAddClick={() => handleOpenAdd()}
                 onDeleteClick={handleOpenDelete}
                 onAssignTeamClick={(manager) => setSelectedManagerForAssign(manager)}

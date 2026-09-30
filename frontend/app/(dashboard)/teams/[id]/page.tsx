@@ -12,7 +12,6 @@ import {
   Trash2,
   Plus,
   Unlink,
-  UserPlus,
   Car,
   AlertCircle,
   Loader2,
@@ -29,9 +28,11 @@ import {
   useTeamDetailPage,
   EditTeamModal,
   DeleteTeamModal,
-  AssignTeamManagerModal,
   AddResourcesToTeamModal,
+  getTeamCreatedAt,
 } from '@/features/teams';
+import { StatusPill } from '@/features/drivers';
+import { VehicleStatusBadge } from '@/features/vehicles';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.types';
 
@@ -48,6 +49,8 @@ export default function TeamDetailPage() {
     logout,
     team,
     statics,
+    isStaticsError,
+    staticsError,
     teamDrivers,
     teamVehicles,
     managerId,
@@ -59,8 +62,6 @@ export default function TeamDetailPage() {
     setIsEditModalOpen,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
-    isAssignManagerModalOpen,
-    setIsAssignManagerModalOpen,
     isAddResourcesModalOpen,
     setIsAddResourcesModalOpen,
     isDisablingManager,
@@ -130,7 +131,7 @@ export default function TeamDetailPage() {
           <Header
             onMenu={() => setMenuOpen(true)}
             searchQuery=""
-            onSearchChange={() => {}}
+            onSearchChange={() => { }}
             userName={userName}
           />
 
@@ -157,13 +158,11 @@ export default function TeamDetailPage() {
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
                         تاريخ الإنشاء:{' '}
-                        {team.createdAt
-                          ? new Date(team.createdAt).toLocaleDateString('ar-SA', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })
-                          : '—'}
+                        {getTeamCreatedAt(team)?.toLocaleDateString('ar-SA', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }) || '—'}
                       </span>
                     </div>
                   </div>
@@ -204,89 +203,102 @@ export default function TeamDetailPage() {
               const totalFuelCost = typeof statics?.FuelRecordsCost === 'number'
                 ? statics.FuelRecordsCost
                 : Array.isArray(statics?.FuelRecordsCost)
-                ? (statics.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
-                : 0;
+                  ? (statics.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+                  : 0;
 
               const totalMaintenanceCost = typeof statics?.maintenanceRecordsCost === 'number'
                 ? statics.maintenanceRecordsCost
                 : Array.isArray(statics?.maintenanceRecordsCost)
-                ? (statics.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
-                : 0;
+                  ? (statics.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
+                  : 0;
 
               return (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                      <span className="text-xs font-semibold">إجمالي السائقين</span>
-                      <Users className="w-4 h-4 text-blue-500" />
+                <>
+                  {isStaticsError && (
+                    <div className="mb-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
+                      {staticsError instanceof Error ? staticsError.message : 'تعذر تحميل إحصائيات الفريق'}
                     </div>
-                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{teamDrivers.length}</div>
-                    <div className="text-[10px] text-[var(--muted)] mt-1">كادر الفريق</div>
-                  </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">إجمالي السائقين</span>
+                        <Users className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{teamDrivers.length}</div>
+                      <div className="text-[10px] text-[var(--muted)] mt-1">كادر الفريق</div>
+                    </div>
 
-                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                      <span className="text-xs font-semibold">إجمالي المركبات</span>
-                      <Truck className="w-4 h-4 text-emerald-500" />
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">إجمالي المركبات</span>
+                        <Truck className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{teamVehicles.length}</div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">
+                        {statics?.activeVehicles ?? teamVehicles.length} نشطة
+                      </div>
                     </div>
-                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{teamVehicles.length}</div>
-                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">
-                      {statics?.activeVehicles ?? teamVehicles.length} نشطة
-                    </div>
-                  </div>
 
-                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                      <span className="text-xs font-semibold">المهام المنجزة</span>
-                      <CheckCheck className="w-4 h-4 text-teal-500" />
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">قيد الانتظار</span>
+                        <Clock className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{statics?.pendingTasks ?? 0}</div>
                     </div>
-                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">
-                      {statics?.finishedTasks ?? 0}
-                    </div>
-                    <div className="text-[10px] text-teal-600 dark:text-teal-400 mt-1">
-                      من أصل {statics?.totalTasks ?? 0} مهمة
-                    </div>
-                  </div>
 
-                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                      <span className="text-xs font-semibold">مهام جارية</span>
-                      <Clock className="w-4 h-4 text-amber-500" />
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">جارية</span>
+                        <Loader2 className="w-4 h-4 text-sky-500" />
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{statics?.inProgressTasks ?? 0}</div>
                     </div>
-                    <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">
-                      {statics?.inProgressTasks ?? 0}
-                    </div>
-                    <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
-                      {statics?.pendingTasks ?? 0} قيد الانتظار
-                    </div>
-                  </div>
 
-                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                      <span className="text-xs font-semibold">مصروفات الوقود</span>
-                      <Fuel className="w-4 h-4 text-sky-500" />
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">منجزة</span>
+                        <CheckCheck className="w-4 h-4 text-teal-500" />
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{statics?.finishedTasks ?? 0}</div>
                     </div>
-                    <div className="text-base sm:text-lg font-bold text-[var(--text)] truncate">
-                      {totalFuelCost.toLocaleString('ar-SA')} ر.س
-                    </div>
-                    <div className="text-[10px] text-[var(--muted)] mt-1">
-                      {statics?.FuelRecords ?? 0} سجل وقود
-                    </div>
-                  </div>
 
-                  <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-                    <div className="flex items-center justify-between text-[var(--muted)] mb-2">
-                      <span className="text-xs font-semibold">مصروفات الصيانة</span>
-                      <Wrench className="w-4 h-4 text-rose-500" />
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">مرفوضة</span>
+                        <AlertCircle className="w-4 h-4 text-rose-500" />
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-[var(--text)]">{statics?.declinedTasks ?? 0}</div>
                     </div>
-                    <div className="text-base sm:text-lg font-bold text-[var(--text)] truncate">
-                      {totalMaintenanceCost.toLocaleString('ar-SA')} ر.س
+
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">مصروفات الوقود</span>
+                        <Fuel className="w-4 h-4 text-sky-500" />
+                      </div>
+                      <div className="text-base sm:text-lg font-bold text-[var(--text)] truncate">
+                        {totalFuelCost.toLocaleString('ar-SA')} ر.س
+                      </div>
+                      <div className="text-[10px] text-[var(--muted)] mt-1">
+                        {statics?.FuelRecords ?? 0} سجل وقود
+                      </div>
                     </div>
-                    <div className="text-[10px] text-[var(--muted)] mt-1">
-                      {statics?.maintenanceRecords ?? 0} أمر صيانة
+
+                    <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+                      <div className="flex items-center justify-between text-[var(--muted)] mb-2">
+                        <span className="text-xs font-semibold">مصروفات الصيانة</span>
+                        <Wrench className="w-4 h-4 text-rose-500" />
+                      </div>
+                      <div className="text-base sm:text-lg font-bold text-[var(--text)] truncate">
+                        {totalMaintenanceCost.toLocaleString('ar-SA')} ر.س
+                      </div>
+                      <div className="text-[10px] text-[var(--muted)] mt-1">
+                        {statics?.maintenanceRecords ?? 0} أمر صيانة
+                      </div>
                     </div>
                   </div>
-                </div>
+                </>
               );
             })()}
 
@@ -332,15 +344,6 @@ export default function TeamDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAssignManagerModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--primary-light)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>{team.managerId ? 'تغيير المدير' : 'تعيين مدير للفريق'}</span>
-                  </button>
-
                   {team.managerId && managerId && (
                     <button
                       type="button"
@@ -357,7 +360,7 @@ export default function TeamDetailPage() {
             </div>
 
             {/* ── Team Drivers Table ── */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
+            <div className="min-w-0 p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-[var(--text)]">سائقو الفريق ({teamDrivers.length})</h2>
@@ -409,9 +412,7 @@ export default function TeamDetailPage() {
                             {driver.email}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                              {driver.status === 'active' ? 'نشط' : 'معطل'}
-                            </span>
+                            <StatusPill status={driver.status} />
                           </td>
                           <td className="py-3 px-4 text-center">
                             <button
@@ -432,7 +433,7 @@ export default function TeamDetailPage() {
             </div>
 
             {/* ── Team Vehicles Table ── */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
+            <div className="min-w-0 p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-[var(--text)]">مركبات الفريق ({teamVehicles.length})</h2>
@@ -486,9 +487,7 @@ export default function TeamDetailPage() {
                             {vehicle.driverName || '—'}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                              {vehicle.status === 'active' ? 'نشطة' : 'معطلة'}
-                            </span>
+                            <VehicleStatusBadge status={vehicle.status} isInTask={vehicle.isInTask} />
                           </td>
                           <td className="py-3 px-4 text-center">
                             <button
@@ -525,13 +524,6 @@ export default function TeamDetailPage() {
         onSuccess={() => router.push('/teams')}
         team={team}
         assignedVehiclesCount={teamVehicles.length}
-      />
-
-      {/* ── Assign Manager Modal ── */}
-      <AssignTeamManagerModal
-        isOpen={isAssignManagerModalOpen}
-        onClose={() => setIsAssignManagerModalOpen(false)}
-        team={team}
       />
 
       {/* ── Add Resources to Team Modal ── */}

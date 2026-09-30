@@ -93,7 +93,7 @@ exports.createFleetManager = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 9)
         const fleetManager = await User.create({
             email,
-            name: name?.trim() || email.split('@')[0],
+            name: name.trim(),
             phone: phone || undefined,
             password: passwordHash,
             companyId: user.companyId,

@@ -30,6 +30,8 @@ interface ManagersTableProps {
   managers: FleetManager[];
   teams: Team[];
   isLoading: boolean;
+  statusFilter: ManagerFilterStatus;
+  onStatusFilterChange: (status: ManagerFilterStatus) => void;
   onAddClick: () => void;
   onDeleteClick: (manager: FleetManager, teamName?: string) => void;
   onAssignTeamClick?: (manager: FleetManager) => void;
@@ -50,6 +52,8 @@ export function ManagersTable({
   managers,
   teams,
   isLoading,
+  statusFilter,
+  onStatusFilterChange,
   onAddClick,
   onDeleteClick,
   onAssignTeamClick,
@@ -58,7 +62,6 @@ export function ManagersTable({
   onViewDetailClick,
 }: ManagersTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ManagerFilterStatus>('all');
   const [sortOrder, setSortOrder] = useState<ManagerSortOrder>('newest');
 
   const toggleSort = () => {
@@ -122,34 +125,31 @@ export function ManagersTable({
           <div className="flex items-center gap-1 p-1 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl">
             <button
               type="button"
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                statusFilter === 'all'
+              onClick={() => onStatusFilterChange('all')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'all'
                   ? 'bg-[var(--primary)] text-white shadow-xs'
                   : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+                }`}
             >
               الكل ({managers.length})
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('active')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                statusFilter === 'active'
+              onClick={() => onStatusFilterChange('active')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'active'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+                }`}
             >
               نشط
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('inactive')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                statusFilter === 'inactive'
+              onClick={() => onStatusFilterChange('inactive')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'inactive'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+                }`}
             >
               معطل
             </button>
@@ -167,14 +167,16 @@ export function ManagersTable({
           </button>
 
           {/* Add Manager button */}
-          <button
-            type="button"
-            onClick={onAddClick}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>إضافة مدير</span>
-          </button>
+          {statusFilter !== 'inactive' && (
+            <button
+              type="button"
+              onClick={onAddClick}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>إضافة مدير</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -229,15 +231,19 @@ export function ManagersTable({
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-[var(--text)]">
-                          لم يتم العثور على مدراء أساطيل
+                          {statusFilter === 'inactive' && !searchQuery
+                            ? 'لا يوجد مديرو أساطيل غير نشطين'
+                            : 'لم يتم العثور على مدراء أساطيل'}
                         </h3>
                         <p className="text-xs text-[var(--muted)] mt-1">
                           {searchQuery
                             ? 'جرب البحث بكلمات أخرى أو تغيير الفلتر'
-                            : 'قم بإضافة مدراء وتعيينهم على الفرق للبدء في إدارة العمليات'}
+                            : statusFilter === 'inactive'
+                              ? 'لا توجد حسابات مدراء بحالة غير نشطة حالياً'
+                              : 'قم بإضافة مدراء وتعيينهم على الفرق للبدء في إدارة العمليات'}
                         </p>
                       </div>
-                      {!searchQuery && (
+                      {!searchQuery && statusFilter !== 'inactive' && (
                         <button
                           type="button"
                           onClick={onAddClick}
@@ -342,10 +348,10 @@ export function ManagersTable({
                           <span>
                             {manager.createdAt
                               ? new Date(manager.createdAt).toLocaleDateString('ar-SA', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
                               : '—'}
                           </span>
                         </div>

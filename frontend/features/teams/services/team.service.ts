@@ -7,6 +7,22 @@ import type {
   CreateTeamInput,
   UpdateTeamInput,
 } from '../types/team.types';
+import type { ServiceFailure } from '@/shared/types/api.types';
+
+function createTeamApiError(result: ServiceFailure): Error {
+  const details = [
+    result.status ? `HTTP ${result.status}` : undefined,
+    result.code,
+    result.message,
+  ].filter(Boolean);
+  const error = new Error(details.join(' - '));
+  Object.assign(error, {
+    status: result.status,
+    code: result.code,
+    fieldErrors: result.fieldErrors,
+  });
+  return error;
+}
 
 export const teamService = {
   /**
@@ -16,7 +32,7 @@ export const teamService = {
     const result = await sendRequest<TeamsResponse>(API_PATHS.TEAMS.LIST, { signal });
     if (!result.success) {
       if (result.message === 'Request cancelled') return [];
-      throw new Error(result.message || 'فشل في جلب قائمة الفرق');
+      throw createTeamApiError(result);
     }
     return result.data?.teams ?? [];
   },
@@ -27,7 +43,7 @@ export const teamService = {
   async createTeam(payload: CreateTeamInput): Promise<Team | null> {
     const result = await postRequest<{ team: Team }>(API_PATHS.TEAMS.CREATE, payload);
     if (!result.success) {
-      throw new Error(result.message || 'فشل في إنشاء الفريق');
+      throw createTeamApiError(result);
     }
     return result.data?.team ?? null;
   },
@@ -38,7 +54,7 @@ export const teamService = {
   async updateTeam(teamId: string, payload: UpdateTeamInput): Promise<void> {
     const result = await patchRequest<void>(API_PATHS.TEAMS.BY_ID(teamId), payload);
     if (!result.success) {
-      throw new Error(result.message || 'فشل في تعديل بيانات الفريق');
+      throw createTeamApiError(result);
     }
   },
 
@@ -48,7 +64,7 @@ export const teamService = {
   async deleteTeam(teamId: string): Promise<void> {
     const result = await deleteRequest<void>(API_PATHS.TEAMS.BY_ID(teamId));
     if (!result.success) {
-      throw new Error(result.message || 'فشل في حذف الفريق');
+      throw createTeamApiError(result);
     }
   },
 
@@ -58,7 +74,8 @@ export const teamService = {
   async getTeamById(teamId: string, signal?: AbortSignal): Promise<Team> {
     const result = await sendRequest<{ team: Team }>(API_PATHS.TEAMS.BY_ID(teamId), { signal });
     if (!result.success || !result.data?.team) {
-      throw new Error(result.message || 'فشل في جلب تفاصيل الفريق');
+      if (!result.success) throw createTeamApiError(result);
+      throw new Error('فشل في جلب تفاصيل الفريق: لم يُرجع الخادم بيانات الفريق');
     }
     return result.data.team;
   },
@@ -72,7 +89,8 @@ export const teamService = {
       : API_PATHS.TEAMS.STATICS;
     const result = await sendRequest<{ statics: TeamStatics }>(path, { signal });
     if (!result.success) {
-      return null;
+      if (result.message === 'Request cancelled') return null;
+      throw createTeamApiError(result);
     }
     return result.data?.statics ?? null;
   },
@@ -93,7 +111,7 @@ export const teamService = {
     };
     const result = await patchRequest<void>(API_PATHS.TEAMS.ASSIGN_RESOURCES(teamId), dataToSend);
     if (!result.success) {
-      throw new Error(result.message || 'فشل في تعيين الموارد للفريق');
+      throw createTeamApiError(result);
     }
   },
 };

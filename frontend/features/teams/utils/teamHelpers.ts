@@ -1,4 +1,5 @@
 ﻿import type { Team, FleetManagerSummary } from '../types/team.types';
+import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { FleetManager } from '@/features/managers/types/manager.types';
 import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.types';
 
@@ -61,6 +62,19 @@ export function getTeamManagerEmail(
   return undefined;
 }
 
+export function getTeamCreatedAt(team: Pick<Team, '_id' | 'createdAt'>): Date | undefined {
+  if (team.createdAt) {
+    const createdAt = new Date(team.createdAt);
+    if (!Number.isNaN(createdAt.getTime())) return createdAt;
+  }
+
+  const objectIdTimestamp = team._id.match(/^[a-f\d]{8}/i)?.[0];
+  if (!objectIdTimestamp) return undefined;
+
+  const createdAt = new Date(Number.parseInt(objectIdTimestamp, 16) * 1000);
+  return Number.isNaN(createdAt.getTime()) ? undefined : createdAt;
+}
+
 /**
  * حساب عدد المركبات لكل فريق
  */
@@ -71,6 +85,20 @@ export function calculateTeamVehicleCounts(
   vehicles.forEach((v) => {
     const teamId =
       typeof v.teamId === 'object' && v.teamId !== null ? v.teamId._id : v.teamId;
+    if (teamId) {
+      counts[teamId] = (counts[teamId] || 0) + 1;
+    }
+  });
+  return counts;
+}
+
+export function calculateTeamDriverCounts(drivers: BackendDriver[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  drivers.forEach((driver) => {
+    const teamId =
+      typeof driver.teamId === 'object' && driver.teamId !== null
+        ? driver.teamId._id
+        : driver.teamId;
     if (teamId) {
       counts[teamId] = (counts[teamId] || 0) + 1;
     }
@@ -96,7 +124,7 @@ export function exportTeamsCSV(
     `"${getTeamManagerName(t.managerId, managersList) || 'غير معين'}"`,
     `"${getTeamManagerEmail(t.managerId, managersList) || '—'}"`,
     vehicleCounts[t._id] || 0,
-    t.createdAt ? new Date(t.createdAt).toLocaleDateString('ar-SA') : '—',
+    getTeamCreatedAt(t)?.toLocaleDateString('ar-SA') || '—',
   ]);
 
   const csvContent =
