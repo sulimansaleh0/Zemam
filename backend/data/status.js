@@ -3,6 +3,13 @@ exports.mainStatus = {
     INACTIVE: "inactive"
 }
 
+exports.vehicleStatus = {
+    ACTIVE: "active",
+    INACTIVE: "inactive",
+    INTASK: "in_task",
+    INMAINTENANCE: "in_maintenance"
+}
+
 exports.expenseRecordStatus = {
     PENDING: "pending",
     APPROVED: "approved",
@@ -15,3 +22,10 @@ exports.taskStatus = {
     DECLINED: "declined",
     FINISHED: "finished"
 }
+
+exports.gpsStatus = {
+    MOVING: "moving",
+    IDLE: "idle",
+    AVAILABLE: "available",
+    OFFLINE: "offline"
+}

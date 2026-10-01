@@ -35,8 +35,18 @@ export function AssignTeamManagerModal({
 
   if (!team) return null;
 
+  const hasExistingManager = Boolean(team.managerId);
+  const existingManagerName =
+    typeof team.managerId === 'object' && team.managerId !== null
+      ? (team.managerId as any).name || (team.managerId as any).email
+      : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasExistingManager) {
+      setErrorMsg('هذا الفريق لديه مدير بالفعل. يجب فك ارتباط المدير الحالي أولاً.');
+      return;
+    }
     if (!selectedManagerId) {
       setErrorMsg('يرجى اختيار مدير من القائمة');
       return;
@@ -65,6 +75,18 @@ export function AssignTeamManagerModal({
       maxWidth="md"
       preventClose={isSubmitting}
     >
+      {hasExistingManager && (
+        <div className="p-4 mx-6 mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+          <div className="space-y-0.5">
+            <p className="font-bold">الفريق لديه مدير أسطول مسند بالفعل</p>
+            <p className="text-[11px] leading-relaxed">
+              مسند حالياً إلى: <strong>{existingManagerName || 'مدير حالي'}</strong>. وفقاً لقواعد النظام، لا يمكن تعيين مدير جديد إلا بعد فك ارتباط المدير الحالي أولاً لمنع التضارب.
+            </p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">

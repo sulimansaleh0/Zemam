@@ -1,5 +1,6 @@
 const { body } = require("express-validator");
 const { mainStatus } = require("../data/status")
+const { vehicleTypes } = require("../data/vehicleTypes")
 
 exports.loginSchema = [
     body("email")
@@ -65,6 +66,24 @@ exports.updateProfileSchema = [
         .matches(/[a-z]/).withMessage("Password must contain at least one lowercase letter (a-z)")
         .matches(/[0-9]/).withMessage("Password must contain at least one number (0-9)")
         .matches(/[^A-Za-z0-9]/).withMessage("Password must contain at least one special character (!@#$%^&*...)")
+    ,
+    body("licenseNumber")
+        .optional({ values: "falsy" })
+        .trim()
+        .isString()
+        .withMessage("License number must be a string"),
+
+    body("licenseTypes")
+        .optional({ values: "falsy" })
+        .isArray({ min: 1 })
+        .withMessage("License types must be a non-empty array")
+        .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
+        .withMessage("Invalid license type"),
+
+    body("licenseExpiry")
+        .optional({ values: "falsy" })
+        .isISO8601()
+        .withMessage("License expiry must be a valid date"),
 ]
 
 exports.resetPasswordSchema = [
@@ -104,7 +123,31 @@ exports.assignManagerSchema = [
         .withMessage("Invalid Team Id")
 ]
 
-exports.createUserSchema = [
+exports.createFleetManagerSchema = [
+    body("email")
+        .trim()
+        .normalizeEmail()
+        .notEmpty()
+        .withMessage("Email Is required")
+        .isEmail()
+        .withMessage("Not valid email"),
+    body("name")
+        .trim()
+        .notEmpty()
+        .withMessage("Name is required")
+        .isString()
+        .withMessage("Name must be a string"),
+    body("phone")
+        .optional({ values: "falsy" })
+        .trim(),
+    body("teamId")
+        .optional({ values: "falsy" })
+        .trim()
+        .isMongoId()
+        .withMessage("Invalid Team Id")
+]
+
+exports.createDriverSchema = [
     body("email")
         .trim()
         .normalizeEmail()
@@ -120,4 +163,20 @@ exports.createUserSchema = [
     body("phone")
         .optional({ values: "falsy" })
         .trim(),
-];
+    body("licenseNumber")
+        .optional({ values: "falsy" })
+        .trim()
+        .isString()
+        .withMessage("License number must be a string"),
+    body("licenseTypes")
+        .optional({ values: "falsy" })
+        .isArray()
+        .withMessage("License types must be an array")
+        .bail()
+        .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
+        .withMessage("Invalid license type"),
+    body("licenseExpiry")
+        .optional({ values: "falsy" })
+        .isISO8601()
+        .withMessage("License expiry must be a valid date"),
+]

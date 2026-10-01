@@ -3,14 +3,13 @@
 import {
   Activity,
   Bell,
-  Bot,
   CircleHelp,
   ClipboardList,
   Home,
   LogOut,
   MapPin,
   MoreHorizontal,
-  Package,
+  Fuel,
   Settings2,
   Truck,
   Users,
@@ -22,6 +21,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { useAlerts } from '@/features/alerts';
 
 interface SidebarProps {
   open: boolean;
@@ -49,6 +49,7 @@ export function Sidebar({ open, onClose, userName, onLogout }: SidebarProps) {
   const { user } = useAuth();
   const isFleetManager =
     user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
+  const { data: unreadAlerts = [] } = useAlerts(true);
 
   const navItems = [
     { label: 'لوحة التحكم', icon: Home, href: '/dashboard' },
@@ -62,10 +63,14 @@ export function Sidebar({ open, onClose, userName, onLogout }: SidebarProps) {
     { label: 'السائقون', icon: UsersRound, href: '/drivers' },
     { label: 'الصيانة', icon: Wrench, href: '/maintenance' },
     { label: 'المهام', icon: ClipboardList, href: '/tasks' },
-    { label: 'الوقود', icon: Package, href: '/fuel' },
-    { label: 'التنبيهات', icon: Bell, href: '/alerts', badge: '3' },
+    { label: 'الوقود', icon: Fuel, href: '/fuel' },
+    {
+      label: 'التنبيهات',
+      icon: Bell,
+      href: '/dashboard#operational-alerts',
+      badge: unreadAlerts.length > 0 ? String(unreadAlerts.length) : undefined,
+    },
     { label: 'تتبع GPS', icon: MapPin, href: '/gps' },
-    { label: 'توصيات الذكاء', icon: Bot, href: '/ai' },
     { label: 'التقارير', icon: Activity, href: '/reports' },
   ];
 

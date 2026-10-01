@@ -2,19 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { useTeams, TEAM_QUERY_KEYS } from '@/features/teams';
+import { useTeams } from '@/features/teams';
 import { useToast } from '@/shared/ui/Toast';
 import { managerService } from '../services/manager.service';
+import { managerKeys, teamKeys } from '@/shared/constants/queryKeys';
 import type { CreateManagerInput, FleetManager } from '../types/manager.types';
 
 // ============================================================
-//  Query Keys
+//  Query Keys — إعادة تصدير من المصدر المركزي للتوافق الخلفي
 // ============================================================
 
-export const MANAGER_QUERY_KEYS = {
-  all: ['managers'] as const,
-  byStatus: (status?: string) => ['managers', { status }] as const,
-};
+export const MANAGER_QUERY_KEYS = managerKeys;
 
 // ============================================================
 //  Data Hooks
@@ -25,9 +23,8 @@ export const MANAGER_QUERY_KEYS = {
  */
 export function useManagers(status?: string) {
   return useQuery({
-    queryKey: MANAGER_QUERY_KEYS.byStatus(status),
+    queryKey: managerKeys.byStatus(status),
     queryFn: ({ signal }) => managerService.getManagers(status, signal),
-    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
 
@@ -36,9 +33,8 @@ export function useManagers(status?: string) {
  */
 export function useAvailableManagers() {
   return useQuery({
-    queryKey: [...MANAGER_QUERY_KEYS.all, 'available'],
+    queryKey: managerKeys.available,
     queryFn: ({ signal }) => managerService.getAvailableManagers(signal),
-    staleTime: 1000 * 30, // 30 seconds
   });
 }
 
@@ -56,8 +52,8 @@ export function useCreateManager() {
   return useMutation({
     mutationFn: (payload: CreateManagerInput) => managerService.createManager(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تم إنشاء الحساب',
@@ -85,8 +81,8 @@ export function useAssignManager() {
     mutationFn: ({ managerId, teamId }: { managerId: string; teamId: string }) =>
       managerService.assignManager(managerId, teamId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تم تعيين المدير',
@@ -113,8 +109,8 @@ export function useDisableManager() {
   return useMutation({
     mutationFn: (managerId: string) => managerService.disableManager(managerId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'فك الارتباط',
@@ -142,7 +138,7 @@ export function useChangeManagerStatus() {
     mutationFn: ({ managerId, status }: { managerId: string; status: 'active' | 'inactive' }) =>
       managerService.changeManagerStatus(managerId, status),
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
       const label = status === 'active' ? 'تفعيل' : 'تعطيل';
       addToast({
         type: 'info',
@@ -170,8 +166,8 @@ export function useDeleteManager() {
   return useMutation({
     mutationFn: (managerId: string) => managerService.deleteManager(managerId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MANAGER_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'تم الحذف',

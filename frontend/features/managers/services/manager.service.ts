@@ -97,4 +97,16 @@ export const managerService = {
       throw new Error(result.message || 'فشل في تغيير حالة مدير الأسطول');
     }
   },
+
+  /**
+   * جلب إحصائيات وأداء مدير الأسطول
+   */
+  async getManagerStats(managerId: string, signal?: AbortSignal) {
+    const result = await sendRequest<{ stats: import('../types/manager.types').ManagerStats }>(
+      API_PATHS.MANAGERS.STATS(managerId),
+      { signal }
+    );
+    if (!result.success) return null;
+    return result.data?.stats ?? null;
+  },
 };

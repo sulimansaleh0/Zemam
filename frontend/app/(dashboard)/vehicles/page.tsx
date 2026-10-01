@@ -1,7 +1,8 @@
 'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Truck, Plus, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/shared/ui/Toast';
 import { Sidebar, Header } from '@/features/dashboard';
 import {
   useVehiclesPage,
@@ -12,9 +13,17 @@ import {
   AssignVehicleToTeamModal,
   ConfirmDeleteVehicleModal,
   VehicleStatsCards,
+  EditVehicleModal,
+  VEHICLE_QUERY_KEYS,
+  type VehicleWithRelations,
 } from '@/features/vehicles';
 
 export default function VehiclesPage() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+  const [selectedVehicleForEdit, setSelectedVehicleForEdit] = useState<VehicleWithRelations | null>(null);
+  const [isUpdatingVehicle, setIsUpdatingVehicle] = useState(false);
+
   const {
     vehiclesList,
     isLoading,
@@ -39,6 +48,34 @@ export default function VehiclesPage() {
     setMenuOpen,
     logout,
   } = useVehiclesPage();
+
+  const handleUpdateVehicle = async (vId: string, updatedData: any) => {
+    setIsUpdatingVehicle(true);
+    try {
+      queryClient.setQueryData(
+        VEHICLE_QUERY_KEYS.all,
+        (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((v: any) => (v._id === vId ? { ...v, ...updatedData } : v));
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      addToast({
+        type: 'success',
+        title: 'تم التحديث بنجاح',
+        message: 'تم تحديث مواصفات وبيانات رخصة وتأمين المركبة بنجاح',
+      });
+      setSelectedVehicleForEdit(null);
+    } catch {
+      addToast({
+        type: 'error',
+        title: 'خطأ',
+        message: 'تعذر حفظ التعديلات',
+      });
+    } finally {
+      setIsUpdatingVehicle(false);
+    }
+  };
 
   return (
     <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
@@ -166,6 +203,7 @@ export default function VehiclesPage() {
                   onRemoveTeamClick={handleRemoveTeam}
                   onUnassignDriverClick={handleUnassignDriver}
                   onDeleteVehicleClick={(vehicle) => setSelectedVehicleForDelete(vehicle)}
+                  onEditVehicleClick={(vehicle) => setSelectedVehicleForEdit(vehicle)}
                 />
               </>
             )}
@@ -214,6 +252,15 @@ export default function VehiclesPage() {
         isOpen={Boolean(selectedVehicleForDelete)}
         onClose={() => setSelectedVehicleForDelete(null)}
         targetVehicle={selectedVehicleForDelete}
+      />
+
+      {/* ── Edit Vehicle Specs & License Modal ── */}
+      <EditVehicleModal
+        isOpen={Boolean(selectedVehicleForEdit)}
+        onClose={() => setSelectedVehicleForEdit(null)}
+        vehicle={selectedVehicleForEdit}
+        onUpdate={handleUpdateVehicle}
+        isLoading={isUpdatingVehicle}
       />
     </main>
   );

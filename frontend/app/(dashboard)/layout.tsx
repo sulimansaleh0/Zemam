@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       if (status === 'unauthenticated') {
-        router.replace('/login');
+        window.location.replace('/login?session=expired');
       } else if (status === 'authenticated' && !user?.companyId) {
         // منع المستخدم من الوصول إلى لوحة التحكم إذا لم يكن لديه companyId حسب بيانات الـ Backend
         router.replace('/onboarding');
@@ -35,9 +35,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (status === 'unauthenticated') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--zd-bg)]">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 text-center px-4">
           <div className="h-8 w-8 animate-spin rounded-full border-3 border-[var(--zd-blue,#2563eb)] border-t-transparent" />
-          <p className="text-xs text-[var(--zd-muted,#64748b)]">جاري التوجيه لتسجيل الدخول...</p>
+          <p className="text-xs text-[var(--zd-muted,#64748b)]">انتهت الجلسة، جاري توجيهك لتسجيل الدخول...</p>
+          <a
+            href="/login?session=expired"
+            className="mt-2 text-xs font-semibold text-[var(--zd-blue,#2563eb)] hover:underline"
+          >
+            اضغط هنا إذا لم يتم تحويلك تلقائياً
+          </a>
         </div>
       </div>
     );

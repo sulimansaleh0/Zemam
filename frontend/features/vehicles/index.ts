@@ -50,3 +50,4 @@ export { ConfirmDeleteVehicleModal } from './components/ConfirmDeleteVehicleModa
 export { VehicleStatsCards }         from './components/VehicleStatsCards';
 export { VehicleStatusBadge }        from './components/VehicleStatusBadge';
 export { VehicleDetailCards }        from './components/VehicleDetailCards';
+export { EditVehicleModal }           from './components/EditVehicleModal';

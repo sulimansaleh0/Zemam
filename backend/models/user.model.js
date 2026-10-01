@@ -1,18 +1,15 @@
 const mongoose = require("mongoose");
 const { mainStatus } = require("../data/status");
 const { userRoles } = require("../data/roles");
+const { vehicleTypes } = require("../data/vehicleTypes");
 
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        trim: true
     },
     email: {
         type: String,
         required: true,
-        unique: true,
-        lowercase: true,
-        trim: true
     },
     password: {
         type: String,
@@ -37,10 +34,39 @@ const userSchema = new mongoose.Schema({
         enum: [mainStatus.ACTIVE, mainStatus.INACTIVE],
         default: mainStatus.ACTIVE
     },
-
     phone: {
         type: String,
     },
+    licenseNumber: {
+        type: String,
+    },
+    licenseTypes: [{
+        type: String,
+        enum: Object.values(vehicleTypes)
+    }],
+    licenseExpiry: {
+        type: Date
+    },
+    driverScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 100
+    },
+    faultIncidentsCount: {
+        type: Number,
+        min: 0,
+        default: 0
+    },
+    scoreHistory: [{
+        pointsChange: {
+            type: Number,
+            required: true
+        },
+        reason: String,
+        category: String,
+        relatedId: mongoose.Schema.Types.ObjectId
+    }],
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",

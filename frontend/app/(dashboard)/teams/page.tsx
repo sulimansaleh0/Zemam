@@ -29,6 +29,7 @@ export default function TeamsPage() {
     teamsList,
     vehiclesList,
     vehicleCounts,
+    driverCounts,
     isLoading,
     isError,
     error,
@@ -87,7 +88,7 @@ export default function TeamsPage() {
           <Header
             onMenu={() => setMenuOpen(true)}
             searchQuery=""
-            onSearchChange={() => {}}
+            onSearchChange={() => { }}
             userName={userName}
           />
 
@@ -168,6 +169,7 @@ export default function TeamsPage() {
                 isLoading={isLoading}
                 companyName={companyName}
                 vehicleCounts={vehicleCounts}
+                driverCounts={driverCounts}
                 onAddClick={handleOpenAdd}
                 onEditClick={handleOpenEdit}
                 onDeleteClick={handleOpenDelete}

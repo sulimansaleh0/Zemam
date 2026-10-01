@@ -1,10 +1,11 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Building2, Car, Unlink, Link2 } from 'lucide-react';
+import { Mail, Building2, Car, Unlink, Link2, FileText } from 'lucide-react';
 import type { Driver } from '../types/driver.types';
 import { formatRelativeDate } from '../utils/driverHelpers';
+import { DriverScoreCard } from './DriverScoreCard';
 
 interface TeamObject {
   _id: string;
@@ -164,6 +165,63 @@ export function DriverDetailCards({
             </span>
           )}
         </div>
+      </div>
+
+      {/* Card 4: Driving License & Hierarchy Info */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3 md:col-span-3 lg:col-span-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <FileText className="w-4 h-4 text-purple-500" />
+          بيانات رخصة القيادة والتأهيل المروري
+        </span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]">
+            <span className="text-[10px] text-[var(--muted)] block">رقم رخصة القيادة:</span>
+            <span className="font-mono font-bold text-sm text-[var(--text)] block mt-0.5">
+              {driver.licenseNumber || 'غير مسجل'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]">
+            <span className="text-[10px] text-[var(--muted)] block">فئات الرخص المصرح بها:</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {Array.isArray(driver.licenseTypes) && driver.licenseTypes.length > 0 ? (
+                driver.licenseTypes.map((type) => (
+                  <span
+                    key={type}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                  >
+                    {type === 'truck' ? 'شاحنة (ثقيل)' : type === 'van' ? 'فان (متوسط)' : 'سيارة (خفيف)'}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[11px] text-[var(--muted)]">سيارة خاصة (خفيف)</span>
+              )}
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]">
+            <span className="text-[10px] text-[var(--muted)] block">صلاحية الرخصة:</span>
+            {driver.licenseExpiry ? (
+              <div className="mt-0.5">
+                <span className="font-bold text-[var(--text)] block">
+                  {new Date(driver.licenseExpiry).toLocaleDateString('ar-EG')}
+                </span>
+                <span className={`text-[10px] font-semibold ${
+                  new Date(driver.licenseExpiry) < new Date() ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400'
+                }`}>
+                  {new Date(driver.licenseExpiry) < new Date() ? 'منتهية الصلاحية' : 'سارية المفعول'}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[11px] text-[var(--muted)] block mt-0.5">غير محدد</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Driver Score & Performance Section */}
+      <div className="md:col-span-3">
+        <DriverScoreCard driver={driver} />
       </div>
     </div>
   );

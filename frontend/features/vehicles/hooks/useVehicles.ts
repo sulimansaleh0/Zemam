@@ -9,22 +9,22 @@ import { useToast } from '@/shared/ui/Toast';
 import { vehicleService } from '../services/vehicle.service';
 import { useDriversList } from '@/features/drivers';
 import { getVehicleTeamId, getVehicleDriverId } from '../utils/vehicleHelpers';
+import { vehicleKeys, driverKeys, teamKeys } from '@/shared/constants/queryKeys';
 import type {
   BackendVehicle,
   VehicleWithRelations,
   CreateVehicleInput,
+  UpdateVehicleInput,
   AssignDriverInput,
   ChangeVehicleStatusInput,
+  VehicleStats,
 } from '../types/vehicle.types';
 
 // ============================================================
-//  Query Keys
+//  Query Keys — إعادة تصدير من المصدر المركزي للتوافق الخلفي
 // ============================================================
 
-export const VEHICLE_QUERY_KEYS = {
-  all: ['vehicles'] as const,
-  detail: (id: string) => ['vehicles', id] as const,
-};
+export const VEHICLE_QUERY_KEYS = vehicleKeys;
 
 // ============================================================
 //  Data Hooks (React Query v5)
@@ -38,7 +38,7 @@ export function useVehicles() {
   const drivers = driversQuery.data ?? [];
 
   return useQuery({
-    queryKey: VEHICLE_QUERY_KEYS.all,
+    queryKey: vehicleKeys.all,
     queryFn: async ({ signal }) => {
       const result = await vehicleService.getVehicles(signal);
       if (!result.success) {
@@ -97,7 +97,7 @@ export function useCreateVehicle() {
       return result.data.vehicle;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       addToast({
         type: 'success',
         title: 'تمت الإضافة',
@@ -115,6 +115,53 @@ export function useCreateVehicle() {
 }
 
 /**
+ * Mutation لتعديل بيانات المركبة
+ */
+export function useUpdateVehicle() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateVehicleInput }) => {
+      const result = await vehicleService.updateVehicle(id, data);
+      if (!result.success) throw new Error(result.message);
+      return result.data.vehicle;
+    },
+    onSuccess: (updatedVehicle) => {
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      addToast({
+        type: 'success',
+        title: 'تم التحديث',
+        message: 'تم حفظ وتحديث بيانات المركبة بنجاح',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل التحديث',
+        message: error.message,
+      });
+    },
+  });
+}
+
+/**
+ * Hook لجلب إحصائيات تشغيل المركبة (مسافة، وقود، صيانة، كفاءة)
+ */
+export function useVehicleStats(vehicleId: string) {
+  return useQuery({
+    queryKey: ['vehicle', vehicleId, 'stats'],
+    queryFn: async ({ signal }) => {
+      if (!vehicleId) return null;
+      const res = await vehicleService.getVehicleStats(vehicleId, signal);
+      if (!res.success) return null;
+      return res.data.stats;
+    },
+    enabled: Boolean(vehicleId),
+  });
+}
+
+/**
  * Mutation لتغيير حالة المركبة (نشطة / غير نشطة)
  */
 export function useChangeVehicleStatus() {
@@ -128,7 +175,7 @@ export function useChangeVehicleStatus() {
       return result;
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
       const label = status === 'active' ? 'تفعيل' : 'تعطيل';
       addToast({
         type: 'info',
@@ -166,8 +213,8 @@ export function useAssignDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
       addToast({
         type: 'success',
         title: 'تعيين السائق',
@@ -198,8 +245,8 @@ export function useUnassignDriver() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
       addToast({
         type: 'info',
         title: 'فك الارتباط',
@@ -230,8 +277,8 @@ export function useAssignVehicleToTeam() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تعيين الفريق',
@@ -262,9 +309,9 @@ export function useRemoveVehicleFromTeam() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'فك ارتباط الفريق',
@@ -295,9 +342,9 @@ export function useDeleteVehicle() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VEHICLE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'info',
         title: 'حذف المركبة',
@@ -412,8 +459,10 @@ export function useVehicleDetailPage(vehicleId: string) {
   // Queries
   const { data: vehicles = [], isLoading, isError, error } = useVehicles();
   const { data: teamsList = [] } = useTeams();
+  const { data: vehicleStats, isLoading: isLoadingStats } = useVehicleStats(vehicleId);
 
   // Mutations
+  const updateVehicleMutation = useUpdateVehicle();
   const changeStatusMutation = useChangeVehicleStatus();
   const removeTeamMutation = useRemoveVehicleFromTeam();
   const unassignDriverMutation = useUnassignDriver();
@@ -446,6 +495,11 @@ export function useVehicleDetailPage(vehicleId: string) {
     await changeStatusMutation.mutateAsync({ id: vehicle._id, status: newStatus });
   }, [vehicle, isActive, changeStatusMutation]);
 
+  const handleUpdateVehicle = useCallback(async (updatedData: UpdateVehicleInput) => {
+    if (!vehicle) return;
+    await updateVehicleMutation.mutateAsync({ id: vehicle._id, data: updatedData });
+  }, [vehicle, updateVehicleMutation]);
+
   const handleRemoveTeam = useCallback(async () => {
     if (!vehicle) return;
     await removeTeamMutation.mutateAsync(vehicle._id);
@@ -471,6 +525,8 @@ export function useVehicleDetailPage(vehicleId: string) {
     vehicle,
     teamObj,
     isActive,
+    vehicleStats,
+    isLoadingStats,
 
     // Query states
     isLoading,
@@ -486,6 +542,7 @@ export function useVehicleDetailPage(vehicleId: string) {
     setIsDeleteOpen,
 
     // Mutation pending states
+    isUpdating: updateVehicleMutation.isPending,
     isChangingStatus: changeStatusMutation.isPending,
     isRemovingTeam: removeTeamMutation.isPending,
     isUnassigningDriver: unassignDriverMutation.isPending,
@@ -493,6 +550,7 @@ export function useVehicleDetailPage(vehicleId: string) {
 
     // Action handlers
     handleToggleStatus,
+    handleUpdateVehicle,
     handleRemoveTeam,
     handleUnassignDriver,
     handleDelete,

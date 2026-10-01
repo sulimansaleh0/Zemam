@@ -24,7 +24,7 @@ const teamSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     }
-})
+}, { timestamps: true })
 
 const Team = mongoose.model("team", teamSchema)
 module.exports = Team

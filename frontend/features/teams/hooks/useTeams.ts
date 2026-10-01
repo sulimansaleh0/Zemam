@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
 import { teamService } from '../services/team.service';
-import { calculateTeamVehicleCounts } from '../utils/teamHelpers';
+import { calculateTeamDriverCounts, calculateTeamVehicleCounts } from '../utils/teamHelpers';
 import { useDriversList, useRemoveDriverFromTeam, getDriverTeamId } from '@/features/drivers';
 import { useVehicles, useRemoveVehicleFromTeam, getVehicleTeamId } from '@/features/vehicles';
 import { useManagers, useDisableManager, type FleetManager } from '@/features/managers';
+import { teamKeys, driverKeys, vehicleKeys, managerKeys } from '@/shared/constants/queryKeys';
 import type { BackendDriver } from '@/features/drivers/types/driver.types';
 import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.types';
 import type {
@@ -17,13 +18,10 @@ import type {
 } from '../types/team.types';
 
 // ============================================================
-//  Query Keys
+//  Query Keys — إعادة تصدير من المصدر المركزي للتوافق الخلفي
 // ============================================================
 
-export const TEAM_QUERY_KEYS = {
-  all: ['teams'] as const,
-  detail: (id: string) => ['teams', id] as const,
-};
+export const TEAM_QUERY_KEYS = teamKeys;
 
 // ============================================================
 //  Data Hooks
@@ -34,9 +32,8 @@ export const TEAM_QUERY_KEYS = {
  */
 export function useTeams() {
   return useQuery({
-    queryKey: TEAM_QUERY_KEYS.all,
+    queryKey: teamKeys.all,
     queryFn: ({ signal }) => teamService.getTeams(signal),
-    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
 
@@ -45,10 +42,9 @@ export function useTeams() {
  */
 export function useTeamDetail(id: string) {
   return useQuery({
-    queryKey: TEAM_QUERY_KEYS.detail(id),
+    queryKey: teamKeys.detail(id),
     queryFn: ({ signal }) => teamService.getTeamById(id, signal),
     enabled: Boolean(id),
-    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -57,9 +53,9 @@ export function useTeamDetail(id: string) {
  */
 export function useTeamStatics(teamId?: string) {
   return useQuery({
-    queryKey: ['teams', 'statics', teamId || 'all'] as const,
+    queryKey: teamKeys.statics(teamId),
     queryFn: ({ signal }) => teamService.getTeamStatics(teamId, signal),
-    staleTime: 1000 * 60,
+    staleTime: 1000 * 30, // 30 seconds
   });
 }
 
@@ -77,10 +73,10 @@ export function useCreateTeam() {
   return useMutation({
     mutationFn: (payload: CreateTeamInput) => teamService.createTeam(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      queryClient.invalidateQueries({ queryKey: ['managers'] });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
       addToast({
         type: 'success',
         title: 'تم إنشاء الفريق',
@@ -108,7 +104,7 @@ export function useUpdateTeam() {
     mutationFn: ({ teamId, payload }: { teamId: string; payload: UpdateTeamInput }) =>
       teamService.updateTeam(teamId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
       addToast({
         type: 'success',
         title: 'تم التعديل',
@@ -135,10 +131,10 @@ export function useDeleteTeam() {
   return useMutation({
     mutationFn: (teamId: string) => teamService.deleteTeam(teamId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TEAM_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      queryClient.invalidateQueries({ queryKey: ['managers'] });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
       addToast({
         type: 'success',
         title: 'تم الحذف',
@@ -150,6 +146,36 @@ export function useDeleteTeam() {
         type: 'error',
         title: 'خطأ في الحذف',
         message: err.message || 'تعذر حذف الفريق',
+      });
+    },
+  });
+}
+
+/**
+ * Hook to assign resources (drivers and vehicles) to a team
+ */
+export function useAssignResources() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ teamId, payload }: { teamId: string; payload: { driverIds?: string[]; vehicleIds?: string[] } }) =>
+      teamService.assignResources(teamId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+      queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+      addToast({
+        type: 'success',
+        title: 'تم تعيين الموارد',
+        message: 'تم تعيين الموارد المحددة للفريق بنجاح',
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'خطأ في التعيين',
+        message: err.message || 'تعذر تعيين الموارد للفريق',
       });
     },
   });
@@ -180,6 +206,7 @@ export function useTeamsPage() {
   } = useTeams();
 
   const { data: vehiclesList = [] } = useVehicles();
+  const { data: driversList = [] } = useDriversList();
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -209,6 +236,9 @@ export function useTeamsPage() {
   const vehicleCounts = useMemo(() => {
     return calculateTeamVehicleCounts(vehiclesList);
   }, [vehiclesList]);
+  const driverCounts = useMemo(() => {
+    return calculateTeamDriverCounts(driversList);
+  }, [driversList]);
 
   const userName = user?.name || user?.email?.split('@')[0] || '';
 
@@ -246,6 +276,7 @@ export function useTeamsPage() {
     teamsList,
     vehiclesList,
     vehicleCounts,
+    driverCounts,
     isLoading,
     isError,
     error,
@@ -293,7 +324,11 @@ export function useTeamDetailPage(teamId: string) {
 
   // Team detail queries
   const { data: team, isLoading, isError, error } = useTeamDetail(teamId);
-  const { data: statics } = useTeamStatics(teamId);
+  const {
+    data: statics,
+    isError: isStaticsError,
+    error: staticsError,
+  } = useTeamStatics(teamId);
 
   // Related data
   const { data: allDrivers = [] } = useDriversList();
@@ -307,7 +342,6 @@ export function useTeamDetailPage(teamId: string) {
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
   const [isAddResourcesModalOpen, setIsAddResourcesModalOpen] = useState(false);
 
   useEffect(() => {
@@ -334,8 +368,8 @@ export function useTeamDetailPage(teamId: string) {
     typeof team?.managerId === 'object' && team?.managerId !== null
       ? team.managerId._id
       : typeof team?.managerId === 'string'
-      ? team.managerId
-      : null;
+        ? team.managerId
+        : null;
 
   const managerObj = useMemo(() => {
     if (!managerId) return null;
@@ -380,6 +414,8 @@ export function useTeamDetailPage(teamId: string) {
     // Data
     team,
     statics,
+    isStaticsError,
+    staticsError,
     teamDrivers,
     teamVehicles,
     managerId,
@@ -393,8 +429,6 @@ export function useTeamDetailPage(teamId: string) {
     setIsEditModalOpen,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
-    isAssignManagerModalOpen,
-    setIsAssignManagerModalOpen,
     isAddResourcesModalOpen,
     setIsAddResourcesModalOpen,
 

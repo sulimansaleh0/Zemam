@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createManagerSchema = z.object({
-  name: z.string().trim().optional(),
+  name: z.string().trim().min(1, 'اسم مدير الأسطول مطلوب'),
   phone: z.string().trim().optional(),
   email: z
     .string()

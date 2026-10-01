@@ -1,0 +1,70 @@
+import { sendRequest, postRequest, patchRequest } from '@/shared/lib/coreApi';
+import { API_PATHS } from '@/shared/constants/apiPaths';
+import type { ServiceResult } from '@/shared/types/api.types';
+import type {
+  BackendTask,
+  CreateTaskInput,
+  UpdateTaskInput,
+} from '../types/task.types';
+
+export interface ListTasksResponse {
+  tasks: BackendTask[];
+}
+
+export interface SingleTaskResponse {
+  task: BackendTask;
+}
+
+export const taskService = {
+  /**
+   * جلب قائمة جميع المهام للشركة أو الفريق الحالي
+   */
+  getTasks(signal?: AbortSignal, vehicleId?: string): Promise<ServiceResult<ListTasksResponse>> {
+    const path = vehicleId
+      ? `${API_PATHS.TASKS.LIST}?vehicleId=${encodeURIComponent(vehicleId)}`
+      : API_PATHS.TASKS.LIST;
+    return sendRequest<ListTasksResponse>(path, { signal });
+  },
+
+  /**
+   * جلب تفاصيل مهمة محددة
+   */
+  getTaskById(id: string, signal?: AbortSignal): Promise<ServiceResult<SingleTaskResponse>> {
+    return sendRequest<SingleTaskResponse>(API_PATHS.TASKS.DETAIL(id), { signal });
+  },
+
+  /**
+   * إنشاء مهمة جديدة وتعيينها للمركبة والسائق
+   */
+  createTask(data: CreateTaskInput): Promise<ServiceResult<SingleTaskResponse>> {
+    return postRequest<SingleTaskResponse>(API_PATHS.TASKS.CREATE, data);
+  },
+
+  /**
+   * تحديث بيانات المهمة (مسموح فقط في حالة pending)
+   */
+  updateTask(id: string, data: UpdateTaskInput): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.UPDATE(id), data);
+  },
+
+  /**
+   * قبول المهمة وبدء تنفيذها (بواسطة السائق عند حلول موعد البدء)
+   */
+  acceptTask(id: string): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.ACCEPT(id), {});
+  },
+
+  /**
+   * إنهاء وتسليم المهمة (بواسطة السائق) مع توثيق قراءة العداد النهائية
+   */
+  finishTask(id: string, endOdometer?: number): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.FINISH(id), endOdometer !== undefined ? { endOdometer } : {});
+  },
+
+  /**
+   * إلغاء أو رفض المهمة مع حفظ السبب
+   */
+  declineTask(id: string, declineReason?: string): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.DECLINE(id), { declineReason });
+  },
+};

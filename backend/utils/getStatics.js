@@ -5,6 +5,9 @@ const Fuel = require("../models/fuel.model")
 const { taskStatus, mainStatus, expenseRecordStatus } = require("../data/status")
 
 module.exports = async (roles) => {
+    const taskFilters = { ...roles }
+    delete taskFilters.isDeleted
+
     const [
         totalTasks,
         pendingTasks,
@@ -25,11 +28,11 @@ module.exports = async (roles) => {
         declinedMaintenanceRecords,
         pendingMaintenanceRecords,
     ] = await Promise.all([
-        Task.countDocuments({ ...roles }),
-        Task.countDocuments({ ...roles, status: taskStatus.PENDING }),
-        Task.countDocuments({ ...roles, status: taskStatus.INPROGRESS }),
-        Task.countDocuments({ ...roles, status: taskStatus.FINISHED }),
-        Task.countDocuments({ ...roles, status: taskStatus.DECLINED }),
+        Task.countDocuments({ ...taskFilters }),
+        Task.countDocuments({ ...taskFilters, status: taskStatus.PENDING }),
+        Task.countDocuments({ ...taskFilters, status: taskStatus.INPROGRESS }),
+        Task.countDocuments({ ...taskFilters, status: taskStatus.FINISHED }),
+        Task.countDocuments({ ...taskFilters, status: taskStatus.DECLINED }),
 
         Vehicle.countDocuments({ ...roles }),
         Vehicle.countDocuments({ ...roles, status: mainStatus.ACTIVE }),
@@ -82,12 +85,12 @@ module.exports = async (roles) => {
         totalVehicles,
         activeVehicles,
         availableVehicles,
-        FuelRecordsCost: FuelRecordsCost[0]?.totalCost,
+        FuelRecordsCost: FuelRecordsCost[0]?.totalCost || 0,
         FuelRecords,
         approvedFuelRecords,
         declinedFuelRecords,
         pendingFuelRecords,
-        maintenanceRecordsCost: maintenanceRecordsCost[0]?.totalCost,
+        maintenanceRecordsCost: maintenanceRecordsCost[0]?.totalCost || 0,
         maintenanceRecords,
         approvedMaintenanceRecords,
         declinedMaintenanceRecords,

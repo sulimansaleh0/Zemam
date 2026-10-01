@@ -1,6 +1,8 @@
 'use client';
 
-import type { LucideIcon } from 'lucide-react';
+import type React from 'react';
+
+type LucideIcon = React.ComponentType<any>;
 
 interface KpiCardProps {
   icon: LucideIcon;

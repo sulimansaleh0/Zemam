@@ -1,11 +1,13 @@
-import { sendRequest, postRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
+import { sendRequest, postRequest, putRequest, patchRequest, deleteRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type { ServiceResult } from '@/shared/types/api.types';
 import type {
   BackendVehicle,
   CreateVehicleInput,
+  UpdateVehicleInput,
   AssignDriverInput,
   ChangeVehicleStatusInput,
+  VehicleStatsResponse,
 } from '../types/vehicle.types';
 
 // ============================================================
@@ -43,10 +45,24 @@ export const vehicleService = {
   },
 
   /**
+   * جلب إحصائيات تشغيل المركبة (المسافة، الوقود، الصيانة، الكفاءة)
+   */
+  getVehicleStats(id: string, signal?: AbortSignal): Promise<ServiceResult<VehicleStatsResponse>> {
+    return sendRequest<VehicleStatsResponse>(API_PATHS.VEHICLES.STATS(id), { signal });
+  },
+
+  /**
    * إنشاء مركبة جديدة
    */
   createVehicle(data: CreateVehicleInput): Promise<ServiceResult<SingleVehicleResponse>> {
     return postRequest<SingleVehicleResponse>(API_PATHS.VEHICLES.CREATE, data);
+  },
+
+  /**
+   * تعديل وتحديث بيانات ومواصفات ورخص وتأمين المركبة
+   */
+  updateVehicle(id: string, data: UpdateVehicleInput): Promise<ServiceResult<SingleVehicleResponse>> {
+    return putRequest<SingleVehicleResponse>(API_PATHS.VEHICLES.UPDATE(id), data);
   },
 
   /**

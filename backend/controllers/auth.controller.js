@@ -8,10 +8,17 @@ const googleClient = require("../config/googleAuth")
 const { sendOtp } = require("../services/otp")
 const { mainStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
+const { userRoles } = require("../data/roles")
 
 // helpers
 const generateToken = async (user) => {
-    const data = { _id: user._id, email: user.email, companyId: user?.companyId || null, teamId: user?.teamId || null }
+    const data = {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+        companyId: user?.companyId || null,
+        teamId: user?.teamId || null,
+    }
     return jwt.sign(data, process.env.JWT_SECRET_KEY, { expiresIn: "15m" })
 }
 
@@ -31,6 +38,7 @@ const storeToken = (res, token, type = "token") => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
+        path: "/",
         maxAge: 10 * 24 * 60 * 60 * 1000
     });
 };
@@ -46,6 +54,12 @@ exports.login = async (req, res) => {
         // Check Password
         const isMatched = await bcrypt.compare(password, user.password)
         if (!isMatched) return error(res, 400, "Check Email or Password")
+        if (user.status !== mainStatus.ACTIVE) {
+            return error(res, 403, "الحساب معطل أو غير نشط، يرجى مراجعة إدارة الشركة");
+        }
+        if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
+            return error(res, 403, "Fleet manager must be assigned to an active team")
+        }
 
         // Generate and Store Token
         const token = await generateToken(user)
@@ -60,6 +74,17 @@ exports.login = async (req, res) => {
         return serverError(res)
     }
 }
+
+exports.createSocketTicket = (req, res) => {
+    const ticket = jwt.sign(
+        { _id: req.user._id, purpose: "socket" },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "60s" }
+    );
+
+    res.set("Cache-Control", "no-store");
+    success(res, 200, { ticket });
+};
 
 exports.signup = async (req, res) => {
     const { email, password, confirmPassword, name, companyName } = req.body
@@ -113,7 +138,8 @@ exports.logout = async (req, res) => {
         const cookieOptions = {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? "none" : "lax"
+            sameSite: isProduction ? "none" : "lax",
+            path: "/"
         };
 
         res.clearCookie("token", cookieOptions);

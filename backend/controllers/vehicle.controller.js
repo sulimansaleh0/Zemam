@@ -1,14 +1,21 @@
 const Vehicle = require("../models/vehicle.model")
 const User = require("../models/user.model")
-const Team = require("../models/team.model")
+const Maintenance = require("../models/maintenance.model")
+const Task = require("../models/task.model")
+const Fuel = require("../models/fuel.model")
 const { userRoles } = require("../data/roles")
-const { mainStatus } = require("../data/status")
+const { mainStatus, expenseRecordStatus, taskStatus, vehicleStatus } = require("../data/status")
 const { success, error, serverError } = require("../utils/responses")
+const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility")
+const { vehicleTypes } = require("../data/vehicleTypes")
 
 exports.createVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { model, year, plateNumber, driverId } = req.body
+    const { model, year, plateNumber, vehicleType, driverId, expectedFuelEfficiency,
+        tankCapacity, fuelType, licenseNumber, licenseExpiry, issuingAuthority,
+        insuranceNumber, insuranceCompany, insuranceExpiry } = req.body
+    const selectedVehicleType = vehicleType || vehicleTypes.NORMAL
     try {
         const existingVehicle = await Vehicle.findOne({
             plateNumber,
@@ -20,13 +27,15 @@ exports.createVehicle = async (req, res) => {
         }
 
         let driver = null
-        if (driverId) {
-            let driverFilters = { _id: driverId, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false }
-            if (teamId) driverFilters.teamId = teamId
+        if (teamId && driverId) {
+            let driverFilters = { _id: driverId, teamId, companyId: user.companyId, role: userRoles.DRIVER, isDeleted: false }
 
             driver = await User.findOne(driverFilters)
             if (!driver) return error(res, 404, "Driver not found or does not belong to the selected team")
             if (driver.status !== mainStatus.ACTIVE) return error(res, 400, "Driver is not active")
+
+            const eligibilityError = getDriverVehicleEligibilityError(driver, { vehicleType: selectedVehicleType })
+            if (eligibilityError) return error(res, 400, eligibilityError)
 
             // Unlink driver from previous vehicle
             await Vehicle.updateMany({ driverId: driver._id, companyId: user.companyId }, { driverId: null })
@@ -36,6 +45,16 @@ exports.createVehicle = async (req, res) => {
             model,
             year,
             plateNumber,
+            vehicleType: selectedVehicleType,
+            expectedFuelEfficiency,
+            tankCapacity,
+            fuelType,
+            licenseNumber,
+            licenseExpiry,
+            issuingAuthority,
+            insuranceNumber,
+            insuranceCompany,
+            insuranceExpiry,
             teamId,
             companyId: user.companyId,
             driverId: driver ? driver._id : null
@@ -89,6 +108,7 @@ exports.listVehicle = async (req, res) => {
             companyId: user.companyId,
             isDeleted: false
         }
+
         if (teamId) filters.teamId = teamId;
 
         const vehicle = await Vehicle.findOne(filters)
@@ -104,25 +124,126 @@ exports.listVehicle = async (req, res) => {
     }
 }
 
+exports.updateVehicle = async (req, res) => {
+    const user = req.user
+    const updates = {}
+    const allowedFields = ["model", "year", "plateNumber", "vehicleType",
+        "expectedFuelEfficiency", "tankCapacity", "fuelType", "licenseNumber",
+        "licenseExpiry", "issuingAuthority", "insuranceNumber", "insuranceCompany",
+        "insuranceExpiry"]
+    for (const field of allowedFields) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field]
+    }
+    try {
+        const filters = { _id: req.params.id, companyId: user.companyId, isDeleted: false }
+        if (req.teamId) filters.teamId = req.teamId
+        if (updates.plateNumber) {
+            const duplicate = await Vehicle.findOne({
+                plateNumber: updates.plateNumber,
+                companyId: user.companyId,
+                isDeleted: false,
+                _id: { $ne: req.params.id }
+            })
+            if (duplicate) return error(res, 400, "Plate number is already in use")
+        }
+        const vehicle = await Vehicle.findOneAndUpdate(filters, { $set: updates }, {
+            returnDocument: 'after', runValidators: true
+        })
+        if (!vehicle) return error(res, 404, "Vehicle not found")
+        success(res, 200, { vehicle })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
+exports.getVehicleStats = async (req, res) => {
+    const user = req.user
+    try {
+        const filters = { _id: req.params.id, companyId: user.companyId, isDeleted: false }
+        if (req.teamId) filters.teamId = req.teamId
+        const vehicle = await Vehicle.findOne(filters).lean()
+        if (!vehicle) return error(res, 404, "Vehicle not found")
+        const [fuel, maintenance, tasks] = await Promise.all([
+            Fuel.aggregate([
+                { $match: { vehicleId: vehicle._id, companyId: user.companyId, status: expenseRecordStatus.APPROVED } },
+                {
+                    $group: {
+                        _id: null, totalFuel: { $sum: "$qty" }, totalFuelCost: { $sum: "$cost" }
+                    }
+                }
+            ]),
+            Maintenance.aggregate([
+                { $match: { vehicleId: vehicle._id, status: expenseRecordStatus.APPROVED } },
+                { $group: { _id: null, totalMaintenanceCost: { $sum: "$cost" } } }
+            ]),
+            Task.aggregate([
+                { $match: { vehicleId: vehicle._id, status: taskStatus.FINISHED } },
+                {
+                    $group: {
+                        _id: null,
+                        distance: {
+                            $sum: {
+                                $cond: [
+                                    {
+                                        $and: [
+                                            { $ne: ["$fuelConsumptionAppliedAt", null] },
+                                            { $ne: ["$startOdometer", null] },
+                                            { $ne: ["$endOdometer", null] },
+                                            { $gte: ["$endOdometer", "$startOdometer"] }
+                                        ]
+                                    },
+                                    { $subtract: ["$endOdometer", "$startOdometer"] },
+                                    0
+                                ]
+                            }
+                        },
+                        fuelConsumed: {
+                            $sum: {
+                                $cond: [
+                                    { $ne: ["$fuelConsumptionAppliedAt", null] },
+                                    { $ifNull: ["$fuelConsumedLitres", 0] },
+                                    0
+                                ]
+                            }
+                        }
+                    }
+                }
+            ])
+        ])
+        const fuelStats = fuel[0] || {}
+        success(res, 200, {
+            stats: {
+                distance: tasks[0]?.distance || 0,
+                totalFuel: fuelStats.totalFuel || 0,
+                totalFuelCost: fuelStats.totalFuelCost || 0,
+                totalMaintenanceCost: maintenance[0]?.totalMaintenanceCost || 0,
+                fuelEfficiency: tasks[0]?.fuelConsumed ? tasks[0].distance / tasks[0].fuelConsumed : 0,
+                fuelBalanceLitres: vehicle.fuelBalanceLitres || 0
+            }
+        })
+    } catch (err) {
+        console.log(err)
+        serverError(res)
+    }
+}
+
 exports.setVehicleToTeam = async (req, res) => {
     const { companyId } = req.user
-    const teamId = req.teamId
+    const team = req.team
     const vehicleId = req.params.id
     if (!vehicleId) return error(res, 400, "Vehicle Id is required")
-    if (!teamId) return error(res, 400, "Team Id is required")
+    if (!team) return error(res, 400, "Team is required")
     try {
-        const team = await Team.findOne({ _id: teamId, companyId, isDeleted: false })
-        if (!team) return error(res, 404, "Team not found")
-
-        const vehicle = await Vehicle.findOne({ _id: vehicleId, companyId, isDeleted: false })
+        const vehicle = await Vehicle.findOne({ _id: vehicleId, companyId, isDeleted: false, status: mainStatus.ACTIVE })
         if (!vehicle) return error(res, 404, "Vehicle not found")
 
         // If vehicle changes team, clear assigned driver if driver was from old team
-        if (vehicle.teamId && vehicle.teamId.toString() !== teamId.toString()) {
+        if (vehicle.teamId && vehicle.teamId.toString() !== team._id.toString()) {
             vehicle.driverId = null
         }
 
-        vehicle.teamId = teamId
+        vehicle.teamId = team._id
         await vehicle.save()
         success(res, 200)
     } catch (err) {
@@ -157,19 +278,29 @@ exports.changeVehicleStatus = async (req, res) => {
     if (!id) return error(res, 400, "vehicle id is required")
     const { status } = req.body
     try {
-        let filters = {
+        const filters = {
             _id: id,
             companyId: user.companyId,
+            isDeleted: false
         };
         if (teamId) filters.teamId = teamId;
 
-        const vehicle = await Vehicle.findOneAndUpdate(filters, {
-            status
-        })
+        const currentVehicle = await Vehicle.findOne(filters).select("status")
+        if (!currentVehicle) return error(res, 404, "Vehicle not found")
+        if (currentVehicle.status === vehicleStatus.INMAINTENANCE) {
+            return error(res, 409, "Vehicle status cannot be changed until its maintenance request is verified")
+        }
 
-        if (!vehicle) return error(res, 404, "Vehicle not found")
+        const vehicle = await Vehicle.findOneAndUpdate(
+            { ...filters, status: { $ne: vehicleStatus.INMAINTENANCE } },
+            { $set: { status } },
+            { new: true, runValidators: true }
+        )
+        if (!vehicle) {
+            return error(res, 409, "Vehicle status cannot be changed until its maintenance request is verified")
+        }
 
-        success(res, 200)
+        success(res, 200, { vehicle })
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -191,7 +322,14 @@ exports.deleteVehicle = async (req, res) => {
 
         const existingVehicle = await Vehicle.findOne(filters)
         if (!existingVehicle) return error(res, 404, "Vehicle not found")
-        if (existingVehicle.isInTask) return error(res, 400, "Cannot delete vehicle while in active task")
+        if (existingVehicle.isInTask || existingVehicle.status === vehicleStatus.INMAINTENANCE) {
+            return error(res, 400, "Cannot delete vehicle while it is in an active task or maintenance")
+        }
+        const activeMaintenance = await Maintenance.exists({
+            vehicleId: existingVehicle._id,
+            status: { $in: [expenseRecordStatus.PENDING, expenseRecordStatus.APPROVED] }
+        })
+        if (activeMaintenance) return error(res, 400, "Cannot delete vehicle with active maintenance")
 
         existingVehicle.isDeleted = true
         existingVehicle.driverId = null

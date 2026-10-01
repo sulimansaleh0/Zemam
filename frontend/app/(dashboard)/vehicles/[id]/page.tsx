@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/shared/ui/Toast';
+import { VEHICLE_QUERY_KEYS } from '@/features/vehicles/hooks/useVehicles';
 import {
   Car,
   ChevronRight,
@@ -13,8 +16,12 @@ import {
   Activity,
   Wrench,
   Fuel,
+  Gauge,
+  Edit2,
+  ClipboardList,
 } from 'lucide-react';
 import { Sidebar, Header } from '@/features/dashboard';
+import { useTasks } from '@/features/tasks';
 import {
   useVehicleDetailPage,
   VehicleDetailCards,
@@ -22,16 +29,24 @@ import {
   AssignVehicleToTeamModal,
   ConfirmDeleteVehicleModal,
   VehicleStatusBadge,
+  EditVehicleModal,
 } from '@/features/vehicles';
 
 export default function VehicleDetailPage() {
   const params = useParams();
   const vehicleId = String(params?.id || '');
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const { data: vehicleTasks = [], isLoading: isLoadingTasks, isError: isTasksError } = useTasks(vehicleId);
 
   const {
     vehicle,
     teamObj,
     isActive,
+    vehicleStats,
+    isLoadingStats,
     isLoading,
     isError,
     error,
@@ -41,10 +56,12 @@ export default function VehicleDetailPage() {
     setIsAssignTeamOpen,
     isDeleteOpen,
     setIsDeleteOpen,
+    isUpdating,
     isChangingStatus,
     isRemovingTeam,
     isUnassigningDriver,
     handleToggleStatus,
+    handleUpdateVehicle: updateVehicleOnBackend,
     handleRemoveTeam,
     handleUnassignDriver,
     userName,
@@ -52,6 +69,15 @@ export default function VehicleDetailPage() {
     setMenuOpen,
     logout,
   } = useVehicleDetailPage(vehicleId);
+
+  const handleUpdateVehicle = async (vId: string, updatedData: any) => {
+    try {
+      await updateVehicleOnBackend(updatedData);
+      setIsEditOpen(false);
+    } catch {
+      // Toast is handled by hook
+    }
+  };
 
   if (isLoading) {
     return (
@@ -110,7 +136,7 @@ export default function VehicleDetailPage() {
           <Header
             onMenu={() => setMenuOpen(true)}
             searchQuery=""
-            onSearchChange={() => {}}
+            onSearchChange={() => { }}
             userName={userName}
           />
 
@@ -150,28 +176,63 @@ export default function VehicleDetailPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={handleToggleStatus}
-                  disabled={isChangingStatus}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 ${
-                    isActive
-                      ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
-                      : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
-                  }`}
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors cursor-pointer shadow-xs"
                 >
-                  <Power className="w-3.5 h-3.5" />
-                  <span>{isActive ? 'تعطيل المركبة' : 'تفعيل المركبة'}</span>
+                  <Edit2 className="w-3.5 h-3.5 text-[var(--primary)]" />
+                  <span>تعديل المواصفات والرخص</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold transition-colors cursor-pointer"
+                  onClick={handleToggleStatus}
+                  disabled={isChangingStatus || vehicle.status === 'in_maintenance'}
+                  title={vehicle.status === 'in_maintenance' ? 'لا يمكن تغيير الحالة قبل مراجعة طلب الصيانة' : undefined}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isActive
+                    ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                    : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                    }`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>حذف المركبة</span>
+                  <Power className="w-3.5 h-3.5" />
+                  <span>
+                    {vehicle.status === 'in_maintenance'
+                      ? 'بانتظار مراجعة الصيانة'
+                      : isActive ? 'تعطيل المركبة' : 'تفعيل المركبة'}
+                  </span>
                 </button>
+
+                {(() => {
+                  const isDeleteBlocked = Boolean(vehicle.isInTask) || vehicle.status === 'in_maintenance';
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteOpen(true)}
+                      title={isDeleteBlocked ? 'لا يمكن حذف المركبة أثناء وجودها في مهمة أو قيد الصيانة' : undefined}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${isDeleteBlocked
+                        ? 'border-neutral-300 dark:border-neutral-700 text-[var(--muted)] opacity-60'
+                        : 'border-rose-500/20 text-rose-500 hover:bg-rose-500/10'
+                        }`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف المركبة</span>
+                      {isDeleteBlocked && <span className="text-[10px] text-amber-500 font-bold">(محمية)</span>}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
+
+            {/* Protection Banner if vehicle is in task or maintenance */}
+            {(Boolean(vehicle.isInTask) || vehicle.status === 'in_maintenance') && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2.5 animate-in fade-in duration-150">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>
+                  {vehicle.status === 'in_maintenance'
+                    ? 'لا يمكن تغيير حالة المركبة حتى تتم مراجعة طلب الصيانة.'
+                    : 'هذه المركبة محمية تلقائياً من الحذف نظراً لأنها في مهمة تشغيلية جارية حالياً.'}
+                </span>
+              </div>
+            )}
 
             {/* ── Info Cards Grid ── */}
             <VehicleDetailCards
@@ -187,25 +248,25 @@ export default function VehicleDetailPage() {
 
             {/* ── Operational Status Overview ── */}
             <div className="p-5 sm:p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-[var(--text)]">السجلات التشغيلية للمركبة</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[var(--text)]">السجلات التشغيلية للمركبة (بيانات حية)</h3>
+                {isLoadingStats && (
+                  <span className="text-[10px] text-[var(--muted)] flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    جارٍ جلب السجلات...
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                     <Activity className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[var(--muted)] block">المهام المنجزة</span>
-                    <span className="text-lg font-bold text-[var(--text)]">—</span>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                    <Wrench className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-[var(--muted)] block">سجلات الصيانة</span>
-                    <span className="text-lg font-bold text-[var(--text)]">—</span>
+                    <span className="text-[11px] text-[var(--muted)] block">المسافة التشغيلية المقطوعة</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats ? `${vehicleStats.distance.toLocaleString('ar-SA')} كم` : '0 كم'}
+                    </span>
                   </div>
                 </div>
 
@@ -214,12 +275,81 @@ export default function VehicleDetailPage() {
                     <Fuel className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-[var(--muted)] block">سجلات الوقود</span>
-                    <span className="text-lg font-bold text-[var(--text)]">—</span>
+                    <span className="text-[11px] text-[var(--muted)] block">إجمالي استهلاك الوقود</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats ? `${vehicleStats.totalFuel.toLocaleString('ar-SA')} لتر` : '0 لتر'}
+                    </span>
+                    {vehicleStats && vehicleStats.totalFuelCost > 0 && (
+                      <span className="text-[10px] text-[var(--muted)] block">
+                        ({vehicleStats.totalFuelCost.toLocaleString('ar-SA')} ر.س)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-[var(--muted)] block">مصروفات الصيانة المعتمدة</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats ? `${vehicleStats.totalMaintenanceCost.toLocaleString('ar-SA')} ر.س` : '0 ر.س'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                    <Gauge className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-[var(--muted)] block">معدل كفاءة الوقود المحققة</span>
+                    <span className="text-lg font-bold text-[var(--text)] font-mono">
+                      {vehicleStats && vehicleStats.fuelEfficiency > 0
+                        ? `${vehicleStats.fuelEfficiency.toFixed(1)} كم/لتر`
+                        : '—'}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
+
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--text)]">
+                  <ClipboardList className="h-4 w-4 text-[var(--primary)]" />
+                  مهام المركبة
+                </h2>
+                {isLoadingTasks && <Loader2 className="h-4 w-4 animate-spin text-[var(--muted)]" />}
+              </div>
+              {isTasksError ? (
+                <p className="px-5 py-6 text-xs text-rose-500">تعذر تحميل مهام المركبة.</p>
+              ) : isLoadingTasks ? (
+                <p className="px-5 py-6 text-xs text-[var(--muted)]">جارٍ تحميل المهام...</p>
+              ) : vehicleTasks.length === 0 ? (
+                <p className="px-5 py-6 text-xs text-[var(--muted)]">لا توجد مهام مسجلة لهذه المركبة.</p>
+              ) : (
+                <div className="divide-y divide-[var(--border)]">
+                  {vehicleTasks.map((task) => (
+                    <article key={task._id} className="grid gap-2 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-xs font-semibold text-[var(--text)]">
+                          {task.title || task.description}
+                        </h3>
+                        {task.title && <p className="mt-1 line-clamp-2 text-[11px] text-[var(--muted)]">{task.description}</p>}
+                        <p className="mt-1 text-[11px] text-[var(--muted)]">
+                          {task.driverName || 'بدون سائق'} · {task.formattedStartTime}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[var(--text)]">
+                        {task.status === 'pending' ? 'قيد الانتظار' : task.status === 'inprogress' ? 'قيد التنفيذ' : task.status === 'finished' ? 'مكتملة' : 'مرفوضة'}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         </div>
       </div>
@@ -243,6 +373,15 @@ export default function VehicleDetailPage() {
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         targetVehicle={vehicle}
+      />
+
+      {/* ── Edit Vehicle Modal ── */}
+      <EditVehicleModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        vehicle={vehicle}
+        onUpdate={handleUpdateVehicle}
+        isLoading={isUpdating}
       />
     </main>
   );

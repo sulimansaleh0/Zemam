@@ -16,6 +16,10 @@ export const createDriverSchema = z.object({
     .min(1, 'البريد الإلكتروني مطلوب')
     .email('يرجى إدخال بريد إلكتروني صحيح'),
   teamId: z.string().optional(),
+  vehicleId: z.string().optional(),
+  licenseNumber: z.string().trim().optional(),
+  licenseTypes: z.array(z.enum(['normal', 'van', 'truck'])).default(['normal']),
+  licenseExpiry: z.string().optional(),
 });
 
 export type CreateDriverFormValues = z.infer<typeof createDriverSchema>;

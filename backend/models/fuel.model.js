@@ -2,8 +2,18 @@ const mongoose = require("mongoose")
 const { expenseRecordStatus } = require("../data/status")
 
 const fuelSchema = new mongoose.Schema({
+    vehicleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "vehicle",
+        required: true
+    },
+    teamId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "team"
+    },
     image: {
-        type: String
+        type: String,
+        default: null
     },
     cost: {
         type: Number,
@@ -11,24 +21,79 @@ const fuelSchema = new mongoose.Schema({
     },
     qty: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
+    },
+    odometer: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    isFullTank: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    distanceSinceLastFull: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelSinceLastFull: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelEfficiency: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    fuelIssue: {
+        type: Boolean,
+        default: false
+    },
+    fuelIssueType: {
+        type: String,
+        enum: ["high_consumption", "possible_leak", "efficiency_deviation", null],
+        default: null
+    },
+    fuelIssueMessage: {
+        type: String,
+        default: null
+    },
+    location: {
+        lat: { type: Number },
+        lng: { type: Number },
+        address: { type: String, trim: true }
     },
     status: {
         type: String,
         enum: [expenseRecordStatus.PENDING, expenseRecordStatus.APPROVED, expenseRecordStatus.DECLINED],
         default: expenseRecordStatus.PENDING
     },
+    verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        default: null
+    },
+    verifiedAt: {
+        type: Date,
+        default: null
+    },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",
         required: true
     },
-    driverId: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true
     }
 }, { timestamps: true })
+
+fuelSchema.index({ vehicleId: 1, createdAt: -1 })
 
 const Fuel = mongoose.model("fuel", fuelSchema)
 module.exports = Fuel

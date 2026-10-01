@@ -11,7 +11,6 @@ import {
   UserCheck,
   UserPlus,
   UserMinus,
-  UserX,
   Truck,
   ArrowDownUp,
   Building2,
@@ -22,6 +21,7 @@ import {
   getTeamManagerId,
   getTeamManagerName,
   getTeamManagerEmail,
+  getTeamCreatedAt,
 } from '../utils/teamHelpers';
 
 interface TeamsTableProps {
@@ -29,6 +29,7 @@ interface TeamsTableProps {
   isLoading: boolean;
   companyName?: string;
   vehicleCounts?: Record<string, number>;
+  driverCounts?: Record<string, number>;
   onAddClick: () => void;
   onEditClick: (team: Team) => void;
   onDeleteClick: (team: Team) => void;
@@ -50,6 +51,7 @@ export function TeamsTable({
   isLoading,
   companyName,
   vehicleCounts = {},
+  driverCounts = {},
   onAddClick,
   onEditClick,
   onDeleteClick,
@@ -72,14 +74,13 @@ export function TeamsTable({
       .filter((team) => {
         // Search
         const query = searchQuery.trim().toLowerCase();
-        const matchesName = team.name.toLowerCase().includes(query);
-        const managerObj = typeof team.managerId === 'object' ? team.managerId : null;
-        const matchesManager = managerObj
-          ? (managerObj.name || '').toLowerCase().includes(query) ||
-            (managerObj.email || '').toLowerCase().includes(query)
-          : false;
-
-        const matchesSearch = !query || matchesName || matchesManager;
+        const managerObj = typeof team.managerId === 'object' && team.managerId !== null
+          ? team.managerId
+          : null;
+        const searchFields = [team.name, team._id, managerObj?.name, managerObj?.email];
+        const matchesSearch = !query || searchFields.some((value) =>
+          String(value || '').toLowerCase().includes(query)
+        );
 
         // Status Filter
         let matchesStatus = true;
@@ -96,10 +97,10 @@ export function TeamsTable({
           return a.name.localeCompare(b.name, 'ar');
         }
         if (sortOrder === 'oldest') {
-          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+          return (getTeamCreatedAt(a)?.getTime() ?? 0) - (getTeamCreatedAt(b)?.getTime() ?? 0);
         }
         // newest
-        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        return (getTeamCreatedAt(b)?.getTime() ?? 0) - (getTeamCreatedAt(a)?.getTime() ?? 0);
       });
   }, [teams, searchQuery, statusFilter, sortOrder]);
 
@@ -126,33 +127,30 @@ export function TeamsTable({
             <button
               type="button"
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                statusFilter === 'all'
-                  ? 'bg-[var(--primary)] text-white shadow-xs'
-                  : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'all'
+                ? 'bg-[var(--primary)] text-white shadow-xs'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
             >
               الكل ({teams.length})
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter('assigned')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                statusFilter === 'assigned'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'assigned'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
             >
               مدارة
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter('unassigned')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                statusFilter === 'unassigned'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'unassigned'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
             >
               شاغرة
             </button>
@@ -190,6 +188,7 @@ export function TeamsTable({
                 <th className="py-3.5 px-4 sm:px-6">الفريق التشغيلي</th>
                 <th className="py-3.5 px-4 sm:px-6">مدير الأسطول المسند</th>
                 <th className="py-3.5 px-4 sm:px-6">المركبات المخصصة</th>
+                <th className="py-3.5 px-4 sm:px-6">السائقون المخصصون</th>
                 <th className="py-3.5 px-4 sm:px-6">الشركة التابعة</th>
                 <th className="py-3.5 px-4 sm:px-6 text-center">الإجراءات</th>
               </tr>
@@ -215,6 +214,9 @@ export function TeamsTable({
                       <div className="w-20 h-5 bg-[var(--surface-2)] rounded-full" />
                     </td>
                     <td className="py-4 px-4 sm:px-6">
+                      <div className="w-20 h-5 bg-[var(--surface-2)] rounded-full" />
+                    </td>
+                    <td className="py-4 px-4 sm:px-6">
                       <div className="w-24 h-4 bg-[var(--surface-2)] rounded" />
                     </td>
                     <td className="py-4 px-4 sm:px-6 text-center">
@@ -225,7 +227,7 @@ export function TeamsTable({
               ) : filteredTeams.length === 0 ? (
                 // Empty State
                 <tr>
-                  <td colSpan={5} className="py-12 px-4 text-center">
+                  <td colSpan={6} className="py-12 px-4 text-center">
                     <div className="max-w-xs mx-auto flex flex-col items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-[var(--primary-light)] text-[var(--primary)] flex items-center justify-center">
                         <Users className="w-6 h-6" />
@@ -256,6 +258,7 @@ export function TeamsTable({
               ) : (
                 filteredTeams.map((team) => {
                   const vehiclesCount = vehicleCounts[team._id] ?? 0;
+                  const driversCount = driverCounts[team._id] ?? 0;
                   const manager = team.managerId;
                   const hasManager = Boolean(manager);
                   const managerId = getTeamManagerId(manager);
@@ -280,9 +283,6 @@ export function TeamsTable({
                             >
                               {team.name}
                             </Link>
-                            <div className="text-[11px] font-mono text-[var(--muted)] mt-0.5">
-                              ID: {team._id}
-                            </div>
                           </div>
                         </div>
                       </td>
@@ -303,25 +303,17 @@ export function TeamsTable({
 
                             {/* Quick Manager Actions */}
                             <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
-                              <button
-                                type="button"
-                                onClick={() => onAssignManagerClick(team)}
-                                title="تغيير مدير الفريق"
-                                className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                              >
-                                <UserPlus className="w-3.5 h-3.5" />
-                              </button>
-
-                              {onRemoveManagerClick && managerId && (
+                              {onRemoveManagerClick && managerId ? (
                                 <button
                                   type="button"
                                   onClick={() => onRemoveManagerClick(managerId, team.name)}
-                                  title="إلغاء تعيين / تعطيل المدير"
-                                  className="p-1 rounded-md text-[var(--muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="فك ارتباط المدير عن الفريق أولاً لتتمكن من تعيين مدير آخر"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition-colors cursor-pointer"
                                 >
                                   <UserMinus className="w-3.5 h-3.5" />
+                                  <span>فك الارتباط</span>
                                 </button>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         ) : (
@@ -336,11 +328,19 @@ export function TeamsTable({
                         )}
                       </td>
 
-                      {/* Vehicles count */}
+                      {/* Assigned vehicles count */}
                       <td className="py-4 px-4 sm:px-6">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[var(--primary-light)] text-[var(--primary)] border border-[var(--primary)]/10">
                           <Truck className="w-3.5 h-3.5" />
                           <span>{vehiclesCount} مركبة</span>
+                        </span>
+                      </td>
+
+                      {/* Assigned drivers count */}
+                      <td className="py-4 px-4 sm:px-6">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/10">
+                          <Users className="w-3.5 h-3.5" />
+                          <span>{driversCount} سائق</span>
                         </span>
                       </td>
 

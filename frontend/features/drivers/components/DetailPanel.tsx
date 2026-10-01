@@ -190,6 +190,25 @@ export function DetailPanel({
           </div>
 
           <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3">
+            <div className="flex items-center justify-between">
+              <small className="block text-[9px] text-[var(--zd-muted)]">تقييم السائق</small>
+              <span className="text-[10px] text-amber-500">★</span>
+            </div>
+            <b className="mt-1 block text-[13px] font-bold text-emerald-500">
+              {driver.driverScore ?? 95} / 100
+            </b>
+          </div>
+
+          <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3">
+            <small className="block text-[9px] text-[var(--zd-muted)]">فئة الرخصة</small>
+            <b className="mt-1 block text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+              {Array.isArray(driver.licenseTypes) && driver.licenseTypes.length > 0
+                ? (driver.licenseTypes.includes('truck') ? 'شاحنة (ثقيل)' : driver.licenseTypes.includes('van') ? 'فان (متوسط)' : 'سيارة (خفيف)')
+                : 'سيارة (خفيف)'}
+            </b>
+          </div>
+
+          <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3">
             <CalendarDays className="h-3.5 w-3.5 text-[var(--zd-teal)]" />
             <small className="mt-2 block text-[9px] text-[var(--zd-muted)]">تاريخ الانضمام</small>
             <b className="mt-0.5 block text-[11px] font-semibold text-[var(--zd-text)]">

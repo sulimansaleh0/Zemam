@@ -1,5 +1,6 @@
 const { body } = require("express-validator");
-const { mainStatus } = require("../data/status");
+const { mainStatus, vehicleStatus } = require("../data/status");
+const { vehicleTypes } = require("../data/vehicleTypes");
 
 exports.createVehicleSchema = [
     body("model")
@@ -19,13 +20,44 @@ exports.createVehicleSchema = [
         .trim()
         .notEmpty()
         .withMessage("Plate number is required")
-        .isNumeric()
-        .withMessage("Plate number must be a number"),
+        .isString()
+        .withMessage("Plate number must be a string"),
+    body("tankCapacity")
+        .notEmpty()
+        .withMessage("Tank capacity is required")
+        .isFloat({ gt: 0 })
+        .withMessage("Tank capacity must be greater than zero"),
+    body("fuelType")
+        .notEmpty()
+        .withMessage("Fuel type is required")
+        .isIn(["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"])
+        .withMessage("Invalid fuel type"),
+
+    body("vehicleType")
+        .notEmpty()
+        .withMessage("Vehicle type is required")
+        .isIn(Object.values(vehicleTypes))
+        .withMessage("Invalid vehicle type"),
+    body("expectedFuelEfficiency")
+        .notEmpty()
+        .isFloat({ gt: 0 })
+        .withMessage("Expected fuel efficiency must be greater than zero"),
+    body("licenseNumber")
+        .trim()
+        .notEmpty()
+        .withMessage("License number is required")
+        .isString()
+        .withMessage("License number must be a string"),
+    body("licenseExpiry")
+        .notEmpty()
+        .withMessage("License expiry is required")
+        .isISO8601()
+        .withMessage("License expiry must be a valid date")
 ];
 
 exports.updateVehicleStatusSchema = [
     body("status")
-        .isIn(Object.values(mainStatus))
+        .isIn([vehicleStatus.ACTIVE, vehicleStatus.INACTIVE])
         .withMessage("Invalid Vehicle status")
 ]
 

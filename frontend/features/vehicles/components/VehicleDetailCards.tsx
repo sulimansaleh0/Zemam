@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
-import { Car, Building2, User, UserCheck, Unlink, Link2 } from 'lucide-react';
+import { Car, Building2, User, UserCheck, Unlink, Link2, Fuel, FileText, Shield, Gauge } from 'lucide-react';
 import type { VehicleWithRelations } from '../types/vehicle.types';
 
 interface TeamObject {
@@ -32,6 +32,7 @@ export function VehicleDetailCards({
   isUnassigningDriver = false,
 }: VehicleDetailCardsProps) {
   const isActive = vehicle.status === 'active';
+  const isInMaintenance = vehicle.status === 'in_maintenance';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -47,13 +48,21 @@ export function VehicleDetailCards({
             <span className="font-semibold text-[var(--text)] font-manrope">{vehicle.year}</span>
           </div>
           <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">نوع المركبة:</span>
+            <span className="font-semibold text-[var(--text)]">
+              {vehicle.vehicleType === 'truck' ? 'شاحنة' : vehicle.vehicleType === 'van' ? 'فان / حافلة' : 'سيارة خفيفة'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
             <span className="text-[var(--muted)]">رقم اللوحة:</span>
             <span className="font-semibold text-[var(--text)] font-mono" dir="ltr">{vehicle.plateNumber}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[var(--muted)]">حالة التشغيل:</span>
             <span className="font-semibold text-[var(--text)]">
-              {isActive ? 'نشطة في الخدمة' : 'معطلة عن العمل'}
+              {isInMaintenance
+                ? 'قيد الصيانة - بانتظار المراجعة'
+                : isActive ? 'نشطة في الخدمة' : 'معطلة عن العمل'}
             </span>
           </div>
         </div>
@@ -157,6 +166,172 @@ export function VehicleDetailCards({
             <span className="text-xs text-[var(--muted)] italic block pt-2">
               لا يوجد سائق معين للمركبة حالياً
             </span>
+          )}
+        </div>
+      </div>
+
+      {/* Card 4: Fuel & Odometer Specs */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <Fuel className="w-4 h-4 text-amber-500" />
+          مواصفات الوقود والعداد
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">سعة الخزان:</span>
+            <span className="font-bold text-[var(--text)] font-mono">
+              {vehicle.tankCapacity ? `${vehicle.tankCapacity} لتر` : 'غير محدد'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">نوع الوقود:</span>
+            <span className="font-semibold text-amber-600 dark:text-amber-400">
+              {vehicle.fuelType || 'بنزين 91'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">قراءة العداد:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.currentOdometer ? `${vehicle.currentOdometer.toLocaleString()} كم` : '0 كم'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">رصيد الوقود:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.fuelBalanceLitres?.toLocaleString() ?? 0} لتر
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Card 5: Vehicle Registration / License */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <FileText className="w-4 h-4 text-purple-500" />
+          رخصة السير (الاستمارة)
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">رقم الاستمارة:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.licenseNumber || 'غير مسجل'}
+            </span>
+          </div>
+          {vehicle.issuingAuthority && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">جهة الإصدار:</span>
+              <span className="font-semibold text-[var(--text)]">{vehicle.issuingAuthority}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">تاريخ الانتهاء:</span>
+            <span className="font-bold text-[var(--text)]">
+              {vehicle.licenseExpiry
+                ? new Date(vehicle.licenseExpiry).toLocaleDateString('ar-EG')
+                : 'غير محدد'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">حالة الاستمارة:</span>
+            {vehicle.licenseExpiry ? (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${new Date(vehicle.licenseExpiry) < new Date()
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  }`}
+              >
+                {new Date(vehicle.licenseExpiry) < new Date() ? 'منتهية الصلاحية' : 'سارية'}
+              </span>
+            ) : (
+              <span className="text-[var(--muted)]">غير مدخل</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Card 6: Insurance Policy */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <Shield className="w-4 h-4 text-emerald-500" />
+          وثيقة التأمين
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">رقم الوثيقة:</span>
+            <span className="font-mono font-bold text-[var(--text)]">
+              {vehicle.insuranceNumber || 'غير مسجل'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">شركة التأمين:</span>
+            <span className="font-semibold text-[var(--text)]">
+              {vehicle.insuranceCompany || 'غير مسجل'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">تاريخ الانتهاء:</span>
+            <span className="font-bold text-[var(--text)]">
+              {vehicle.insuranceExpiry
+                ? new Date(vehicle.insuranceExpiry).toLocaleDateString('ar-EG')
+                : 'غير محدد'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">حالة التأمين:</span>
+            {vehicle.insuranceExpiry ? (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${new Date(vehicle.insuranceExpiry) < new Date()
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  }`}
+              >
+                {new Date(vehicle.insuranceExpiry) < new Date() ? 'منتهي الصلاحية' : 'ساري'}
+              </span>
+            ) : (
+              <span className="text-[var(--muted)]">غير مدخل</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* GPS status and last known position */}
+      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+          <Gauge className="w-4 h-4 text-sky-500" />
+          حالة التتبع والموقع
+        </span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">حالة GPS:</span>
+            <span className="font-semibold text-[var(--text)]">{vehicle.gpsStatus || 'غير متاح'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--muted)]">آخر موقع:</span>
+            <span className="font-mono text-[var(--text)]" dir="ltr">
+              {vehicle.currentLocation?.lat != null && vehicle.currentLocation?.lng != null
+                ? `${vehicle.currentLocation.lat}, ${vehicle.currentLocation.lng}`
+                : 'غير متاح'}
+            </span>
+          </div>
+          {vehicle.currentLocation?.speed != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">السرعة:</span>
+              <span className="font-mono text-[var(--text)]">{vehicle.currentLocation.speed} كم/س</span>
+            </div>
+          )}
+          {vehicle.currentLocation?.heading != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">الاتجاه:</span>
+              <span className="font-mono text-[var(--text)]">{vehicle.currentLocation.heading}°</span>
+            </div>
+          )}
+          {vehicle.currentLocation?.updatedAt && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--muted)]">تحديث الموقع:</span>
+              <span className="text-[var(--text)]">
+                {new Date(vehicle.currentLocation.updatedAt).toLocaleString('ar-EG')}
+              </span>
+            </div>
           )}
         </div>
       </div>

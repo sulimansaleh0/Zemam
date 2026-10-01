@@ -123,9 +123,11 @@ export function DriversList({
 
       {/* ── Desktop Table ── */}
       <div className="hidden overflow-x-auto md:block">
-        <div className="grid min-w-[700px] grid-cols-[minmax(180px,1.5fr)_minmax(160px,1fr)_100px_130px_24px] gap-3 border-b border-[var(--zd-line)] bg-[var(--zd-surface-2)]/40 px-4 py-3 text-[10px] font-semibold text-[var(--zd-muted)] select-none">
+        <div className="grid min-w-[860px] grid-cols-[minmax(170px,1.4fr)_75px_95px_minmax(120px,1fr)_85px_100px_20px] gap-3 border-b border-[var(--zd-line)] bg-[var(--zd-surface-2)]/40 px-4 py-3 text-[10px] font-semibold text-[var(--zd-muted)] select-none">
           <span>السائق</span>
-          <span>البريد الإلكتروني</span>
+          <span>التقييم</span>
+          <span>فئة الرخصة</span>
+          <span>المركبة المسندة</span>
           <span>الحالة</span>
           <span>تاريخ الانضمام</span>
           <span aria-hidden="true" />

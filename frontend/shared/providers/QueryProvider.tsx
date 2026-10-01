@@ -9,8 +9,13 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5, // 5 minutes
-            refetchOnWindowFocus: false,
+            // Default لكل بيانات الـ CRUD التشغيلية (vehicles/drivers/teams/managers).
+            // الـ queries "التحليلية" (statics/dashboard) بتحدد staleTime أقصر بشكل صريح
+            // بمكانها (راجع shared/constants/queryKeys.ts للتوثيق).
+            staleTime: 1000 * 60 * 2, // 2 minutes
+            // يفعّل تحديث صامت بالخلفية لما المستخدم يرجع لتاب الموقع بعد غيابه —
+            // يعطي إحساس "بيانات حية" بدون أي تكلفة إضافية (بيصير بس عند تفاعل فعلي).
+            refetchOnWindowFocus: true,
             retry: 1,
           },
         },

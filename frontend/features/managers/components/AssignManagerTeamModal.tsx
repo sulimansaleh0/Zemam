@@ -23,6 +23,7 @@ export function AssignManagerTeamModal({
   const assignMutation = useAssignManager();
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const availableTeams = teams.filter((team) => !team.managerId);
 
   useEffect(() => {
     if (isOpen) {
@@ -46,8 +47,8 @@ export function AssignManagerTeamModal({
         teamId: selectedTeamId,
       });
       onClose();
-    } catch {
-      // Handled by toast
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'تعذر تعيين مدير الأسطول للفريق');
     }
   };
 
@@ -78,7 +79,7 @@ export function AssignManagerTeamModal({
             className="w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors cursor-pointer"
           >
             <option value="">-- اختر الفريق من القائمة --</option>
-            {teams.map((t) => (
+            {availableTeams.map((t) => (
               <option key={t._id} value={t._id}>
                 {t.name}
               </option>

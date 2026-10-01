@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
@@ -12,7 +12,7 @@ export interface ModalProps {
   icon?: React.ElementType;
   iconClassName?: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | string;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | string;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
   preventClose?: boolean;
@@ -28,6 +28,11 @@ const MAX_WIDTH_MAP: Record<string, string> = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
+  '6xl': 'max-w-6xl',
 };
 
 export function Modal({
@@ -84,17 +89,17 @@ export function Modal({
     >
       <div
         className={cn(
-          'relative w-full overflow-hidden rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-2xl animate-in zoom-in-95 duration-200 text-[var(--zd-text)]',
+          'relative w-full max-h-[92vh] flex flex-col overflow-hidden rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-2xl animate-in zoom-in-95 duration-200 text-[var(--zd-text)]',
           maxWidthClass,
           dialogClassName
         )}
       >
         {customHeader ? (
-          customHeader
+          <div className="shrink-0">{customHeader}</div>
         ) : title ? (
           <div
             className={cn(
-              'flex items-center justify-between border-b border-[var(--zd-line)] px-6 py-4 bg-[var(--zd-surface-2)]/30',
+              'shrink-0 flex items-center justify-between border-b border-[var(--zd-line)] px-6 py-4 bg-[var(--zd-surface-2)]/30',
               headerClassName
             )}
           >
