@@ -9,7 +9,7 @@ import { z } from 'zod';
  * الباك اند يقبل email فقط عند الإنشاء.
  */
 export const createDriverSchema = z.object({
-  name: z.string().trim().optional(),
+  name: z.string().trim().min(1, 'اسم السائق مطلوب'),
   phone: z.string().trim().optional(),
   email: z
     .string()
@@ -17,9 +17,13 @@ export const createDriverSchema = z.object({
     .email('يرجى إدخال بريد إلكتروني صحيح'),
   teamId: z.string().optional(),
   vehicleId: z.string().optional(),
-  licenseNumber: z.string().trim().optional(),
+  licenseNumber: z
+    .string()
+    .trim()
+    .min(1, 'رقم رخصة القيادة مطلوب')
+    .regex(/^[\p{L}\p{N}]+$/u, 'رقم الرخصة يجب أن يحتوي على أحرف أو أرقام فقط'),
   licenseTypes: z.array(z.enum(['normal', 'van', 'truck'])).default(['normal']),
-  licenseExpiry: z.string().optional(),
+  licenseExpiry: z.string().min(1, 'تاريخ انتهاء الرخصة مطلوب'),
 });
 
 export type CreateDriverFormValues = z.infer<typeof createDriverSchema>;

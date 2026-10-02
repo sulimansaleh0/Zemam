@@ -64,13 +64,13 @@ export type DriverSortOrder = 'newest' | 'oldest' | 'name';
 /** البيانات المرسلة لإنشاء سائق */
 export interface CreateDriverInput {
   email: string;
-  name?: string;
+  name: string;
   phone?: string;
   teamId?: string;
   vehicleId?: string;
-  licenseNumber?: string;
+  licenseNumber: string;
   licenseTypes?: ('normal' | 'van' | 'truck')[];
-  licenseExpiry?: string;
+  licenseExpiry: string;
 }
 
 /** البيانات المرسلة لتغيير حالة سائق */

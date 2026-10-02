@@ -29,18 +29,18 @@ export const driverService = {
 
   /**
    * إنشاء سائق جديد.
-   * الباك اند يقبل email فقط — يُحفظ الاسم كـ "Default" تلقائياً.
+  * إنشاء حساب السائق مع بيانات الهوية والرخصة المطلوبة.
    */
   createDriver(data: CreateDriverInput): Promise<ServiceResult<null>> {
     const payload = {
       email: data.email,
-      ...(data.name && data.name.trim() ? { name: data.name.trim() } : {}),
+      name: data.name.trim(),
       ...(data.phone && data.phone.trim() ? { phone: data.phone.trim() } : {}),
       ...(data.teamId && data.teamId.trim() ? { teamId: data.teamId.trim() } : {}),
       ...(data.vehicleId && data.vehicleId.trim() ? { vehicleId: data.vehicleId.trim() } : {}),
-      ...(data.licenseNumber && data.licenseNumber.trim() ? { licenseNumber: data.licenseNumber.trim() } : {}),
+      licenseNumber: data.licenseNumber.trim(),
       ...(data.licenseTypes && data.licenseTypes.length > 0 ? { licenseTypes: data.licenseTypes } : {}),
-      ...(data.licenseExpiry ? { licenseExpiry: data.licenseExpiry } : {}),
+      licenseExpiry: data.licenseExpiry,
     };
     return postRequest<null>(API_PATHS.DRIVERS.CREATE, payload);
   },
