@@ -8,9 +8,6 @@ router.use(verifyToken)
 router.use(getTeam)
 
 router.get("/live", getLiveFleet);
-router.get("/trip-path/:taskId", getLiveTripPath);
-router.get("/trip-summary/:taskId", getTripSummary);
-router.get("/history/:vehicleId", getVehicleHistory);
 router.post("/telemetry/batch", ingestBatchTelemetry);
 
 module.exports = router;

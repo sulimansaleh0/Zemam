@@ -7,6 +7,7 @@ import {
   joinFleetTracking,
   leaveFleetTracking,
   onVehicleLocationChanged,
+  onTripCompleted,
 } from '../services/gpsSocket';
 import { gpsService } from '../services/gps.service';
 import type {
@@ -76,8 +77,29 @@ export function useFleetGps() {
       setVehicles(Array.from(vehiclesMapRef.current.values()));
     });
 
+    const unsubscribeTripCompleted = onTripCompleted((summary) => {
+      if (!summary?.vehicleId) return;
+
+      const existing = vehiclesMapRef.current.get(summary.vehicleId);
+      if (!existing) return;
+
+      vehiclesMapRef.current.set(summary.vehicleId, {
+        ...existing,
+        gpsStatus: 'available',
+        isInTask: false,
+        activeTaskId: undefined,
+        activeTaskTitle: undefined,
+        currentLocation: {
+          ...existing.currentLocation,
+          speed: 0,
+        },
+      });
+      setVehicles(Array.from(vehiclesMapRef.current.values()));
+    });
+
     return () => {
       unsubscribeLocation();
+      unsubscribeTripCompleted();
       leaveFleetTracking();
     };
   }, [user, fetchInitialFleet]);

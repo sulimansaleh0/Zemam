@@ -91,7 +91,7 @@ export default function LeafletMapCanvas({
       if (savedStyle && MAP_TILE_STYLES[savedStyle]) {
         setCurrentStyleId(savedStyle);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // إغلاق قائمة الطبقات عند النقر خارجها
@@ -164,6 +164,15 @@ export default function LeafletMapCanvas({
       if (resizeObserver) resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
+      pickupMarkerRef.current = null;
+      deliveryMarkerRef.current = null;
+      pickupGeofenceRef.current = null;
+      deliveryGeofenceRef.current = null;
+      routePolylineRef.current = null;
+      routeGlowPolylineRef.current = null;
+      routeFlowPolylineRef.current = null;
+      playbackMarkerRef.current = null;
     };
   }, []);
 
@@ -172,7 +181,7 @@ export default function LeafletMapCanvas({
     setCurrentStyleId(newStyleId);
     try {
       localStorage.setItem(MAP_STYLE_STORAGE_KEY, newStyleId);
-    } catch {}
+    } catch { }
 
     const map = mapRef.current;
     if (!map) return;
@@ -305,8 +314,8 @@ export default function LeafletMapCanvas({
       routeCoordinates && routeCoordinates.length > 1
         ? routeCoordinates
         : pickupPosition && deliveryPosition
-        ? [pickupPosition, deliveryPosition]
-        : null;
+          ? [pickupPosition, deliveryPosition]
+          : null;
 
     if (coordsToDraw && coordsToDraw.length > 1) {
       // 1. غلاف التوهج الخارجي
@@ -353,7 +362,7 @@ export default function LeafletMapCanvas({
       try {
         const bounds = L.latLngBounds(coordsToDraw);
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-      } catch {}
+      } catch { }
     } else {
       if (routeGlowPolylineRef.current) {
         routeGlowPolylineRef.current.remove();
@@ -412,9 +421,9 @@ export default function LeafletMapCanvas({
   const toggleFullscreen = () => {
     const target = containerRef.current?.parentElement || containerRef.current;
     if (!document.fullscreenElement) {
-      target?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      target?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => { });
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => { });
     }
   };
 
@@ -447,11 +456,10 @@ export default function LeafletMapCanvas({
                     handleStyleChange(id);
                     setIsLayersOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-right text-xs transition cursor-pointer ${
-                    currentStyleId === id
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-right text-xs transition cursor-pointer ${currentStyleId === id
                       ? 'bg-blue-600/15 font-bold text-blue-500'
                       : 'text-[var(--zd-text)] hover:bg-[var(--zd-surface-2)]'
-                  }`}
+                    }`}
                 >
                   <span>{MAP_TILE_STYLES[id].name}</span>
                   {currentStyleId === id && <Check className="h-3.5 w-3.5 text-blue-500" />}

@@ -45,7 +45,6 @@ interface TaskDetailModalProps {
 
 export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps) {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
-
   const pickupLat = task?.pickupLocation?.lat ? parseFloat(task.pickupLocation.lat) : NaN;
   const pickupLng = task?.pickupLocation?.lng ? parseFloat(task.pickupLocation.lng) : NaN;
   const deliveryLat = task?.deliveryLocation?.lat ? parseFloat(task.deliveryLocation.lat) : NaN;
@@ -75,7 +74,6 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
     }
     return undefined;
   }, [task?.tripSummary?.encodedPath]);
-
   if (!task) return null;
 
   const statusConfig = getTaskStatusConfig(task.status);
