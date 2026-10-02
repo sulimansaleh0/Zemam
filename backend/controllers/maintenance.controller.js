@@ -88,7 +88,8 @@ exports.listMaintenanceRecords = async (req, res) => {
 
         const records = await Maintenance.find(filters)
             .populate("vehicleId", "model plateNumber")
-            .populate("reportedBy", "name email")
+            .populate("reportedBy", "name email role")
+            .populate("driverId", "name email role")
             .sort({ createdAt: -1 })
         success(res, 200, { records })
     } catch (err) {
@@ -102,6 +103,9 @@ exports.verifyMaintenanceRecord = async (req, res) => {
     const { status, declineReason, isDriverFault, cost } = req.body
     const recordId = req.params.id
     if (!recordId) return error(res, 400, "Maintenance Record ID is required")
+    if (status === expenseRecordStatus.APPROVED && (cost === undefined || cost === null || cost === "" || !Number.isFinite(Number(cost)) || Number(cost) < 0)) {
+        return error(res, 400, "A valid cost is required to approve a maintenance record")
+    }
     try {
         const filters = {
             _id: recordId,

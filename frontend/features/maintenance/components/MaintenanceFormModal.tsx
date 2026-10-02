@@ -8,7 +8,6 @@ import {
   Camera,
   Coins,
   FileText,
-  Gauge,
   Loader2,
   Plus,
   Truck,
@@ -59,7 +58,6 @@ export function MaintenanceFormModal({
       priority: 'low',
       description: '',
       cost: undefined,
-      odoMeter: undefined,
       vehicleId: '',
     },
   });
@@ -67,14 +65,6 @@ export function MaintenanceFormModal({
   const selectedPriority = watch('priority');
   const selectedCategory = watch('category');
   const selectedVehicleId = watch('vehicleId');
-  const watchedOdometer = watch('odoMeter');
-
-  const selectedVehicle = vehicles.find((v) => v._id === selectedVehicleId);
-  const isOdometerInvalid =
-    selectedVehicle?.currentOdometer !== undefined &&
-    watchedOdometer !== undefined &&
-    Number(watchedOdometer) < selectedVehicle.currentOdometer;
-
   const handleClose = () => {
     reset();
     setSelectedFiles([]);
@@ -112,7 +102,6 @@ export function MaintenanceFormModal({
         category: values.category,
         priority: values.priority,
         cost: values.cost,
-        odoMeter: values.odoMeter,
         images: selectedFiles,
       });
       handleClose();
@@ -187,11 +176,10 @@ export function MaintenanceFormModal({
                 <button
                   type="button"
                   onClick={() => setValue('category', 'Faults')}
-                  className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-bold transition cursor-pointer ${
-                    selectedCategory === 'Faults'
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-bold transition cursor-pointer ${selectedCategory === 'Faults'
                       ? 'border-orange-500/40 bg-orange-500/10 text-orange-400 shadow-xs'
                       : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:border-[var(--zd-line-hover)]'
-                  }`}
+                    }`}
                 >
                   <AlertTriangle className="h-3.5 w-3.5" />
                   <span>عطل طارئ</span>
@@ -200,11 +188,10 @@ export function MaintenanceFormModal({
                 <button
                   type="button"
                   onClick={() => setValue('category', 'Periodic Maintenance')}
-                  className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-bold transition cursor-pointer ${
-                    selectedCategory === 'Periodic Maintenance'
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-bold transition cursor-pointer ${selectedCategory === 'Periodic Maintenance'
                       ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 shadow-xs'
                       : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:border-[var(--zd-line-hover)]'
-                  }`}
+                    }`}
                 >
                   <Wrench className="h-3.5 w-3.5" />
                   <span>صيانة دورية</span>
@@ -216,8 +203,8 @@ export function MaintenanceFormModal({
             </div>
           </div>
 
-          {/* درجة الأولوية وقراءة العداد والتكلفة */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* درجة الأولوية والتكلفة */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* درجة الأولوية */}
             <div>
               <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
@@ -232,47 +219,6 @@ export function MaintenanceFormModal({
               </select>
               {errors.priority && (
                 <p className="mt-1 text-[11px] text-rose-500">{errors.priority.message}</p>
-              )}
-            </div>
-
-            {/* قراءة العداد الحالية */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-[var(--zd-text)]">
-                  قراءة العداد (اختياري)
-                </label>
-                {selectedVehicle?.currentOdometer !== undefined && (
-                  <span className="text-[10px] text-[var(--zd-muted)]">
-                    آخر قراءة: {Number(selectedVehicle.currentOdometer).toLocaleString('ar-EG')} كم
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  {...register('odoMeter')}
-                  placeholder={
-                    selectedVehicle?.currentOdometer !== undefined
-                      ? `مثال: ${selectedVehicle.currentOdometer + 10}`
-                      : 'مثال: 45000'
-                  }
-                  className={`w-full rounded-xl border bg-[var(--zd-surface)] px-3 py-2.5 pl-8 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:outline-none ${
-                    isOdometerInvalid
-                      ? 'border-rose-500 focus:border-rose-500'
-                      : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-                  }`}
-                />
-                <Gauge className="absolute left-2.5 top-3 h-3.5 w-3.5 text-[var(--zd-muted)]" />
-              </div>
-              {errors.odoMeter && (
-                <p className="mt-1 text-[11px] text-rose-500">{errors.odoMeter.message}</p>
-              )}
-              {isOdometerInvalid && (
-                <p className="mt-1 text-[10px] text-rose-400 font-medium">
-                  يجب ألا تقل قراءة العداد عن آخر قراءة مسجلة ({selectedVehicle?.currentOdometer} كم)
-                </p>
               )}
             </div>
 

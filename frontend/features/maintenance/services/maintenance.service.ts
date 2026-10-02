@@ -71,11 +71,6 @@ export const maintenanceService = {
       formData.append('cost', String(data.cost));
     }
 
-    if (data.odoMeter !== undefined && data.odoMeter !== null && !isNaN(data.odoMeter)) {
-      formData.append('odometer', String(data.odoMeter));
-      formData.append('odoMeter', String(data.odoMeter));
-    }
-
     if (data.images && data.images.length > 0) {
       data.images.forEach((file) => {
         formData.append('images', file);

@@ -24,6 +24,7 @@ export interface PopulatedReporter {
   lastName?: string;
   name?: string;
   email: string;
+  role?: string;
 }
 
 export interface BackendMaintenanceRecord {
@@ -31,6 +32,7 @@ export interface BackendMaintenanceRecord {
   vehicleId: string | PopulatedVehicle;
   teamId?: string | null;
   companyId: string;
+  driverId?: string | PopulatedReporter | null;
   description: string;
   images?: string[];
   cost?: number;
@@ -59,7 +61,6 @@ export interface CreateMaintenanceInput {
   cost?: number;
   priority: MaintenancePriority;
   category: MaintenanceCategory;
-  odoMeter?: number;
   images?: File[];
 }
 

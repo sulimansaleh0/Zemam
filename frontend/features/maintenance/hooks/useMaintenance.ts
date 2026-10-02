@@ -163,19 +163,28 @@ export function useMaintenancePage() {
 
   // تصفية إضافية عبر شريط البحث النصي
   const filteredRecords = useMemo(() => {
-    if (!searchQuery.trim()) return rawRecords;
-    const q = searchQuery.toLowerCase();
+    const query = searchQuery.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+    if (!query) return rawRecords;
 
     return rawRecords.filter((record) => {
-      const descMatch = record.description?.toLowerCase().includes(q) ?? false;
-      const vehicleMatch =
-        record.vehicleModel?.toLowerCase().includes(q) ||
-        String(record.vehiclePlate).toLowerCase().includes(q);
-      const reporterMatch =
-        record.reporterName?.toLowerCase().includes(q) ||
-        record.reporterEmail?.toLowerCase().includes(q);
+      const searchableValues = [
+        record.description,
+        record.vehicleModel,
+        record.vehiclePlate,
+        record.reporterName,
+        record.reporterEmail,
+        record.formattedDate,
+        record.category,
+        record.status,
+        record.priority,
+      ];
+      const searchableText = searchableValues
+        .filter(Boolean)
+        .join(' ')
+        .normalize('NFKC')
+        .toLocaleLowerCase();
 
-      return descMatch || vehicleMatch || reporterMatch;
+      return searchableText.includes(query);
     });
   }, [rawRecords, searchQuery]);
 

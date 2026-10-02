@@ -90,8 +90,7 @@ export default function MaintenancePage() {
         <div className="min-w-0 flex-1">
           <Header
             onMenu={() => setMenuOpen(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            showSearch={false}
             userName={userName}
           />
 

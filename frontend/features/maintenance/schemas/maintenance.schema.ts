@@ -15,13 +15,6 @@ export const createMaintenanceSchema = z.object({
         .min(0, 'التكلفة لا يمكن أن تكون بالسالب')
         .optional()
     ),
-  odoMeter: z
-    .preprocess(
-      (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-      z.number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
-        .min(0, 'قراءة العداد لا يمكن أن تكون سالبة')
-        .optional()
-    ),
   description: z
     .string()
     .trim()
@@ -43,6 +36,15 @@ export const verifyMaintenanceSchema = z
       ),
     isDriverFault: z.boolean().optional(),
     declineReason: z.string().trim().optional(),
+  })
+  .superRefine((data, context) => {
+    if (data.status === 'approved' && data.cost === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'التكلفة الفعلية مطلوبة عند اعتماد السجل',
+        path: ['cost'],
+      });
+    }
   })
   .refine(
     (data) => {
