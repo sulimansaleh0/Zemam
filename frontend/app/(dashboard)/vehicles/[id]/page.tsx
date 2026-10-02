@@ -466,9 +466,8 @@ export default function VehicleDetailPage() {
                     <article key={task._id} className="grid gap-2 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                       <div className="min-w-0">
                         <h3 className="truncate text-xs font-semibold text-[var(--text)]">
-                          {task.title || task.description}
+                          {task.description}
                         </h3>
-                        {task.title && <p className="mt-1 line-clamp-2 text-[11px] text-[var(--muted)]">{task.description}</p>}
                         <p className="mt-1 text-[11px] text-[var(--muted)]">
                           {task.driverName || 'بدون سائق'} · {task.formattedStartTime}
                         </p>

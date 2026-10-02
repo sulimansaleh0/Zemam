@@ -1,10 +1,6 @@
 const { body } = require("express-validator")
 
 exports.createTaskSchema = [
-    body("title")
-        .optional()
-        .trim(),
-
     body("description")
         .trim()
         .notEmpty().withMessage("Description is Required")

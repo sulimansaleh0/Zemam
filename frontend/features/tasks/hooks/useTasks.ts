@@ -244,13 +244,12 @@ export function useTasksPage() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const descMatch = task.description?.toLowerCase().includes(q) ?? false;
-        const titleMatch = task.title?.toLowerCase().includes(q) ?? false;
         const driverMatch = task.driverName?.toLowerCase().includes(q) ?? false;
         const vehicleMatch =
           task.vehicleModel?.toLowerCase().includes(q) ||
           String(task.vehiclePlate).toLowerCase().includes(q);
 
-        if (!descMatch && !titleMatch && !driverMatch && !vehicleMatch) {
+        if (!descMatch && !driverMatch && !vehicleMatch) {
           return false;
         }
       }

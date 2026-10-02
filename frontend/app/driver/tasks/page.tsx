@@ -130,31 +130,28 @@ export default function DriverTasksPage() {
         <div className="flex items-center gap-1.5 rounded-2xl bg-white p-1.5 border border-slate-200 shadow-xs text-xs">
           <button
             onClick={() => setCurrentTab('inprogress')}
-            className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${
-              currentTab === 'inprogress'
+            className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${currentTab === 'inprogress'
                 ? 'bg-teal-700 text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             الجارية ({tasks.filter((t) => t.status === 'inprogress').length})
           </button>
           <button
             onClick={() => setCurrentTab('pending')}
-            className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${
-              currentTab === 'pending'
+            className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${currentTab === 'pending'
                 ? 'bg-teal-700 text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             المعلقة ({tasks.filter((t) => t.status === 'pending').length})
           </button>
           <button
             onClick={() => setCurrentTab('finished')}
-            className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${
-              currentTab === 'finished'
+            className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${currentTab === 'finished'
                 ? 'bg-teal-700 text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             المكتملة ({tasks.filter((t) => t.status === 'finished').length})
           </button>
@@ -186,19 +183,18 @@ export default function DriverTasksPage() {
                 {/* شريط علوي للبطاقة */}
                 <div className="flex items-center justify-between">
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                      task.status === 'inprogress'
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${task.status === 'inprogress'
                         ? 'bg-teal-50 text-teal-700 border border-teal-200'
                         : task.status === 'finished'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}
                   >
                     {task.status === 'inprogress'
                       ? 'قيد التنفيذ 🟢'
                       : task.status === 'finished'
-                      ? 'تم التسليم 🏁'
-                      : 'في الانتظار ⏳'}
+                        ? 'تم التسليم 🏁'
+                        : 'في الانتظار ⏳'}
                   </span>
 
                   <span className="text-[11px] font-mono text-slate-400 font-bold">
@@ -209,7 +205,7 @@ export default function DriverTasksPage() {
                 {/* عنوان المهمة وتفاصيلها */}
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 mb-1">
-                    {task.title || 'مهمة توصيل شحنة لوجستية'}
+                    {task.description}
                   </h3>
                   {task.description && (
                     <p className="text-xs text-slate-500 leading-relaxed">
@@ -241,11 +237,10 @@ export default function DriverTasksPage() {
                 <div className="flex items-center gap-2 pt-1">
                   {task.deliveryLocation && (
                     <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${
-                        task.deliveryLocation.lat || ''
-                      },${task.deliveryLocation.lng || ''}&destination_place_id=${encodeURIComponent(
-                        task.deliveryLocation.address || ''
-                      )}`}
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${task.deliveryLocation.lat || ''
+                        },${task.deliveryLocation.lng || ''}&destination_place_id=${encodeURIComponent(
+                          task.deliveryLocation.address || ''
+                        )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100/80 py-2.5 text-xs font-bold text-teal-800 transition-colors"

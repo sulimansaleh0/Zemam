@@ -37,7 +37,6 @@ export interface PopulatedTeam {
 
 export interface BackendTask {
   _id: string;
-  title?: string;
   description: string;
   status: TaskStatus;
   startTime: string;
@@ -80,7 +79,6 @@ export interface TaskWithRelations extends BackendTask {
 }
 
 export interface CreateTaskInput {
-  title?: string;
   description: string;
   vehicleId: string;
   driverId?: string;
@@ -92,7 +90,6 @@ export interface CreateTaskInput {
 }
 
 export interface UpdateTaskInput {
-  title?: string;
   description?: string;
   vehicleId?: string;
   driverId?: string;

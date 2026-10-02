@@ -689,7 +689,7 @@ export default function DriverMobileTrackingPage() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black text-slate-900">
-                  {activeTask.title || 'مهمة توصيل شحنة لوجستية'}
+                  {activeTask.description}
                 </h3>
                 <Link
                   href="/driver/tasks"

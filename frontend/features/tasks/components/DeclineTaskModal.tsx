@@ -46,7 +46,7 @@ export function DeclineTaskModal({
         <p className="text-xs text-[var(--zd-muted)] leading-relaxed">
           هل أنت متأكد من إلغاء المهمة{' '}
           <span className="font-bold text-[var(--zd-text)]">
-            "{task.title || task.description.slice(0, 30) + '...'}"
+            "{task.description.slice(0, 30) + '...'}"
           </span>
           ؟ سيتم إيقاف المهمة فوراً وتحرير المركبة لتصبح متاحة.
         </p>

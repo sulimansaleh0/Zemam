@@ -2,10 +2,6 @@ const mongoose = require("mongoose")
 const { taskStatus } = require("../data/status")
 
 const taskSchema = new mongoose.Schema({
-    title: {
-        type: String,
-        trim: true
-    },
     description: {
         type: String,
         required: true

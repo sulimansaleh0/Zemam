@@ -7,7 +7,6 @@ export const locationPointSchema = z.object({
 });
 
 export const createTaskSchema = z.object({
-  title: z.string().trim().optional(),
   description: z
     .string()
     .trim()

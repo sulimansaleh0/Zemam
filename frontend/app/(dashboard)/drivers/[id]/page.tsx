@@ -867,13 +867,13 @@ export default function DriverDetailPage() {
                           type="button"
                           key={task._id}
                           onClick={() => setSelectedTask(task)}
-                          aria-label={`عرض تفاصيل المهمة: ${task.title || 'مهمة نقل بضائع'}`}
+                          aria-label={`عرض تفاصيل المهمة: ${task.description.slice(0, 60)}`}
                           className="w-full text-right p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[var(--surface-2)]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)] transition cursor-pointer"
                         >
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm text-[var(--text)]">
-                                {task.title || 'مهمة نقل بضائع'}
+                                {task.description}
                               </span>
                               <span
                                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${task.status === 'finished'

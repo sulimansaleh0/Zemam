@@ -16,7 +16,7 @@ exports.createTask = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
     if (!teamId) return error(res, 400, "Team Id is required")
-    const { title, description, driverId, vehicleId, startTime, expectedEndTime, pickupLocation, deliveryLocation } = req.body
+    const { description, driverId, vehicleId, startTime, expectedEndTime, pickupLocation, deliveryLocation } = req.body
     try {
         const endTime = getExpectedEndTime(startTime, expectedEndTime)
         if (!endTime)
@@ -47,7 +47,6 @@ exports.createTask = async (req, res) => {
         if (eligibilityError) return error(res, 400, eligibilityError)
 
         const task = await Task.create({
-            title,
             description,
             vehicleId,
             driverId: assignedDriverId,
@@ -129,7 +128,7 @@ exports.listTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const { title, description, driverId, vehicleId, startTime, expectedEndTime, pickupLocation, deliveryLocation } = req.body
+    const { description, driverId, vehicleId, startTime, expectedEndTime, pickupLocation, deliveryLocation } = req.body
     const taskId = req.params.id || null
     if (!taskId) return error(res, 400, "task id is required")
     try {
@@ -171,7 +170,7 @@ exports.updateTask = async (req, res) => {
             vehicleId: nextVehicleId,
             expectedEndTime: validatedExpectedEndTime
         }
-        const optionalUpdates = { title, description, startTime, pickupLocation, deliveryLocation }
+        const optionalUpdates = { description, startTime, pickupLocation, deliveryLocation }
         for (const [field, value] of Object.entries(optionalUpdates)) {
             if (value !== undefined) updates[field] = value
         }

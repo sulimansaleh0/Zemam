@@ -7,7 +7,6 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  FileText,
   HelpCircle,
   Info,
   Loader2,
@@ -98,7 +97,6 @@ export function TaskFormModal({
   } = useForm<CreateTaskFormValues>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
-      title: '',
       description: '',
       vehicleId: '',
       driverId: '',
@@ -247,7 +245,6 @@ export function TaskFormModal({
       }
 
       reset({
-        title: initialTask.title || '',
         description: initialTask.description || '',
         vehicleId: vId,
         driverId: dId,
@@ -258,7 +255,6 @@ export function TaskFormModal({
       });
     } else if (!isOpen) {
       reset({
-        title: '',
         description: '',
         vehicleId: '',
         driverId: '',
@@ -283,7 +279,6 @@ export function TaskFormModal({
 
     try {
       const payload: CreateTaskInput = {
-        title: values.title?.trim() || undefined,
         description: values.description.trim(),
         teamId: effectiveTeamId || undefined,
         vehicleId: values.vehicleId,
@@ -334,22 +329,6 @@ export function TaskFormModal({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* ── العمود الأول: بيانات وتفاصيل المهمة (5 أعمدة) ── */}
             <div className="lg:col-span-5 space-y-4">
-              {/* عنوان المهمة */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[var(--zd-text)]">
-                  عنوان المهمة <span className="text-[var(--zd-muted)] text-[11px]">(اختياري)</span>
-                </label>
-                <div className="relative">
-                  <FileText className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
-                  <input
-                    type="text"
-                    {...register('title')}
-                    placeholder="مثال: نقل شحنة بضائع إلى مستودع الرياض"
-                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
               {/* وصف المهمة */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -357,9 +336,8 @@ export function TaskFormModal({
                     وصف المهمة والتعليمات <span className="text-rose-500">*</span>
                   </label>
                   <span
-                    className={`text-[10px] font-medium ${
-                      descriptionValue.length < 15 ? 'text-amber-500' : 'text-emerald-500'
-                    }`}
+                    className={`text-[10px] font-medium ${descriptionValue.length < 15 ? 'text-amber-500' : 'text-emerald-500'
+                      }`}
                   >
                     {descriptionValue.length}/15 حرف كحد أدنى
                   </span>
