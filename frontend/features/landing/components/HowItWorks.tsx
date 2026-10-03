@@ -3,56 +3,69 @@ import React from "react";
 const steps = [
   {
     number: "01",
-    title: "أنشئ حساب شركتك",
-    description: "سجل بريدك الإلكتروني وجهز مساحتك الخاصة",
-    tooltip: "أنشئ حساب شركتك لبدء إدارة أسطولك.",
+    title: "أنشئ حساب أسطولك",
+    description: "سجل بيانات شركتك وحدد الفروع وصلاحيات المديرين في خطوات معدودة.",
   },
   {
     number: "02",
     title: "أضف المركبات والسائقين",
-    description: "ادخل بيانات مركباتك وفريق العمل بسهولة",
-    tooltip: "أضف المركبات والسائقين لتجهيز بيانات الأسطول.",
+    description: "اربط أجهزة التتبع (GPS) وأدخل بيانات سياراتك وعيّن السائقين والمهام.",
   },
   {
     number: "03",
-    title: "ابدأ إدارة أسطولك",
-    description: "تابع كل شيء من لوحة تحكم واحدة بذكاء",
-    tooltip: "ابدأ المتابعة والتحكم من لوحة واحدة.",
+    title: "ابدأ المراقبة والتحكم",
+    description: "راقب المسارات المباشرة، تقارير استهلاك الوقود، وتنبيهات الصيانة فورياً.",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="pt-[88px] pb-[104px] max-[700px]:py-16 scroll-mt-24">
+    <section
+      id="how-it-works"
+      className="py-24 max-[700px]:py-16 bg-white scroll-mt-20 [direction:rtl]"
+    >
       <div className="w-full max-w-[1360px] mx-auto px-[72px] max-[1180px]:px-10 max-[700px]:px-6 max-[430px]:px-[18px]">
-        <h2 className="text-center text-ink text-[38px] max-[700px]:text-[32px] font-extrabold leading-[1.28] tracking-[-0.018em] m-0">
-          ابدأ خلال دقائق
-        </h2>
-        <div className="grid grid-cols-3 max-[920px]:grid-cols-2 max-[700px]:grid-cols-1 gap-5 mt-12">
+        {/* Section Header */}
+        <div className="text-center max-w-[700px] mx-auto mb-14">
+          <span className="text-primary text-[14px] font-bold tracking-wide block mb-2">
+            خطوات بسيطة
+          </span>
+          <h2 className="text-[#0F172A] text-[38px] max-[700px]:text-[30px] font-black leading-[1.3] m-0">
+            ابدأ خلال{" "}
+            <span className="relative inline-block text-primary">
+              دقائق
+              <span className="absolute bottom-1 left-0 w-full h-[4px] bg-[#E06D28] rounded-full -z-1 opacity-80" />
+            </span>
+          </h2>
+          <p className="text-[#64748B] text-[16px] leading-[1.7] mt-3.5 m-0">
+            لا حاجة لإجراءات معقدة؛ ابدأ تشغيل نظام إدارة أسطولك بثلاث خطوات سهلة ومباشرة.
+          </p>
+        </div>
+
+        {/* 3 Step Cards Grid */}
+        <div className="grid grid-cols-3 max-[920px]:grid-cols-1 gap-7">
           {steps.map((step) => (
             <article
-              aria-describedby={`step-tooltip-${step.number}`}
-              className="group relative cursor-default text-right z-[1] rounded-[14px] border border-[#94a3b8]/20 p-[30px] max-[430px]:p-6 transition-all duration-180 ease-out hover:-translate-y-1.5 hover:bg-[#F0F7F5] hover:border-primary/35 hover:shadow-[0_14px_28px_rgba(15,118,110,0.1)] focus-visible:outline-none focus-visible:-translate-y-1.5 focus-visible:bg-[#F0F7F5] focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:shadow-[0_14px_28px_rgba(15,118,110,0.1)] before:content-[''] before:absolute before:top-0 before:right-[30px] before:w-[42px] before:h-[3px] before:bg-primary before:rounded-full motion-reduce:transition-none motion-reduce:hover:transform-none"
               key={step.number}
-              role="group"
-              tabIndex={0}
+              className="relative p-8 rounded-[20px] bg-[#F8FAF9] border border-[#E2E8F0] transition-all duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:border-primary/40 hover:bg-white flex flex-col justify-between"
             >
-              <strong className="block text-primary text-[32px] font-extrabold mb-4 leading-none">
-                {step.number}
-              </strong>
-              <h3 className="text-ink text-[18px] font-bold m-0 mb-2">
-                {step.title}
-              </h3>
-              <p className="text-muted text-[14px] leading-[1.5] m-0">
-                {step.description}
-              </p>
-              <span
-                className="absolute top-[calc(100%+10px)] left-1/2 -translate-x-1/2 -translate-y-1 group-hover:translate-y-0 group-focus-visible:translate-y-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 invisible group-hover:visible group-focus-visible:visible pointer-events-none z-[4] w-max max-w-[240px] max-[700px]:max-w-[min(260px,100vw-64px)] rounded-lg bg-ink text-white p-2.5 text-right text-[13px] leading-[1.5] shadow-lg transition-all duration-180 motion-reduce:transition-none"
-                id={`step-tooltip-${step.number}`}
-                role="tooltip"
-              >
-                {step.tooltip}
-              </span>
+              <div>
+                {/* Step Number Tag */}
+                <div className="w-12 h-12 rounded-xl bg-[#E6F4F1] border border-primary/20 flex items-center justify-center text-primary text-[20px] font-black mb-6">
+                  {step.number}
+                </div>
+
+                <h3 className="text-[#0F172A] text-[20px] font-black mb-3">
+                  {step.title}
+                </h3>
+
+                <p className="text-[#64748B] text-[15px] leading-[1.65] m-0">
+                  {step.description}
+                </p>
+              </div>
+
+              {/* Decorative top border accent */}
+              <div className="w-10 h-1 bg-primary rounded-full mt-6 opacity-40" />
             </article>
           ))}
         </div>
