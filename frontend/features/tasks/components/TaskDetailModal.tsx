@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
   AlertTriangle,
@@ -45,7 +46,6 @@ interface TaskDetailModalProps {
 
 export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps) {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
-
   const pickupLat = task?.pickupLocation?.lat ? parseFloat(task.pickupLocation.lat) : NaN;
   const pickupLng = task?.pickupLocation?.lng ? parseFloat(task.pickupLocation.lng) : NaN;
   const deliveryLat = task?.deliveryLocation?.lat ? parseFloat(task.deliveryLocation.lat) : NaN;
@@ -75,16 +75,17 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
     }
     return undefined;
   }, [task?.tripSummary?.encodedPath]);
-
   if (!task) return null;
 
   const statusConfig = getTaskStatusConfig(task.status);
+  const vehicleId = typeof task.vehicleId === 'object' ? task.vehicleId?._id : task.vehicleId;
+  const driverId = typeof task.driverId === 'object' ? task.driverId?._id : task.driverId;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={task.title || 'تفاصيل المهمة'}
+      title="تفاصيل المهمة"
       description={`معرف المهمة: ${task._id}`}
       icon={Eye}
       maxWidth="4xl"
@@ -145,7 +146,11 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                 <div className="mt-2 text-xs space-y-1.5 text-[var(--zd-muted)]">
                   <p className="flex justify-between">
                     <span className="text-[var(--zd-muted)]">الموديل:</span>
-                    <span className="font-semibold text-[var(--zd-text)]">{task.vehicleModel}</span>
+                    {vehicleId ? (
+                      <Link href={`/vehicles/${vehicleId}`} className="font-semibold text-[var(--zd-text)] hover:text-[var(--zd-blue)] hover:underline">
+                        {task.vehicleModel}
+                      </Link>
+                    ) : <span className="font-semibold text-[var(--zd-text)]">{task.vehicleModel}</span>}
                   </p>
                   <p className="flex justify-between">
                     <span className="text-[var(--zd-muted)]">رقم اللوحة:</span>
@@ -167,7 +172,11 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                 <div className="mt-2 text-xs space-y-1.5 text-[var(--zd-muted)]">
                   <p className="flex justify-between">
                     <span className="text-[var(--zd-muted)]">الاسم:</span>
-                    <span className="font-semibold text-[var(--zd-text)]">{task.driverName}</span>
+                    {driverId ? (
+                      <Link href={`/drivers/${driverId}`} className="font-semibold text-[var(--zd-text)] hover:text-[var(--zd-blue)] hover:underline">
+                        {task.driverName}
+                      </Link>
+                    ) : <span className="font-semibold text-[var(--zd-text)]">{task.driverName}</span>}
                   </p>
                   <p className="flex justify-between items-center">
                     <span className="text-[var(--zd-muted)]">الهاتف:</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { io, Socket } from 'socket.io-client';
-import type { DriverTelemetryPayload, VehicleLiveTelemetry } from '../types/gps.types';
+import type { DriverTelemetryPayload, TripSummary, VehicleLiveTelemetry } from '../types/gps.types';
 import { sendRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 
@@ -139,3 +139,14 @@ export function onFleetTelemetryUpdate(callback: (telemetry: VehicleLiveTelemetr
 }
 
 export const onVehicleLocationChanged = onFleetTelemetryUpdate;
+
+export function onTripCompleted(callback: (summary: TripSummary) => void): () => void {
+  const socket = getGpsSocket();
+  const handler = (summary: TripSummary) => callback(summary);
+
+  socket.on('trip:completed', handler);
+
+  return () => {
+    socket.off('trip:completed', handler);
+  };
+}

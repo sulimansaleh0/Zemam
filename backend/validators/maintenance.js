@@ -13,7 +13,10 @@ exports.createMaintenanceSchema = [
         .notEmpty()
         .withMessage("Description is required"),
     body("cost")
-        .optional({ values: "falsy" })
+        .if(body("status").equals(expenseRecordStatus.APPROVED))
+        .notEmpty()
+        .withMessage("Cost is required when approving a maintenance record")
+        .bail()
         .isFloat({ min: 0 })
         .withMessage("Cost must be a non-negative number"),
     body("category")

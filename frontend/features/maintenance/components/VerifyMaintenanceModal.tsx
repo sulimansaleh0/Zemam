@@ -50,7 +50,7 @@ export function VerifyMaintenanceModal({
     resolver: zodResolver(verifyMaintenanceSchema),
     defaultValues: {
       status: 'approved',
-      cost: record?.cost || 0,
+      cost: record?.cost,
       isDriverFault: false,
       declineReason: '',
     },
@@ -60,7 +60,7 @@ export function VerifyMaintenanceModal({
     if (record) {
       reset({
         status: 'approved',
-        cost: record.cost || 0,
+        cost: record.cost,
         isDriverFault: false,
         declineReason: '',
       });
@@ -103,11 +103,10 @@ export function VerifyMaintenanceModal({
               <button
                 type="button"
                 onClick={() => setValue('status', 'approved')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${
-                  currentStatus === 'approved'
+                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${currentStatus === 'approved'
                     ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-xs'
                     : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:border-[var(--zd-line-hover)]'
-                }`}
+                  }`}
               >
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 <span>اعتماد وقبول الطلب</span>
@@ -116,11 +115,10 @@ export function VerifyMaintenanceModal({
               <button
                 type="button"
                 onClick={() => setValue('status', 'declined')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${
-                  currentStatus === 'declined'
+                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${currentStatus === 'declined'
                     ? 'border-rose-500/40 bg-rose-500/10 text-rose-400 shadow-xs'
                     : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:border-[var(--zd-line-hover)]'
-                }`}
+                  }`}
               >
                 <XCircle className="h-4 w-4 text-rose-500" />
                 <span>رفض الطلب</span>
@@ -137,7 +135,7 @@ export function VerifyMaintenanceModal({
               {/* التكلفة الفعلية المعتمدة */}
               <div>
                 <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
-                  التكلفة الفعلية المعتمدة (ر.س)
+                  التكلفة الفعلية المعتمدة (ر.س) <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -217,11 +215,10 @@ export function VerifyMaintenanceModal({
           <button
             type="submit"
             disabled={isLoading}
-            className={`flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition disabled:opacity-50 cursor-pointer ${
-              currentStatus === 'approved'
+            className={`flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition disabled:opacity-50 cursor-pointer ${currentStatus === 'approved'
                 ? 'bg-emerald-600 hover:bg-emerald-700'
                 : 'bg-rose-600 hover:bg-rose-700'
-            }`}
+              }`}
           >
             {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             <span>{currentStatus === 'approved' ? 'تأكيد الاعتماد' : 'تأكيد الرفض'}</span>

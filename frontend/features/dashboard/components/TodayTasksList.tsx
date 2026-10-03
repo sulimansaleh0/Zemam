@@ -46,7 +46,7 @@ export function TodayTasksList() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <b className={`block truncate text-[11px] font-semibold ${isFinished ? 'text-[var(--zd-teal)]' : 'text-[var(--zd-text)]'}`}>
-                    {task.title || task.description}
+                    {task.description}
                   </b>
                   <small className="mt-1 block text-[9px] text-[var(--zd-muted)]">
                     {new Date(task.startTime).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })} · {task.vehiclePlate}

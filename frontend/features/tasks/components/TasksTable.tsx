@@ -1,17 +1,12 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Calendar,
-  CheckCircle2,
-  ChevronLeft,
   Clock,
   Eye,
-  FileText,
-  MapPin,
-  Navigation,
   Pencil,
-  Phone,
   Plus,
   Search,
   Truck,
@@ -64,11 +59,10 @@ export function TasksTable({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.id
-                  ? 'bg-[var(--zd-blue)] text-white shadow-sm'
-                  : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
-              }`}
+              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${activeTab === tab.id
+                ? 'bg-[var(--zd-blue)] text-white shadow-sm'
+                : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
+                }`}
             >
               {tab.label}
             </button>
@@ -83,7 +77,7 @@ export function TasksTable({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحث بالعنوان، السائق، المركبة..."
+              placeholder="ابحث بالوصف، السائق، المركبة..."
               className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] py-2 pr-9 pl-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
             />
           </div>
@@ -131,12 +125,11 @@ export function TasksTable({
             <table className="w-full text-right text-xs">
               <thead>
                 <tr className="border-b border-[var(--zd-line)] bg-[var(--zd-surface-2)] text-[var(--zd-muted)] font-semibold">
-                  <th className="px-4 py-3.5">المهمة</th>
+                  <th className="px-4 py-3.5">الوصف</th>
                   <th className="px-4 py-3.5">المركبة</th>
                   <th className="px-4 py-3.5">السائق</th>
                   <th className="px-4 py-3.5">الفريق</th>
                   <th className="px-4 py-3.5">موعد الانطلاق</th>
-                  <th className="px-4 py-3.5">المسار</th>
                   <th className="px-4 py-3.5 text-center">الحالة</th>
                   <th className="px-4 py-3.5 text-center">الإجراءات</th>
                 </tr>
@@ -145,18 +138,17 @@ export function TasksTable({
                 {tasks.map((task) => {
                   const status = getTaskStatusConfig(task.status);
                   const canDecline = task.status === 'pending' || task.status === 'inprogress';
+                  const vehicleId = typeof task.vehicleId === 'object' ? task.vehicleId?._id : task.vehicleId;
+                  const driverId = typeof task.driverId === 'object' ? task.driverId?._id : task.driverId;
 
                   return (
                     <tr
                       key={task._id}
                       className="transition-colors hover:bg-[var(--zd-surface-2)]/60"
                     >
-                      {/* المهمة */}
+                      {/* الوصف */}
                       <td className="px-4 py-3.5">
-                        <div className="font-bold text-[var(--zd-text)]">
-                          {task.title || 'مهمة نقل وتشغيل'}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-[var(--zd-muted)] max-w-xs truncate">
+                        <div className="text-[11px] font-medium text-[var(--zd-text)] max-w-xs truncate">
                           {task.description}
                         </div>
                       </td>
@@ -165,7 +157,11 @@ export function TasksTable({
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-[var(--zd-text)] font-semibold">
                           <Truck className="h-3.5 w-3.5 text-[var(--zd-muted)]" />
-                          <span>{task.vehicleModel}</span>
+                          {vehicleId ? (
+                            <Link href={`/vehicles/${vehicleId}`} className="hover:text-[var(--zd-blue)] hover:underline">
+                              {task.vehicleModel}
+                            </Link>
+                          ) : <span>{task.vehicleModel}</span>}
                         </div>
                         <div className="text-[10px] text-[var(--zd-muted)]">
                           لوحة: {task.vehiclePlate}
@@ -176,7 +172,11 @@ export function TasksTable({
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-[var(--zd-text)] font-semibold">
                           <User className="h-3.5 w-3.5 text-[var(--zd-muted)]" />
-                          <span>{task.driverName}</span>
+                          {driverId ? (
+                            <Link href={`/drivers/${driverId}`} className="hover:text-[var(--zd-blue)] hover:underline">
+                              {task.driverName}
+                            </Link>
+                          ) : <span>{task.driverName}</span>}
                         </div>
                         <div className="text-[10px] text-[var(--zd-muted)]">
                           {task.driverPhone}
@@ -200,17 +200,6 @@ export function TasksTable({
                             <span>التسليم: {formatTaskDateTime(task.expectedEndTime)}</span>
                           </div>
                         )}
-                      </td>
-
-                      {/* المسار */}
-                      <td className="px-4 py-3.5 max-w-xs truncate text-[11px]">
-                        <span className="text-emerald-500 font-medium">
-                          {task.pickupLocation?.address || '—'}
-                        </span>
-                        <span className="mx-1 text-[var(--zd-muted)]">←</span>
-                        <span className="text-blue-500 font-medium">
-                          {task.deliveryLocation?.address || '—'}
-                        </span>
                       </td>
 
                       {/* الحالة */}

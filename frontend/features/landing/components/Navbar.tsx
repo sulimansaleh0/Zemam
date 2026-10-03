@@ -1,134 +1,117 @@
 "use client";
 
-import Image from "next/image";
 import React, { useState } from "react";
 import Link from "next/link";
 import { PrimaryButton } from "./PrimaryButton";
+import { ZimamLogo } from "./ZimamLogo";
 import { landingNavLinks } from "../constants/landing-config";
-import shieldCheckIcon from "../assets/shield-check.svg";
-
-function Logo({ compact = false }: { compact?: boolean }) {
-  return (
-    <Link
-      href="/"
-      className="flex items-center gap-3 col-start-3 max-[920px]:col-start-2 justify-self-end text-white no-underline"
-      aria-label="زمام"
-    >
-      <span
-        className={`inline-flex items-center justify-center bg-primary ${
-          compact ? "w-6 h-6 rounded-[6px]" : "w-9 h-9 rounded-[9px]"
-        }`}
-      >
-        <Image
-          src={shieldCheckIcon}
-          alt=""
-          width={compact ? 14 : 20}
-          height={compact ? 14 : 20}
-          className={compact ? "w-3.5 h-3.5" : "w-5 h-5"}
-        />
-      </span>
-      <span
-        className={`text-ink font-extrabold leading-none ${
-          compact ? "text-[20px]" : "text-[24px]"
-        }`}
-      >
-        زمام
-      </span>
-    </Link>
-  );
-}
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-[14px] border-b border-[#10202F]/10">
+    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-[#E2E8F0]">
       <nav
-        className="grid grid-cols-[1fr_auto_1fr] max-[920px]:grid-cols-[auto_1fr] items-center w-full max-w-[1360px] h-[76px] mx-auto px-[72px] max-[1180px]:px-10 max-[700px]:px-6 max-[430px]:px-[18px] [direction:ltr]"
+        className="w-full h-[78px] px-[10%] flex items-center justify-between [direction:rtl]"
         aria-label="القائمة الرئيسية"
       >
-        <div className="flex items-center gap-6 col-start-1 justify-self-start max-[920px]:hidden [direction:ltr]">
-          <PrimaryButton href="/login" showArrow>
-            ابدأ الآن
-          </PrimaryButton>
-          <Link
-            href="/login"
-            className="text-muted hover:text-primary whitespace-nowrap text-[14px] font-medium transition-colors duration-180 focus-visible:outline-2 focus-visible:outline-blue-300 focus-visible:outline-offset-4 focus-visible:rounded"
-          >
-            تسجيل الدخول
-          </Link>
+        {/* Right side in RTL: Brand Logo starts at 10% */}
+        <div className="flex items-center">
+          <ZimamLogo />
         </div>
 
+        {/* Center: Navigation Links */}
         <div
-          className="flex items-center gap-7 col-start-2 justify-self-center max-[920px]:hidden [direction:rtl]"
+          className="hidden min-[1040px]:flex items-center gap-7"
           aria-label="روابط الصفحة"
         >
           {landingNavLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className={`whitespace-nowrap text-[14px] font-medium transition-colors duration-180 focus-visible:outline-2 focus-visible:outline-blue-300 focus-visible:outline-offset-4 focus-visible:rounded ${
-                link.href === "#hero"
-                  ? "text-primary font-bold"
-                  : "text-muted hover:text-primary"
-              }`}
-              aria-current={link.href === "#hero" ? "page" : undefined}
+              className="text-[#475569] hover:text-primary whitespace-nowrap text-[14px] font-bold transition-colors duration-150 no-underline"
             >
               {link.label}
             </a>
           ))}
         </div>
 
-        <Logo />
+        {/* Left side in RTL: Auth Buttons */}
+        <div className="hidden min-[1040px]:flex items-center gap-4 [direction:rtl]">
+          <Link
+            href="/login"
+            className="text-[#475569] hover:text-primary text-[14px] font-bold px-3 py-2 transition-colors duration-150 no-underline"
+          >
+            تسجيل الدخول
+          </Link>
+          <PrimaryButton href="/login" showArrow>
+            ابدأ الآن
+          </PrimaryButton>
+        </div>
 
+        {/* Mobile Hamburger Button */}
         <button
           type="button"
-          className="hidden max-[920px]:flex flex-col justify-center items-center gap-[5px] col-start-1 justify-self-start w-11 h-10 px-2.5 bg-white/70 border border-[#10202F]/15 rounded-lg cursor-pointer"
+          className="flex min-[1040px]:hidden flex-col justify-center items-center gap-1.5 w-10 h-10 p-2 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer"
           aria-controls="mobile-navigation"
           aria-expanded={open}
           aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
           onClick={() => setOpen((value) => !value)}
         >
-          <span className="block w-5 h-0.5 bg-ink rounded-full" />
-          <span className="block w-5 h-0.5 bg-ink rounded-full" />
-          <span className="block w-5 h-0.5 bg-ink rounded-full" />
+          <span
+            className={`block w-5 h-0.5 bg-[#0F172A] rounded-full transition-transform ${
+              open ? "rotate-45 translate-y-2" : ""
+            }`}
+          />
+          <span
+            className={`block w-5 h-0.5 bg-[#0F172A] rounded-full transition-opacity ${
+              open ? "opacity-0" : ""
+            }`}
+          />
+          <span
+            className={`block w-5 h-0.5 bg-[#0F172A] rounded-full transition-transform ${
+              open ? "-rotate-45 -translate-y-2" : ""
+            }`}
+          />
         </button>
       </nav>
 
-      <div
-        id="mobile-navigation"
-        className={`border-t border-[#10202F]/15 bg-white/95 px-6 pt-4 pb-6 shadow-[0_14px_28px_rgba(16,32,47,0.08)] ${
-          open ? "grid gap-3" : "hidden"
-        }`}
-      >
-        {landingNavLinks.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            className="text-text font-bold py-2.5 no-underline hover:text-primary transition-colors"
-            onClick={() => setOpen(false)}
-          >
-            {link.label}
-          </a>
-        ))}
-        <Link
-          href="/login"
-          className="text-text font-bold py-2.5 no-underline hover:text-primary transition-colors"
-          onClick={() => setOpen(false)}
+      {/* Mobile Drawer */}
+      {open && (
+        <div
+          id="mobile-navigation"
+          className="min-[1040px]:hidden bg-white border-t border-gray-100 px-[10%] py-6 shadow-xl [direction:rtl]"
         >
-          تسجيل الدخول
-        </Link>
-        <PrimaryButton
-          href="/login"
-          showArrow
-          fullWidth
-          onClick={() => setOpen(false)}
-        >
-          ابدأ الآن
-        </PrimaryButton>
-      </div>
+          <div className="flex flex-col gap-4">
+            {landingNavLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="text-[#334155] hover:text-primary text-[15px] font-bold py-1.5 transition-colors no-underline"
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
+              <Link
+                href="/login"
+                className="text-center py-2.5 text-[#334155] font-bold text-[14px] rounded-lg border border-gray-200"
+              >
+                تسجيل الدخول
+              </Link>
+              <Link
+                href="/login"
+                className="text-center py-2.5 bg-primary text-white font-bold text-[14px] rounded-lg"
+              >
+                ابدأ الآن
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
 
-export { Logo };
+export { ZimamLogo as Logo };

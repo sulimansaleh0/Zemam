@@ -44,7 +44,8 @@ import {
   DriverDeleteModal,
   ScoreAuditItem,
 } from '@/features/drivers';
-import { useTasks } from '@/features/tasks';
+import { TaskDetailModal, useTasks } from '@/features/tasks';
+import type { TaskWithRelations } from '@/features/tasks';
 import { useFuel } from '@/features/fuel';
 import { getLicenseExpiryStatus } from '@/features/drivers/utils/licenseEligibility';
 import { formatRelativeDate } from '@/features/drivers/utils/driverHelpers';
@@ -54,6 +55,7 @@ export default function DriverDetailPage() {
   const driverId = String(params?.id || '');
 
   const [activeTab, setActiveTab] = useState<'tasks' | 'fuel' | 'audit'>('tasks');
+  const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null);
 
   const {
     driver,
@@ -143,22 +145,23 @@ export default function DriverDetailPage() {
   );
 
   const score = driver?.driverScore ?? 95;
+  const faultIncidentsCount = driver?.faultIncidentsCount ?? 0;
   const scoreTier =
     score >= 90
       ? {
-          label: 'سائق متميز (Tier 1)',
-          color: 'text-emerald-500',
-          bg: 'bg-emerald-500/10',
-          border: 'border-emerald-500/20',
-        }
+        label: 'سائق متميز (Tier 1)',
+        color: 'text-emerald-500',
+        bg: 'bg-emerald-500/10',
+        border: 'border-emerald-500/20',
+      }
       : score >= 75
-      ? {
+        ? {
           label: 'سائق معتمد',
           color: 'text-amber-500',
           bg: 'bg-amber-500/10',
           border: 'border-amber-500/20',
         }
-      : {
+        : {
           label: 'يحتاج متابعة وتدريب',
           color: 'text-rose-500',
           bg: 'bg-rose-500/10',
@@ -167,30 +170,7 @@ export default function DriverDetailPage() {
 
   const licenseStatus = getLicenseExpiryStatus(driver?.licenseExpiry);
 
-  const scoreHistory: ScoreAuditItem[] =
-    driver?.scoreHistory && driver.scoreHistory.length > 0
-      ? driver.scoreHistory
-      : [
-          {
-            pointsChange: 1,
-            reason: 'الالتزام التام بجدول المهام والتسليم في الموعد المحدد',
-            category: 'task',
-            date: new Date().toISOString(),
-          },
-          {
-            pointsChange: 5,
-            reason: 'سجل قيادة آمن وخلو السجل من أعطال الصيانة الناتجة عن إهمال',
-            category: 'maintenance',
-            date: new Date(Date.now() - 86400000 * 3).toISOString(),
-          },
-          {
-            pointsChange: 3,
-            reason: 'كفاءة قيادة اقتصادية والتزام بمعدل استهلاك الوقود المعتمد',
-            category: 'fuel',
-            date: new Date(Date.now() - 86400000 * 7).toISOString(),
-          },
-        ];
-
+  const scoreHistory: ScoreAuditItem[] = driver?.scoreHistory || []
   if (isLoading) {
     return (
       <main
@@ -259,7 +239,7 @@ export default function DriverDetailPage() {
           <Header
             onMenu={() => setMenuOpen(true)}
             searchQuery=""
-            onSearchChange={() => {}}
+            onSearchChange={() => { }}
             userName={userName}
           />
 
@@ -284,9 +264,8 @@ export default function DriverDetailPage() {
                   <div className="relative shrink-0">
                     <DriverAvatar driver={driver} size="lg" />
                     <span
-                      className={`absolute bottom-0 left-0 w-4 h-4 rounded-full border-2 border-[var(--surface)] ${
-                        isActive ? 'bg-emerald-500' : 'bg-rose-500'
-                      }`}
+                      className={`absolute bottom-0 left-0 w-4 h-4 rounded-full border-2 border-[var(--surface)] ${isActive ? 'bg-emerald-500' : 'bg-rose-500'
+                        }`}
                       title={isActive ? 'حساب نشط' : 'حساب معطل'}
                     />
                   </div>
@@ -384,11 +363,10 @@ export default function DriverDetailPage() {
                     type="button"
                     onClick={handleToggleStatus}
                     disabled={isChangingStatus}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer disabled:opacity-50 ${
-                      isActive
-                        ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
-                        : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer disabled:opacity-50 ${isActive
+                      ? 'border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                      : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                      }`}
                   >
                     {isActive ? (
                       <UserX className="w-3.5 h-3.5" />
@@ -429,13 +407,12 @@ export default function DriverDetailPage() {
                 <div className="space-y-1">
                   <div className="w-full bg-[var(--surface-2)] h-2 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        score >= 90
-                          ? 'bg-emerald-500'
-                          : score >= 75
+                      className={`h-full rounded-full transition-all duration-500 ${score >= 90
+                        ? 'bg-emerald-500'
+                        : score >= 75
                           ? 'bg-amber-500'
                           : 'bg-rose-500'
-                      }`}
+                        }`}
                       style={{ width: `${score}%` }}
                     />
                   </div>
@@ -482,16 +459,25 @@ export default function DriverDetailPage() {
                   <Shield className="w-4 h-4 text-blue-500" />
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black tracking-tight text-emerald-500">
-                    {driver.faultIncidentsCount ?? 0}
+                  <span className={`text-3xl font-black tracking-tight ${faultIncidentsCount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {faultIncidentsCount}
                   </span>
                   <span className="text-xs text-[var(--muted)] font-medium">
                     أعطال ناتجة عن خطأ السائق
                   </span>
                 </div>
-                <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>سجل قيادة آمن ونظيف، لا توجد مخالفات مسجلة</span>
+                <div className={`text-[11px] font-medium flex items-center gap-1 ${faultIncidentsCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  {faultIncidentsCount > 0 ? (
+                    <>
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>توجد أعطال مسجلة ناتجة عن خطأ السائق</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>سجل قيادة آمن ونظيف، لا توجد مخالفات مسجلة</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -536,22 +522,20 @@ export default function DriverDetailPage() {
                 </div>
 
                 <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                    licenseStatus.status === 'valid'
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                      : licenseStatus.status === 'expiring_soon'
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${licenseStatus.status === 'valid'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    : licenseStatus.status === 'expiring_soon'
                       ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                       : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                  }`}
+                    }`}
                 >
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      licenseStatus.status === 'valid'
-                        ? 'bg-emerald-500'
-                        : licenseStatus.status === 'expiring_soon'
+                    className={`w-2 h-2 rounded-full ${licenseStatus.status === 'valid'
+                      ? 'bg-emerald-500'
+                      : licenseStatus.status === 'expiring_soon'
                         ? 'bg-amber-500'
                         : 'bg-rose-500'
-                    }`}
+                      }`}
                   />
                   {licenseStatus.text}
                 </span>
@@ -586,8 +570,8 @@ export default function DriverDetailPage() {
                           {type === 'truck'
                             ? 'شاحنة نقل (ثقيل)'
                             : type === 'van'
-                            ? 'فان وحافلة (متوسط)'
-                            : 'سيارة خاصة (خفيف)'}
+                              ? 'فان وحافلة (متوسط)'
+                              : 'سيارة خاصة (خفيف)'}
                         </span>
                       ))
                     ) : (
@@ -606,10 +590,10 @@ export default function DriverDetailPage() {
                   <div className="text-base font-bold text-[var(--text)]">
                     {driver.licenseExpiry
                       ? new Date(driver.licenseExpiry).toLocaleDateString('ar-SA', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
                       : '2028-11-15'}
                   </div>
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
@@ -822,11 +806,10 @@ export default function DriverDetailPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('tasks')}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'tasks'
-                        ? 'bg-[var(--primary)] text-white shadow-xs'
-                        : 'text-[var(--muted)] hover:text-[var(--text)]'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${activeTab === 'tasks'
+                      ? 'bg-[var(--primary)] text-white shadow-xs'
+                      : 'text-[var(--muted)] hover:text-[var(--text)]'
+                      }`}
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     <span>المهام ({driverTasks.length})</span>
@@ -835,11 +818,10 @@ export default function DriverDetailPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('fuel')}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'fuel'
-                        ? 'bg-[var(--primary)] text-white shadow-xs'
-                        : 'text-[var(--muted)] hover:text-[var(--text)]'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${activeTab === 'fuel'
+                      ? 'bg-[var(--primary)] text-white shadow-xs'
+                      : 'text-[var(--muted)] hover:text-[var(--text)]'
+                      }`}
                   >
                     <Fuel className="w-3.5 h-3.5" />
                     <span>فواتير الوقود ({driverFuelRecords.length})</span>
@@ -848,11 +830,10 @@ export default function DriverDetailPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('audit')}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'audit'
-                        ? 'bg-[var(--primary)] text-white shadow-xs'
-                        : 'text-[var(--muted)] hover:text-[var(--text)]'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${activeTab === 'audit'
+                      ? 'bg-[var(--primary)] text-white shadow-xs'
+                      : 'text-[var(--muted)] hover:text-[var(--text)]'
+                      }`}
                   >
                     <History className="w-3.5 h-3.5" />
                     <span>سجل التدقيق والتقييم</span>
@@ -869,42 +850,44 @@ export default function DriverDetailPage() {
                       const isDelayed =
                         isFinished && task.finishedAt && task.expectedEndTime
                           ? new Date(task.finishedAt).getTime() >
-                            new Date(task.expectedEndTime).getTime()
+                          new Date(task.expectedEndTime).getTime()
                           : task.status === 'inprogress' && task.expectedEndTime
-                          ? new Date().getTime() >
+                            ? new Date().getTime() >
                             new Date(task.expectedEndTime).getTime()
-                          : false;
+                            : false;
 
                       const isOnTime =
                         isFinished && task.finishedAt && task.expectedEndTime
                           ? new Date(task.finishedAt).getTime() <=
-                            new Date(task.expectedEndTime).getTime()
+                          new Date(task.expectedEndTime).getTime()
                           : false;
 
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={task._id}
-                          className="p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[var(--surface-2)]/70 transition"
+                          onClick={() => setSelectedTask(task)}
+                          aria-label={`عرض تفاصيل المهمة: ${task.description.slice(0, 60)}`}
+                          className="w-full text-right p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[var(--surface-2)]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)] transition cursor-pointer"
                         >
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm text-[var(--text)]">
-                                {task.title || 'مهمة نقل بضائع'}
+                                {task.description}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                  task.status === 'finished'
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                    : task.status === 'inprogress'
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${task.status === 'finished'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                  : task.status === 'inprogress'
                                     ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                                     : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                                }`}
+                                  }`}
                               >
                                 {task.status === 'finished'
                                   ? 'مكتملة'
                                   : task.status === 'inprogress'
-                                  ? 'قيد التنفيذ'
-                                  : 'قيد الانتظار'}
+                                    ? 'قيد التنفيذ'
+                                    : 'قيد الانتظار'}
                               </span>
 
                               {isOnTime && (
@@ -957,7 +940,7 @@ export default function DriverDetailPage() {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </button>
                       );
                     })
                   ) : (
@@ -984,19 +967,17 @@ export default function DriverDetailPage() {
                               تعبئة وقود · {fuel.qty} لتر
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                fuel.status === 'approved'
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              }`}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${fuel.status === 'approved'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                }`}
                             >
                               {fuel.status === 'approved' ? 'معتمدة' : 'قيد التدقيق'}
                             </span>
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                              fuel.isFullTank
-                                ? 'bg-sky-500/10 text-sky-500'
-                                : 'bg-slate-500/10 text-slate-500'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${fuel.isFullTank
+                              ? 'bg-sky-500/10 text-sky-500'
+                              : 'bg-slate-500/10 text-slate-500'
+                              }`}>
                               {fuel.isFullTank ? 'تانك كامل (FULL)' : 'غير ممتلئ (NOT FULL)'}
                             </span>
                           </div>
@@ -1058,11 +1039,10 @@ export default function DriverDetailPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`px-2 py-0.5 rounded-md text-xs font-black font-mono ${
-                              item.pointsChange > 0
-                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                            }`}
+                            className={`px-2 py-0.5 rounded-md text-xs font-black font-mono ${item.pointsChange > 0
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                              }`}
                           >
                             {item.pointsChange > 0 ? `+${item.pointsChange}` : item.pointsChange} نقطة
                           </span>
@@ -1070,8 +1050,8 @@ export default function DriverDetailPage() {
                             {item.category === 'task'
                               ? 'المهام ومواعيد التسليم'
                               : item.category === 'maintenance'
-                              ? 'الصيانة والتشغيل'
-                              : 'استهلاك الوقود'}
+                                ? 'الصيانة والتشغيل'
+                                : 'استهلاك الوقود'}
                           </span>
                         </div>
                         <p className="text-xs text-[var(--text)] font-medium leading-relaxed">
@@ -1090,6 +1070,12 @@ export default function DriverDetailPage() {
           </div>
         </div>
       </div>
+
+      <TaskDetailModal
+        isOpen={Boolean(selectedTask)}
+        onClose={() => setSelectedTask(null)}
+        task={selectedTask}
+      />
 
       {/* ── Assign Vehicle Modal ── */}
       {isAssignVehicleOpen && (

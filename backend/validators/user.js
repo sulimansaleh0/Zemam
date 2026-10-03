@@ -156,18 +156,23 @@ exports.createDriverSchema = [
         .isEmail()
         .withMessage("Not valid email"),
     body("name")
-        .optional({ values: "falsy" })
         .trim()
+        .notEmpty().withMessage("Name is required")
+        .bail()
         .isString()
         .withMessage("Name must be a string"),
     body("phone")
         .optional({ values: "falsy" })
         .trim(),
     body("licenseNumber")
-        .optional({ values: "falsy" })
         .trim()
+        .notEmpty().withMessage("License number is required")
+        .bail()
         .isString()
-        .withMessage("License number must be a string"),
+        .withMessage("License number must be a string")
+        .bail()
+        .matches(/^[\p{L}\p{N}]+$/u)
+        .withMessage("License number must contain only letters and numbers"),
     body("licenseTypes")
         .optional({ values: "falsy" })
         .isArray()
@@ -176,7 +181,8 @@ exports.createDriverSchema = [
         .custom((types) => types.every((type) => Object.values(vehicleTypes).includes(type)))
         .withMessage("Invalid license type"),
     body("licenseExpiry")
-        .optional({ values: "falsy" })
+        .notEmpty().withMessage("License expiry is required")
+        .bail()
         .isISO8601()
         .withMessage("License expiry must be a valid date"),
 ]

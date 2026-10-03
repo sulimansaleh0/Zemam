@@ -101,13 +101,13 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
     try {
       await onSave({
         email: data.email.trim(),
-        name: data.name?.trim() || undefined,
+        name: data.name.trim(),
         phone: data.phone?.trim() || undefined,
         teamId: isFleetManager && userTeamId ? userTeamId : (data.teamId || undefined),
         vehicleId: data.vehicleId || undefined,
-        licenseNumber: data.licenseNumber?.trim() || undefined,
+        licenseNumber: data.licenseNumber.trim(),
         licenseTypes: selectedLicenseTypes,
-        licenseExpiry: data.licenseExpiry || undefined,
+        licenseExpiry: data.licenseExpiry,
       });
     } catch (error: any) {
       const msg = error instanceof Error ? error.message : 'حدث خطأ، حاول مرة أخرى';
@@ -130,239 +130,260 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
       preventClose={isLoading || isSubmitting}
       aria-labelledby="add-driver-title"
     >
-      <form onSubmit={onSubmit} noValidate className="p-6 space-y-5">
-        {formError && (
-          <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
-            <p className="font-medium leading-relaxed">{formError}</p>
-          </div>
-        )}
-        {/* Section 1: Personal and Account info */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">
-            <User className="w-3.5 h-3.5 text-[var(--zd-blue)]" />
-            <span>1. البيانات الشخصية والحساب</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Name field */}
-            <div>
-              <label
-                htmlFor="driver-name"
-                className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]"
-              >
-                اسم السائق الكامل (اختياري)
-              </label>
-              <input
-                id="driver-name"
-                type="text"
-                placeholder="مثال: تركي الشمري"
-                {...register('name')}
-                disabled={isLoading || isSubmitting}
-                className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
-              />
+      <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-5">
+          {formError && (
+            <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+              <p className="font-medium leading-relaxed">{formError}</p>
+            </div>
+          )}
+          {/* Section 1: Personal and Account info */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">
+              <User className="w-3.5 h-3.5 text-[var(--zd-blue)]" />
+              <span>1. البيانات الشخصية والحساب</span>
             </div>
 
-            {/* Phone field */}
-            <div>
-              <label
-                htmlFor="driver-phone"
-                className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]"
-              >
-                رقم الجوال (اختياري)
-              </label>
-              <div className="relative">
-                <Phone className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Name field */}
+              <div>
+                <label
+                  htmlFor="driver-name"
+                  className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]"
+                >
+                  اسم السائق الكامل <span className="text-[var(--zd-red)]">*</span>
+                </label>
                 <input
-                  id="driver-phone"
-                  type="tel"
-                  dir="ltr"
-                  placeholder="05xxxxxxxx"
-                  {...register('phone')}
+                  id="driver-name"
+                  type="text"
+                  placeholder="مثال: تركي الشمري"
+                  {...register('name')}
+                  required
                   disabled={isLoading || isSubmitting}
-                  className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
+                  className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] px-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
                 />
+                {errors.name && (
+                  <p role="alert" className="mt-1 text-[10px] font-medium text-[var(--zd-red)]">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Phone field */}
+              <div>
+                <label
+                  htmlFor="driver-phone"
+                  className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]"
+                >
+                  رقم الجوال (اختياري)
+                </label>
+                <div className="relative">
+                  <Phone className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
+                  <input
+                    id="driver-phone"
+                    type="tel"
+                    dir="ltr"
+                    placeholder="05xxxxxxxx"
+                    {...register('phone')}
+                    disabled={isLoading || isSubmitting}
+                    className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Email field */}
-          <div>
-            <label
-              htmlFor="driver-email"
-              className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]"
-            >
-              البريد الإلكتروني المهني <span className="text-[var(--zd-red)]">*</span>
-            </label>
-            <div className="relative">
-              <Mail className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
-              <input
-                id="driver-email"
-                type="email"
-                dir="ltr"
-                autoComplete="email"
-                placeholder="driver@company.com"
-                {...register('email')}
-                disabled={isLoading || isSubmitting}
-                className={`zd-focus h-10 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors disabled:opacity-60 ${
-                  errors.email
+            {/* Email field */}
+            <div>
+              <label
+                htmlFor="driver-email"
+                className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]"
+              >
+                البريد الإلكتروني المهني <span className="text-[var(--zd-red)]">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
+                <input
+                  id="driver-email"
+                  type="email"
+                  dir="ltr"
+                  autoComplete="email"
+                  placeholder="driver@company.com"
+                  {...register('email')}
+                  disabled={isLoading || isSubmitting}
+                  className={`zd-focus h-10 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors disabled:opacity-60 ${errors.email
                     ? 'border-[var(--zd-red)] focus:border-[var(--zd-red)]'
                     : 'border-[var(--zd-line)] focus:border-[var(--zd-blue)]'
-                }`}
-              />
-            </div>
-            {errors.email && (
-              <p role="alert" className="mt-1 text-[10px] font-medium text-[var(--zd-red)]">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Section 2: Driver License & Arab Hierarchy */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-            <span>2. رخصة القيادة والاعتماد النظامي</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* License Number */}
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
-                رقم رخصة القيادة
-              </label>
-              <div className="relative">
-                <FileText className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
-                <input
-                  type="text"
-                  placeholder="مثال: 1098765432"
-                  {...register('licenseNumber')}
-                  disabled={isLoading || isSubmitting}
-                  className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* License Expiry Date */}
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
-                تاريخ انتهاء رخصة القيادة
-              </label>
-              <div className="relative">
-                <Calendar className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
-                <input
-                  type="date"
-                  {...register('licenseExpiry')}
-                  disabled={isLoading || isSubmitting}
-                  className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* License Categories Multi-select */}
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
-              فئات القيادة المصرح له بها (وفق النظام المروري):
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'normal', label: 'خفيف (سيارات)', desc: 'سيارات صغيرة وسيدان' },
-                { id: 'van', label: 'متوسط (حافلات)', desc: 'فان، حافلات ركاب' },
-                { id: 'truck', label: 'ثقيل (شاحنات)', desc: 'قاطرات، شاحنات نقل' },
-              ].map((cat) => {
-                const isSelected = selectedLicenseTypes.includes(cat.id as any);
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => toggleLicenseType(cat.id as any)}
-                    className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-[var(--zd-blue)] bg-[var(--zd-blue)]/10 ring-1 ring-[var(--zd-blue)]'
-                        : 'border-[var(--zd-line)] bg-[var(--zd-surface)] hover:bg-[var(--zd-surface-2)]'
                     }`}
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[11px] font-bold text-[var(--zd-text)]">
-                        {cat.label}
-                      </span>
-                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--zd-blue)]" />}
-                    </div>
-                    <p className="text-[9px] text-[var(--zd-muted)] leading-tight">{cat.desc}</p>
-                  </button>
-                );
-              })}
+                />
+              </div>
+              {errors.email && (
+                <p role="alert" className="mt-1 text-[10px] font-medium text-[var(--zd-red)]">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Section 3: Operational Assignment */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">
-            <Building className="w-3.5 h-3.5 text-emerald-500" />
-            <span>3. التعيين الميداني والأسطول</span>
-          </div>
+          {/* Section 2: Driver License & Arab Hierarchy */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+              <span>2. رخصة القيادة والاعتماد النظامي</span>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Team selection */}
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
-                الفريق التشغيلي {isFleetManager ? '(فريقك)' : '(اختياري)'}
-              </label>
-              <div className="relative">
-                <Users className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
-                {isFleetManager ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* License Number */}
+              <div>
+                <label htmlFor="driver-license-number" className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
+                  رقم رخصة القيادة <span className="text-[var(--zd-red)]">*</span>
+                </label>
+                <div className="relative">
+                  <FileText className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
                   <input
+                    id="driver-license-number"
                     type="text"
-                    readOnly
-                    value={userTeamName}
-                    className="h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] pr-9 pl-3 text-[11px] font-semibold text-[var(--zd-text)] cursor-not-allowed opacity-90"
+                    dir="ltr"
+                    placeholder="مثال: AB109876"
+                    {...register('licenseNumber')}
+                    required
+                    disabled={isLoading || isSubmitting}
+                    className={`zd-focus h-10 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors ${errors.licenseNumber ? 'border-[var(--zd-red)]' : 'border-[var(--zd-line)]'}`}
                   />
-                ) : (
-                  <select
-                    {...register('teamId')}
-                    disabled={isLoading || isSubmitting || isLoadingTeams}
-                    className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[11px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
-                  >
-                    <option value="">بدون فريق (كادر حر)</option>
-                    {teamsList.map((t) => (
-                      <option key={t._id} value={t._id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                </div>
+                {errors.licenseNumber && (
+                  <p role="alert" className="mt-1 text-[10px] font-medium text-[var(--zd-red)]">
+                    {errors.licenseNumber.message}
+                  </p>
+                )}
+              </div>
+
+              {/* License Expiry Date */}
+              <div>
+                <label htmlFor="driver-license-expiry" className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
+                  تاريخ انتهاء رخصة القيادة <span className="text-[var(--zd-red)]">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
+                  <input
+                    id="driver-license-expiry"
+                    type="date"
+                    {...register('licenseExpiry')}
+                    required
+                    disabled={isLoading || isSubmitting}
+                    className={`zd-focus h-10 w-full rounded-xl border bg-[var(--zd-input-bg)] pr-9 pl-3 text-[12px] text-[var(--zd-text)] outline-none transition-colors ${errors.licenseExpiry ? 'border-[var(--zd-red)]' : 'border-[var(--zd-line)]'}`}
+                  />
+                </div>
+                {errors.licenseExpiry && (
+                  <p role="alert" className="mt-1 text-[10px] font-medium text-[var(--zd-red)]">
+                    {errors.licenseExpiry.message}
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Vehicle selection */}
+            {/* License Categories Multi-select */}
             <div>
-              <label className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
-                إسناد مركبة أولية (اختياري)
+              <label className="mb-1.5 block text-[11px] font-semibold text-[var(--zd-text)]">
+                فئات القيادة المصرح له بها (وفق النظام المروري):
               </label>
-              <div className="relative">
-                <Car className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
-                <select
-                  {...register('vehicleId')}
-                  disabled={isLoading || isSubmitting || isLoadingVehicles}
-                  className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[11px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
-                >
-                  <option value="">بدون مركبة حالياً (تعيين لاحقاً)</option>
-                  {availableVehicles.map((v) => (
-                    <option key={v._id} value={v._id}>
-                      {v.model} - لوحة {v.plateNumber}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'normal', label: 'خفيف (سيارات)', desc: 'سيارات صغيرة وسيدان' },
+                  { id: 'van', label: 'متوسط (حافلات)', desc: 'فان، حافلات ركاب' },
+                  { id: 'truck', label: 'ثقيل (شاحنات)', desc: 'قاطرات، شاحنات نقل' },
+                ].map((cat) => {
+                  const isSelected = selectedLicenseTypes.includes(cat.id as any);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleLicenseType(cat.id as any)}
+                      className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer ${isSelected
+                        ? 'border-[var(--zd-blue)] bg-[var(--zd-blue)]/10 ring-1 ring-[var(--zd-blue)]'
+                        : 'border-[var(--zd-line)] bg-[var(--zd-surface)] hover:bg-[var(--zd-surface-2)]'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[11px] font-bold text-[var(--zd-text)]">
+                          {cat.label}
+                        </span>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--zd-blue)]" />}
+                      </div>
+                      <p className="text-[9px] text-[var(--zd-muted)] leading-tight">{cat.desc}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--zd-line)]">
+          {/* Section 3: Operational Assignment */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)] pb-1 border-b border-[var(--zd-line)]">
+              <Building className="w-3.5 h-3.5 text-emerald-500" />
+              <span>3. التعيين الميداني والأسطول</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Team selection */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
+                  الفريق التشغيلي {isFleetManager ? '(فريقك)' : '(اختياري)'}
+                </label>
+                <div className="relative">
+                  <Users className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
+                  {isFleetManager ? (
+                    <input
+                      type="text"
+                      readOnly
+                      value={userTeamName}
+                      className="h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] pr-9 pl-3 text-[11px] font-semibold text-[var(--zd-text)] cursor-not-allowed opacity-90"
+                    />
+                  ) : (
+                    <select
+                      {...register('teamId')}
+                      disabled={isLoading || isSubmitting || isLoadingTeams}
+                      className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[11px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
+                    >
+                      <option value="">بدون فريق (كادر حر)</option>
+                      {teamsList.map((t) => (
+                        <option key={t._id} value={t._id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* Vehicle selection */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-[var(--zd-text)]">
+                  إسناد مركبة أولية (اختياري)
+                </label>
+                <div className="relative">
+                  <Car className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--zd-muted)]" />
+                  <select
+                    {...register('vehicleId')}
+                    disabled={isLoading || isSubmitting || isLoadingVehicles}
+                    className="zd-focus h-10 w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-input-bg)] pr-9 pl-3 text-[11px] text-[var(--zd-text)] outline-none transition-colors cursor-pointer"
+                  >
+                    <option value="">بدون مركبة حالياً (تعيين لاحقاً)</option>
+                    {availableVehicles.map((v) => (
+                      <option key={v._id} value={v._id}>
+                        {v.model} - لوحة {v.plateNumber}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal Actions */}
+        </div>
+        <div className="shrink-0 flex items-center justify-end gap-2.5 border-t border-[var(--zd-line)] px-6 py-4">
           <button
             type="button"
             onClick={onClose}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { UserCheck, Car, Loader2, Unlink, AlertTriangle } from 'lucide-react';
@@ -25,6 +25,7 @@ export function AssignDriverModal({
   const { data: allVehicles = [] } = useVehicles();
   const assignDriverMutation = useAssignDriver();
   const unassignDriverMutation = useUnassignDriver();
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   const vehicleTeamId = getVehicleTeamId(targetVehicle?.teamId);
   const hasTeam = Boolean(vehicleTeamId);
@@ -50,6 +51,7 @@ export function AssignDriverModal({
 
   useEffect(() => {
     if (isOpen && targetVehicle) {
+      setAssignmentError(null);
       reset({
         driverId: targetDriverId || '',
       });
@@ -62,14 +64,17 @@ export function AssignDriverModal({
 
   const onSubmit = async (values: AssignDriverFormValues) => {
     if (!hasTeam || isPending) return;
+    setAssignmentError(null);
     try {
       await assignDriverMutation.mutateAsync({
         vehicleId: targetVehicle._id,
         driverId: values.driverId,
       });
       onClose();
-    } catch {
-      // Handled by toast
+    } catch (error) {
+      setAssignmentError(
+        error instanceof Error ? error.message : 'تعذر تعيين السائق لهذه المركبة'
+      );
     }
   };
 
@@ -142,6 +147,15 @@ export function AssignDriverModal({
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
+        {assignmentError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="font-medium leading-relaxed">{assignmentError}</p>
+          </div>
+        )}
         <div>
           <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
             اختر السائق من فريق المركبة <span className="text-rose-500">*</span>
@@ -151,9 +165,8 @@ export function AssignDriverModal({
             <select
               {...register('driverId')}
               disabled={isPending || isLoadingDrivers || !hasTeam}
-              className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer ${
-                errors.driverId ? 'border-rose-500' : 'border-[var(--border)]'
-              }`}
+              className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer ${errors.driverId ? 'border-rose-500' : 'border-[var(--border)]'
+                }`}
             >
               <option value="">-- اختر السائق من القائمة --</option>
               {teamDrivers.map((d) => {
@@ -167,8 +180,8 @@ export function AssignDriverModal({
                     {isCurrentDriver
                       ? ' ✓ (السائق الحالي)'
                       : assignedVehicle
-                      ? ` ⚠️ (معين لـ ${assignedVehicle.model} - ${assignedVehicle.plateNumber})`
-                      : ' • (متاح)'}
+                        ? ` ⚠️ (معين لـ ${assignedVehicle.model} - ${assignedVehicle.plateNumber})`
+                        : ' • (متاح)'}
                   </option>
                 );
               })}

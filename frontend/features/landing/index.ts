@@ -1,9 +1,13 @@
 export { Navbar, Logo } from "./components/Navbar";
+export { ZimamLogo } from "./components/ZimamLogo";
 export { Hero } from "./components/Hero";
 export { HowItWorks } from "./components/HowItWorks";
 export { SmartInsight } from "./components/SmartInsight";
+export { StatsBanner } from "./components/StatsBanner";
 export { SubscriptionPlans } from "./components/SubscriptionPlans";
 export { SubscriptionPlanGrid } from "./components/SubscriptionPlanGrid";
+export { MobileAppBanner } from "./components/MobileAppBanner";
+export { FaqSection } from "./components/FaqSection";
 export { Features, FeatureOrbit } from "./components/Features";
 export { Footer } from "./components/Footer";
 export { PrimaryButton } from "./components/PrimaryButton";

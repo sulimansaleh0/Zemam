@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   Calendar,
@@ -74,50 +75,52 @@ export function MaintenanceTable({
   return (
     <div className="space-y-4" dir="rtl">
       {/* ── شريط التحكم والفلترة ── */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* تبويبات الحالة وتصنيف الصيانة */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* تبويبات الحالة */}
-          <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-[var(--zd-blue)] text-white shadow-sm'
-                    : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold text-[var(--zd-muted)]">الحالة</p>
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
+              {STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${activeTab === tab.id
+                      ? 'bg-[var(--zd-blue)] text-white shadow-sm'
+                      : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
+                    }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* فلتر التصنيف (أعطال / دورية) */}
-          <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
-            {CATEGORY_FILTERS.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => onCategoryChange(cat.id)}
-                className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-all ${
-                  activeCategory === cat.id
-                    ? 'bg-[var(--zd-surface-2)] text-[var(--zd-text)] font-bold shadow-xs'
-                    : 'text-[var(--zd-muted)] hover:text-[var(--zd-text)]'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold text-[var(--zd-muted)]">نوع الصيانة</p>
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
+              {CATEGORY_FILTERS.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => onCategoryChange(cat.id)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${activeCategory === cat.id
+                      ? 'bg-[var(--zd-blue)] text-white shadow-sm'
+                      : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
+                    }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* حقل البحث وزر الإضافة */}
         <div className="flex items-center gap-2.5">
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative flex-1 sm:w-64 xl:w-72">
             <Search className="absolute right-3 top-2.5 h-4 w-4 text-[var(--zd-muted)]" />
             <input
               type="text"
+              aria-label="البحث في سجلات الصيانة"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="ابحث بالمركبة، الوصف، مقدم الطلب..."
@@ -185,6 +188,11 @@ export function MaintenanceTable({
                   const priority = getMaintenancePriorityConfig(record.priority);
                   const category = getMaintenanceCategoryConfig(record.category);
                   const isPending = record.status === 'pending';
+                  const vehicleId = typeof record.vehicleId === 'object' ? record.vehicleId?._id : record.vehicleId;
+                  const reporter = typeof record.reportedBy === 'object' ? record.reportedBy : null;
+                  const driver = typeof record.driverId === 'object' ? record.driverId : null;
+                  const reporterIsDriver = reporter?.role === 'driver';
+                  const linkedDriver = reporterIsDriver ? reporter : driver;
 
                   return (
                     <tr
@@ -217,7 +225,13 @@ export function MaintenanceTable({
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 font-bold text-[var(--zd-text)]">
                           <Truck className="h-3.5 w-3.5 text-[var(--zd-blue)]" />
-                          <span>{record.vehicleModel}</span>
+                          {vehicleId ? (
+                            <Link href={`/vehicles/${vehicleId}`} className="hover:text-[var(--zd-blue)] hover:underline">
+                              {record.vehicleModel}
+                            </Link>
+                          ) : (
+                            <span>{record.vehicleModel}</span>
+                          )}
                         </div>
                         <div className="text-[10px] text-[var(--zd-muted)] mt-0.5">
                           لوحة: {record.vehiclePlate}
@@ -228,11 +242,22 @@ export function MaintenanceTable({
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-[var(--zd-text)] font-medium">
                           <User className="h-3.5 w-3.5 text-[var(--zd-muted)]" />
-                          <span>{record.reporterName}</span>
+                          {reporterIsDriver && reporter ? (
+                            <Link href={`/drivers/${reporter._id}`} className="hover:text-[var(--zd-blue)] hover:underline">
+                              {record.reporterName}
+                            </Link>
+                          ) : (
+                            <span>{record.reporterName}</span>
+                          )}
                         </div>
                         <div className="text-[10px] text-[var(--zd-muted)] mt-0.5">
                           {record.reporterEmail}
                         </div>
+                        {!reporterIsDriver && linkedDriver && (
+                          <Link href={`/drivers/${linkedDriver._id}`} className="mt-0.5 block text-[10px] text-[var(--zd-blue)] hover:underline">
+                            السائق: {linkedDriver.name || linkedDriver.email}
+                          </Link>
+                        )}
                       </td>
 
                       {/* الأولوية */}
