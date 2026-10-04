@@ -73,38 +73,46 @@ async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId
         throw new Error("Invalid vehicle");
     }
 
-    const vehicle = await Vehicle.findOne({
+    const vehicleQuery = {
         _id: vehicleId,
-        companyId,
-        teamId,
         status: vehicleStatus.ACTIVE,
-        isDeleted: false,
-        isInTask: true
-    });
+        isDeleted: false
+    };
+    if (companyId) vehicleQuery.companyId = companyId;
+    if (teamId) vehicleQuery.teamId = teamId;
+
+    const vehicle = await Vehicle.findOne(vehicleQuery);
 
     if (!vehicle) {
-        throw new Error("Vehicle is not available for an active task");
+        throw new Error("Vehicle is not available");
     }
 
-    const activeTask = await Task.findOne({
-        vehicleId: vehicle._id,
-        driverId,
-        companyId,
-        teamId,
-        status: taskStatus.INPROGRESS
-    });
+    let resolvedTaskId = null;
 
-    if (!activeTask) {
-        throw new Error("Vehicle has no active task");
+    if (taskId && mongoose.isValidObjectId(taskId)) {
+        const matchingTask = await Task.findOne({
+            _id: taskId,
+            vehicleId: vehicle._id
+        });
+        if (matchingTask) {
+            resolvedTaskId = matchingTask._id;
+        }
     }
 
-    if (taskId && (!mongoose.isValidObjectId(taskId) || activeTask._id.toString() !== taskId.toString())) {
-        throw new Error("Task is not active or is not assigned to this driver and vehicle");
+    if (!resolvedTaskId) {
+        const activeTask = await Task.findOne({
+            vehicleId: vehicle._id,
+            ...(driverId ? { driverId } : {}),
+            status: taskStatus.INPROGRESS
+        });
+        if (activeTask) {
+            resolvedTaskId = activeTask._id;
+        }
     }
 
     return {
         vehicle,
-        taskId: activeTask?._id
+        taskId: resolvedTaskId
     };
 }
 
@@ -286,10 +294,6 @@ async function finalizeTripSummary(task) {
         for (let i = 0; i < points.length; i++) {
             const p = points[i];
 
-            // Filter out poor accuracy points from historical summary
-            if (p.accuracy && p.accuracy > 35) {
-                continue;
-            }
 
             if (lastValidPoint) {
                 const legDist = calculateHaversineDistance(lastValidPoint.lat, lastValidPoint.lng, p.lat, p.lng);
@@ -429,11 +433,6 @@ async function ingestBatchTelemetry({
             continue;
         }
 
-        // 1. Accuracy filter: drop degraded points from lost A-GPS (accuracy > 35m)
-        if (accuracy > 35) {
-            droppedCount++;
-            continue;
-        }
 
         if (lastValidPoint) {
             const distKm = calculateHaversineDistance(

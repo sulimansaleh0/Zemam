@@ -55,30 +55,38 @@ export const driverTaskService = {
   /**
    * قبول وبدء المهمة
    */
-  async acceptTask(taskId: string): Promise<boolean> {
+  async acceptTask(taskId: string): Promise<{ success: boolean; offline?: boolean; message?: string }> {
     if (navigator.onLine) {
-      const res = await fetch(`/api/task/${taskId}/accept`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
+      try {
+        const res = await fetch(`/api/task/${taskId}/accept`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        });
+        if (res.ok) {
+          return { success: true, offline: false };
+        }
+        const error = await res.json().catch(() => ({}));
         throw new Error(error?.msg || error?.message || 'فشل قبول المهمة');
+      } catch (err: any) {
+        if (err.message && (err.message.includes('fetch') || err.message.includes('Network') || !navigator.onLine)) {
+          console.warn('[driverTaskService] acceptTask network failed, queueing offline:', err.message);
+        } else {
+          throw err;
+        }
       }
-      return true;
-    } else {
-      // حفظ الإجراء محلياً
-      await queueOfflineAction({
-        id: `accept_${taskId}_${Date.now()}`,
-        type: 'ACCEPT_TASK',
-        url: `/api/task/${taskId}/accept`,
-        method: 'PATCH',
-        body: {},
-        createdAt: Date.now(),
-      });
-      return true;
     }
+
+    // حفظ الإجراء محلياً
+    await queueOfflineAction({
+      id: `accept_${taskId}_${Date.now()}`,
+      type: 'ACCEPT_TASK',
+      url: `/api/task/${taskId}/accept`,
+      method: 'PATCH',
+      body: {},
+      createdAt: Date.now(),
+    });
+    return { success: true, offline: true, message: 'تم حفظ قبول المهمة محلياً وسيتم اعتمادها فور توفر الإنترنت' };
   },
 
   /**
@@ -87,33 +95,40 @@ export const driverTaskService = {
   async finishTask(
     taskId: string,
     payload?: { endOdometer?: number }
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; offline?: boolean; message?: string }> {
     const bodyPayload = payload?.endOdometer !== undefined ? { endOdometer: payload.endOdometer } : {};
 
     if (navigator.onLine) {
-      const res = await fetch(`/api/task/${taskId}/finish`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(bodyPayload),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
+      try {
+        const res = await fetch(`/api/task/${taskId}/finish`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(bodyPayload),
+        });
+        if (res.ok) {
+          return { success: true, offline: false };
+        }
+        const error = await res.json().catch(() => ({}));
         throw new Error(error?.msg || error?.message || 'تعذر تسليم المهمة');
+      } catch (err: any) {
+        if (err.message && (err.message.includes('fetch') || err.message.includes('Network') || !navigator.onLine)) {
+          console.warn('[driverTaskService] finishTask network failed, queueing offline:', err.message);
+        } else {
+          throw err;
+        }
       }
-      return true;
-    } else {
-      await queueOfflineAction({
-        id: `finish_${taskId}_${Date.now()}`,
-        type: 'FINISH_TASK',
-        url: `/api/task/${taskId}/finish`,
-        method: 'PATCH',
-        body: bodyPayload,
-        createdAt: Date.now(),
-      });
-      return true;
     }
+
+    await queueOfflineAction({
+      id: `finish_${taskId}_${Date.now()}`,
+      type: 'FINISH_TASK',
+      url: `/api/task/${taskId}/finish`,
+      method: 'PATCH',
+      body: bodyPayload,
+      createdAt: Date.now(),
+    });
+    return { success: true, offline: true, message: 'تم حفظ إنهاء المهمة محلياً وسيتم إغلاقها على السيرفر فور توفر الإنترنت' };
   },
 
   /**

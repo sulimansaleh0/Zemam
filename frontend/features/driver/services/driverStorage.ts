@@ -4,7 +4,7 @@ import type { DriverTelemetryPayload } from '@/features/gps/types/gps.types';
 import type { DriverTask, OfflineAction } from '../types/driverPwa.types';
 
 const DB_NAME = 'zemam_driver_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBDatabase | null = null;
 
@@ -36,6 +36,10 @@ function openDB(): Promise<IDBDatabase> {
 
     request.onsuccess = (event) => {
       dbInstance = (event.target as IDBOpenDBRequest).result;
+      dbInstance.onversionchange = () => {
+        dbInstance?.close();
+        dbInstance = null;
+      };
       resolve(dbInstance);
     };
 
@@ -46,18 +50,28 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 // ── Telemetry Queue ──
-export async function queueTelemetryPoint(point: DriverTelemetryPayload): Promise<void> {
+export async function queueTelemetryPoint(point: DriverTelemetryPayload): Promise<boolean> {
   try {
     const db = await openDB();
-    const tx = db.transaction('telemetry_queue', 'readwrite');
-    const store = tx.objectStore('telemetry_queue');
-    store.add(point);
+    return new Promise((resolve) => {
+      const tx = db.transaction('telemetry_queue', 'readwrite');
+      const store = tx.objectStore('telemetry_queue');
+      const req = store.add(point);
+
+      req.onerror = () => {
+        console.warn('[DriverStorage] store.add error:', req.error);
+        resolve(false);
+      };
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
   } catch (err) {
     console.warn('[DriverStorage] queueTelemetryPoint failed:', err);
+    return false;
   }
 }
 
-export async function getQueuedTelemetry(): Promise<DriverTelemetryPayload[]> {
+export async function getQueuedTelemetry(): Promise<Array<DriverTelemetryPayload & { id?: number }>> {
   try {
     const db = await openDB();
     return new Promise((resolve) => {
@@ -72,26 +86,53 @@ export async function getQueuedTelemetry(): Promise<DriverTelemetryPayload[]> {
   }
 }
 
-export async function clearQueuedTelemetry(): Promise<void> {
+export async function clearQueuedTelemetry(): Promise<boolean> {
   try {
     const db = await openDB();
-    const tx = db.transaction('telemetry_queue', 'readwrite');
-    const store = tx.objectStore('telemetry_queue');
-    store.clear();
+    return new Promise((resolve) => {
+      const tx = db.transaction('telemetry_queue', 'readwrite');
+      const store = tx.objectStore('telemetry_queue');
+      store.clear();
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
   } catch (err) {
     console.warn('[DriverStorage] clearQueuedTelemetry failed:', err);
+    return false;
+  }
+}
+
+export async function removeQueuedTelemetryPoints(ids: number[]): Promise<boolean> {
+  if (!ids || ids.length === 0) return true;
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('telemetry_queue', 'readwrite');
+      const store = tx.objectStore('telemetry_queue');
+      ids.forEach((id) => store.delete(id));
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch (err) {
+    console.warn('[DriverStorage] removeQueuedTelemetryPoints failed:', err);
+    return false;
   }
 }
 
 // ── Offline Actions ──
-export async function queueOfflineAction(action: OfflineAction): Promise<void> {
+export async function queueOfflineAction(action: OfflineAction): Promise<boolean> {
   try {
     const db = await openDB();
-    const tx = db.transaction('offline_actions', 'readwrite');
-    const store = tx.objectStore('offline_actions');
-    store.put(action);
+    return new Promise((resolve) => {
+      const tx = db.transaction('offline_actions', 'readwrite');
+      const store = tx.objectStore('offline_actions');
+      store.put(action);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
   } catch (err) {
     console.warn('[DriverStorage] queueOfflineAction failed:', err);
+    return false;
   }
 }
 
