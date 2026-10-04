@@ -22,13 +22,13 @@ export function SubscriptionPlanGrid({
             key={plan.name}
             className={`relative flex flex-col rounded-[24px] p-8 transition-all duration-200 ${
               isFeatured
-                ? "bg-[#0A5C55] text-white shadow-[0_20px_40px_rgba(10,92,85,0.25)] ring-2 ring-[#0F766E] -translate-y-2 max-[920px]:translate-y-0"
-                : "bg-white text-[#0F172A] border border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-primary/40"
+                ? "bg-[#041131] text-white shadow-[0_20px_45px_rgba(4,17,49,0.35)] ring-2 ring-[#195CF1] -translate-y-2 max-[920px]:translate-y-0"
+                : "bg-white text-[#0F172A] border border-[#E2E8F4] shadow-sm hover:shadow-md hover:border-primary/40"
             }`}
           >
             {/* Top Most Popular Badge */}
             {isFeatured && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#D97706] text-white text-[12px] font-black px-4 py-1 rounded-full shadow flex items-center gap-1.5 uppercase tracking-wide">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#195CF1] text-white text-[12px] font-black px-4 py-1 rounded-full shadow flex items-center gap-1.5 uppercase tracking-wide">
                 <Sparkles size={13} className="fill-white" />
                 <span>الأكثر طلباً</span>
               </div>
@@ -45,7 +45,7 @@ export function SubscriptionPlanGrid({
               </h3>
               <p
                 className={`text-[14px] mt-1.5 m-0 font-medium ${
-                  isFeatured ? "text-[#A7F3D0]" : "text-[#64748B]"
+                  isFeatured ? "text-[#94A3B8]" : "text-[#64748B]"
                 }`}
               >
                 {plan.audience}
@@ -56,7 +56,7 @@ export function SubscriptionPlanGrid({
             <div className="flex items-baseline gap-2 mb-6">
               <span
                 className={`text-[44px] font-black tracking-tight leading-none ${
-                  isFeatured ? "text-white" : "text-[#0F766E]"
+                  isFeatured ? "text-white" : "text-[#195CF1]"
                 }`}
               >
                 {plan.price}
@@ -64,7 +64,7 @@ export function SubscriptionPlanGrid({
               {plan.currency && (
                 <span
                   className={`text-[13px] font-bold ${
-                    isFeatured ? "text-[#D1FAE5]" : "text-[#64748B]"
+                    isFeatured ? "text-[#94A3B8]" : "text-[#64748B]"
                   }`}
                 >
                   {plan.currency}
@@ -75,7 +75,7 @@ export function SubscriptionPlanGrid({
             {/* Divider */}
             <div
               className={`w-full h-px mb-6 ${
-                isFeatured ? "bg-white/15" : "bg-[#F1F5F9]"
+                isFeatured ? "bg-[#162858]" : "bg-[#F1F5F9]"
               }`}
             />
 
@@ -86,15 +86,15 @@ export function SubscriptionPlanGrid({
                   <span
                     className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${
                       isFeatured
-                        ? "bg-white/15 text-[#34D399]"
-                        : "bg-[#E6F4F1] text-primary"
+                        ? "bg-[#195CF1]/20 text-[#60A5FA]"
+                        : "bg-[#195CF1]/10 text-primary"
                     }`}
                   >
                     <Check size={13} strokeWidth={3} />
                   </span>
                   <span
                     className={`text-[14px] font-medium leading-[1.5] ${
-                      isFeatured ? "text-[#E6F4F1]" : "text-[#334155]"
+                      isFeatured ? "text-[#DDE6FA]" : "text-[#334155]"
                     }`}
                   >
                     {feature}
@@ -108,8 +108,8 @@ export function SubscriptionPlanGrid({
               href="/login"
               className={`w-full py-3.5 px-6 rounded-xl text-center text-[15px] font-black transition-all duration-150 no-underline shadow-sm hover:shadow ${
                 isFeatured
-                  ? "bg-white text-[#0A5C55] hover:bg-[#F0FDF4] hover:shadow-lg"
-                  : "bg-[#0F766E] hover:bg-[#0B5F59] text-white"
+                  ? "bg-[#195CF1] text-white hover:bg-[#144AC8] hover:shadow-lg hover:shadow-[#195CF1]/25"
+                  : "bg-[#041131] hover:bg-[#081B4B] text-white"
               }`}
             >
               {plan.cta}

@@ -28,7 +28,7 @@ export function SignupForm() {
       </div>
 
       <div className="w-full mt-6">
-        <div>
+        <div className="w-full">
           <GoogleButton 
             label="إنشاء حساب باستخدام Google" 
             onSuccess={handleGoogleSignup}

@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useAlerts } from '@/features/alerts';
+import { ZimamLogo } from '@/features/landing/components/ZimamLogo';
 
 interface SidebarProps {
   open: boolean;
@@ -32,14 +33,8 @@ interface SidebarProps {
 
 function Logo() {
   return (
-    <div className="flex items-center gap-3" dir="rtl">
-      <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-primary shadow-[0_9px_24px_rgba(37,99,235,.28)]">
-        <Activity className="h-5 w-5 text-white" strokeWidth={2.5} />
-      </div>
-      <div className="leading-none">
-        <div className="text-[21px] font-bold tracking-[-.04em] text-text">زمام</div>
-        <div className="mt-1 text-[8px] font-semibold tracking-[.18em] text-muted">ZAMAM FLEET</div>
-      </div>
+    <div className="flex items-center py-1" dir="rtl">
+      <ZimamLogo href="/dashboard" />
     </div>
   );
 }

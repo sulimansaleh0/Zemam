@@ -27,7 +27,7 @@ export function LoginForm() {
       </div>
 
       <div className="w-full mt-6">
-        <div>
+        <div className="w-full">
           <GoogleButton 
             label="المتابعة باستخدام Google" 
             onSuccess={handleGoogleLogin}

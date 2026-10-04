@@ -28,7 +28,7 @@ export function PrimaryButton(props: PrimaryButtonProps) {
   const { children, className = "", showArrow = false, fullWidth = false } = props;
 
   const baseClasses =
-    "inline-flex items-center justify-center gap-2 min-h-[46px] max-[520px]:min-h-[44px] px-[22px] max-[520px]:px-[18px] text-[14px] font-bold leading-none whitespace-nowrap rounded-[10px] no-underline transition-all duration-180 ease-out active:translate-y-0 focus-visible:outline-2 focus-visible:outline-blue-600/90 focus-visible:outline-offset-[3px] motion-reduce:transition-none bg-primary border border-primary text-white shadow-[0_8px_18px_rgba(15,118,110,0.16)] hover:bg-primary-hover hover:border-primary-hover hover:text-white hover:shadow-[0_12px_24px_rgba(15,118,110,0.22)] hover:-translate-y-px cursor-pointer disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center gap-2 min-h-[46px] max-[520px]:min-h-[44px] px-[22px] max-[520px]:px-[18px] text-[14px] font-bold leading-none whitespace-nowrap rounded-[10px] no-underline transition-all duration-180 ease-out active:translate-y-0 focus-visible:outline-2 focus-visible:outline-blue-600/90 focus-visible:outline-offset-[3px] motion-reduce:transition-none bg-primary border border-primary text-white shadow-[0_8px_18px_rgba(25,92,241,0.22)] hover:bg-primary-hover hover:border-primary-hover hover:text-white hover:shadow-[0_12px_24px_rgba(25,92,241,0.32)] hover:-translate-y-px cursor-pointer disabled:opacity-50 disabled:pointer-events-none";
 
   const classes = [baseClasses, fullWidth && "w-full", className]
     .filter(Boolean)

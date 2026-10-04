@@ -5,11 +5,11 @@
 :root,
 [data-theme="dark"] {
   /* ─── Brand ─────────────────────────────── */
-  --primary:        #0F766E;
-  --primary-hover:  #0B5F59;
-  --primary-light:  #0F766E1A;
-  --accent:         #2563EB;
-  --accent-light:   #2563EB14;
+  --primary:        #195CF1;
+  --primary-hover:  #3B75F8;
+  --primary-light:  rgba(25, 92, 241, 0.18);
+  --accent:         #195CF1;
+  --accent-light:   rgba(25, 92, 241, 0.12);
 
   /* ─── Semantic ───────────────────────────── */
   --success:        #16A34A;
@@ -22,21 +22,21 @@
   --info-light:     rgba(8, 145, 178, 0.15);
 
   /* ─── Backgrounds ────────────────────────── */
-  --bg:             #0F172A;
-  --surface:        #1E293B;
-  --surface-2:      #273549;
-  --surface-3:      #2F3F56;
-  --ink:            #F1F5F9;
+  --bg:             #041131;
+  --surface:        #081B4B;
+  --surface-2:      #0E2563;
+  --surface-3:      #16327E;
+  --ink:            #F4F7FE;
 
   /* ─── Text ───────────────────────────────── */
-  --text:           #F1F5F9;
-  --text-secondary: #CBD5E1;
-  --muted:          #94A3B8;
+  --text:           #F4F7FE;
+  --text-secondary: #94A3B8;
+  --muted:          #64748B;
   --disabled:       #4B5563;
 
   /* ─── Borders ────────────────────────────── */
-  --border:         #334155;
-  --border-focus:   #0F766E;
+  --border:         #162858;
+  --border-focus:   #195CF1;
   --border-error:   #DC2626;
 
   /* ─── Dashboard Token Mappings ───────────── */
@@ -126,11 +126,11 @@
 
 [data-theme="light"] {
   /* ─── Brand ─────────────────────────────── */
-  --primary:        #0F766E;
-  --primary-hover:  #0B5F59;
-  --primary-light:  #0F766E1A;
-  --accent:         #2563EB;
-  --accent-light:   #2563EB14;
+  --primary:        #195CF1;
+  --primary-hover:  #144AC8;
+  --primary-light:  rgba(25, 92, 241, 0.1);
+  --accent:         #195CF1;
+  --accent-light:   rgba(25, 92, 241, 0.08);
 
   /* ─── Semantic ───────────────────────────── */
   --success:        #15803D;
@@ -143,21 +143,21 @@
   --info-light:     rgba(14, 116, 144, 0.1);
 
   /* ─── Backgrounds ────────────────────────── */
-  --bg:             #F8FAFC;
+  --bg:             #F4F7FE;
   --surface:        #FFFFFF;
-  --surface-2:      #F1F5F9;
-  --surface-3:      #E2E8F0;
-  --ink:            #0F172A;
+  --surface-2:      #EBF0FC;
+  --surface-3:      #DDE6FA;
+  --ink:            #041131;
 
   /* ─── Text ───────────────────────────────── */
-  --text:           #0F172A;
+  --text:           #041131;
   --text-secondary: #475569;
   --muted:          #64748B;
   --disabled:       #94A3B8;
 
   /* ─── Borders ────────────────────────────── */
-  --border:         #E2E8F0;
-  --border-focus:   #0F766E;
+  --border:         #E2E8F4;
+  --border-focus:   #195CF1;
   --border-error:   #DC2626;
 
   /* ─── Shadows ────────────────────────────── */

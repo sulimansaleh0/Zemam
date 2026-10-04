@@ -12,7 +12,7 @@ export function MobileAppBanner() {
   return (
     <section
       id="driver-app"
-      className="relative w-full overflow-hidden min-h-[660px] max-[920px]:min-h-[580px] flex items-center bg-[#E6F8F6] scroll-mt-20 [direction:rtl]"
+      className="relative w-full overflow-hidden min-h-[660px] max-[920px]:min-h-[580px] flex items-center bg-[#F4F7FE] scroll-mt-20 [direction:rtl]"
       aria-label="تطبيق زمام للسائق"
     >
       {/* Background Image: Full-width edge-to-edge across the entire screen like Hero */}
@@ -27,11 +27,11 @@ export function MobileAppBanner() {
         />
 
         {/* RTL Smooth Gradient Overlay: Fades from solid ambient tone on the right for clear text reading, to transparent on the left revealing phones */}
-        <div className="absolute inset-0 bg-gradient-to-l from-[#E6F8F6] via-[#E6F8F6]/85 to-transparent to-[55%] max-[1040px]:from-[#E6F8F6]/95 max-[1040px]:via-[#E6F8F6]/90 max-[640px]:from-[#E6F8F6]/95 max-[640px]:to-[#E6F8F6]/85" />
+        <div className="absolute inset-0 bg-gradient-to-l from-[#F4F7FE] via-[#F4F7FE]/85 to-transparent to-[55%] max-[1040px]:from-[#F4F7FE]/95 max-[1040px]:via-[#F4F7FE]/90 max-[640px]:from-[#F4F7FE]/95 max-[640px]:to-[#F4F7FE]/85" />
 
         {/* Soft edge blendings */}
         <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white to-transparent pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#F8FAF9] to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#F4F7FE] to-transparent pointer-events-none" />
       </div>
 
       {/* Content Container: Full width with 10% horizontal padding matching Hero & Navbar */}
@@ -39,7 +39,7 @@ export function MobileAppBanner() {
         <div className="max-w-[620px] text-right space-y-7">
           
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-[#0F766E] text-[14px] font-extrabold shadow-xs border border-[#A7E2D7]">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-[#195CF1] text-[14px] font-extrabold shadow-xs border border-[#195CF1]/25">
             <span>تطبيق الجوال للسائقين • iOS & Android</span>
           </div>
 
@@ -74,7 +74,7 @@ export function MobileAppBanner() {
             {/* App Store */}
             <a
               href="#"
-              className="inline-flex items-center gap-3.5 px-6 py-3 rounded-2xl bg-[#0F172A] hover:bg-[#1E293B] text-white transition-all duration-200 shadow-md hover:shadow-xl hover:-translate-y-0.5 no-underline [direction:ltr]"
+              className="inline-flex items-center gap-3.5 px-6 py-3 rounded-2xl bg-[#041131] hover:bg-[#081B4B] text-white transition-all duration-200 shadow-md hover:shadow-xl hover:-translate-y-0.5 no-underline [direction:ltr]"
               aria-label="تحميل من App Store"
             >
               <svg className="w-7 h-7 fill-current shrink-0" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ export function MobileAppBanner() {
             {/* Google Play */}
             <a
               href="#"
-              className="inline-flex items-center gap-3.5 px-6 py-3 rounded-2xl bg-[#0F172A] hover:bg-[#1E293B] text-white transition-all duration-200 shadow-md hover:shadow-xl hover:-translate-y-0.5 no-underline [direction:ltr]"
+              className="inline-flex items-center gap-3.5 px-6 py-3 rounded-2xl bg-[#041131] hover:bg-[#081B4B] text-white transition-all duration-200 shadow-md hover:shadow-xl hover:-translate-y-0.5 no-underline [direction:ltr]"
               aria-label="تحميل من Google Play"
             >
               <svg className="w-7 h-7 fill-current shrink-0" viewBox="0 0 24 24">

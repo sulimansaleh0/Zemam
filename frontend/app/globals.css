@@ -8,6 +8,8 @@
 @source "../styles";
 @import "../styles/tokens.css";
 
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *, .dark, .dark *));
+
 /* ============================================
    TAILWIND v4 — Theme & Tokens Binding
    ============================================ */

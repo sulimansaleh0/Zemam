@@ -22,11 +22,11 @@ export function FleetRouteLine({ placement }: FleetRouteLineProps) {
       >
         <defs>
           <linearGradient id="fleet-route-gradient" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="#0f766e" stopOpacity="0" />
-            <stop offset="0.16" stopColor="#14b8a6" stopOpacity="0.32" />
-            <stop offset="0.5" stopColor="#2563eb" stopOpacity="0.58" />
-            <stop offset="0.82" stopColor="#14b8a6" stopOpacity="0.28" />
-            <stop offset="1" stopColor="#0f766e" stopOpacity="0" />
+            <stop offset="0" stopColor="#041131" stopOpacity="0" />
+            <stop offset="0.16" stopColor="#195CF1" stopOpacity="0.4" />
+            <stop offset="0.5" stopColor="#60A5FA" stopOpacity="0.7" />
+            <stop offset="0.82" stopColor="#195CF1" stopOpacity="0.35" />
+            <stop offset="1" stopColor="#041131" stopOpacity="0" />
           </linearGradient>
           <filter id="fleet-route-glow" x="-10%" y="-70%" width="120%" height="240%">
             <feGaussianBlur stdDeviation="2.4" />
@@ -55,14 +55,14 @@ export function FleetRouteLine({ placement }: FleetRouteLineProps) {
         />
 
         <g>
-          <circle cx="236" cy="34" r="6" filter="url(#fleet-route-node-glow)" fill="#2dd4bf" className="opacity-[0.22]" />
-          <circle cx="236" cy="34" r="1.8" fill="#2dd4bf" className="opacity-[0.82]" />
-          <circle cx="586" cy="60" r="5" filter="url(#fleet-route-node-glow)" fill="#2dd4bf" className="opacity-[0.22]" />
-          <circle cx="586" cy="60" r="1.5" fill="#2dd4bf" className="opacity-[0.82]" />
-          <circle cx="986" cy="29" r="6" filter="url(#fleet-route-node-glow)" fill="#2dd4bf" className="opacity-[0.22]" />
-          <circle cx="986" cy="29" r="1.8" fill="#2dd4bf" className="opacity-[0.82]" />
-          <circle cx="1270" cy="40" r="5" fill="#2dd4bf" className="animate-fleet-pulse" />
-          <circle cx="1270" cy="40" r="1.6" fill="#2dd4bf" className="opacity-[0.82]" />
+          <circle cx="236" cy="34" r="6" filter="url(#fleet-route-node-glow)" fill="#60A5FA" className="opacity-[0.22]" />
+          <circle cx="236" cy="34" r="1.8" fill="#93C5FD" className="opacity-[0.82]" />
+          <circle cx="586" cy="60" r="5" filter="url(#fleet-route-node-glow)" fill="#60A5FA" className="opacity-[0.22]" />
+          <circle cx="586" cy="60" r="1.5" fill="#93C5FD" className="opacity-[0.82]" />
+          <circle cx="986" cy="29" r="6" filter="url(#fleet-route-node-glow)" fill="#60A5FA" className="opacity-[0.22]" />
+          <circle cx="986" cy="29" r="1.8" fill="#93C5FD" className="opacity-[0.82]" />
+          <circle cx="1270" cy="40" r="5" fill="#60A5FA" className="animate-fleet-pulse" />
+          <circle cx="1270" cy="40" r="1.6" fill="#93C5FD" className="opacity-[0.82]" />
         </g>
       </svg>
     </div>
