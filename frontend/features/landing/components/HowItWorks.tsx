@@ -47,11 +47,11 @@ export function HowItWorks() {
           {steps.map((step) => (
             <article
               key={step.number}
-              className="relative p-8 rounded-[20px] bg-[#F8FAF9] border border-[#E2E8F0] transition-all duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:border-primary/40 hover:bg-white flex flex-col justify-between"
+              className="relative p-8 rounded-[20px] bg-[#F4F7FE] border border-[#E2E8F4] transition-all duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:border-primary/40 hover:bg-white flex flex-col justify-between"
             >
               <div>
                 {/* Step Number Tag */}
-                <div className="w-12 h-12 rounded-xl bg-[#E6F4F1] border border-primary/20 flex items-center justify-center text-primary text-[20px] font-black mb-6">
+                <div className="w-12 h-12 rounded-xl bg-[#195CF1]/10 border border-primary/20 flex items-center justify-center text-primary text-[20px] font-black mb-6">
                   {step.number}
                 </div>
 

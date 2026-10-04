@@ -49,12 +49,12 @@ export function SmartInsight() {
             </div>
 
             {/* Social Proof Stack */}
-            <div className="pt-6 border-t border-[#E2E8F0] flex items-center gap-4">
+            <div className="pt-6 border-t border-[#E2E8F4] flex items-center gap-4">
               <div className="flex -space-x-2 space-x-reverse overflow-hidden">
-                <span className="inline-block h-10 w-10 rounded-full ring-2 ring-white bg-[#0F766E] text-white text-[12px] font-bold flex items-center justify-center">
+                <span className="inline-block h-10 w-10 rounded-full ring-2 ring-white bg-[#195CF1] text-white text-[12px] font-bold flex items-center justify-center">
                   أ.م
                 </span>
-                <span className="inline-block h-10 w-10 rounded-full ring-2 ring-white bg-[#0A5C55] text-white text-[12px] font-bold flex items-center justify-center">
+                <span className="inline-block h-10 w-10 rounded-full ring-2 ring-white bg-[#041131] text-white text-[12px] font-bold flex items-center justify-center">
                   خ.ع
                 </span>
                 <span className="inline-block h-10 w-10 rounded-full ring-2 ring-white bg-[#2563EB] text-white text-[12px] font-bold flex items-center justify-center">
@@ -77,7 +77,7 @@ export function SmartInsight() {
 
           {/* Left Column: Live Fleet Dashboard Card */}
           <div className="relative flex justify-center">
-            <div className="w-full max-w-[480px] bg-white rounded-[24px] border border-[#E2E8F0] shadow-[0_20px_45px_rgba(15,118,110,0.08)] p-6 space-y-4">
+            <div className="w-full max-w-[480px] bg-white rounded-[24px] border border-[#E2E8F4] shadow-[0_20px_45px_rgba(25,92,241,0.08)] p-6 space-y-4">
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[#F1F5F9]">
                 <div className="flex items-center gap-2">
@@ -86,16 +86,16 @@ export function SmartInsight() {
                     حالة المركبات اللحظية
                   </span>
                 </div>
-                <span className="text-[12px] font-extrabold text-primary bg-[#E6F4F1] px-2.5 py-1 rounded-full">
+                <span className="text-[12px] font-extrabold text-primary bg-[#195CF1]/10 px-2.5 py-1 rounded-full">
                   مباشر الآن
                 </span>
               </div>
 
               {/* Vehicle 1 */}
-              <div className="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E2E8F0] hover:border-primary/40 transition-colors">
+              <div className="p-3.5 rounded-xl bg-[#F4F7FE] border border-[#E2E8F4] hover:border-primary/40 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-lg bg-[#E6F4F1] text-primary flex items-center justify-center font-bold text-[12px]">
+                    <span className="w-8 h-8 rounded-lg bg-[#195CF1]/10 text-primary flex items-center justify-center font-bold text-[12px]">
                       01
                     </span>
                     <div>
@@ -114,10 +114,10 @@ export function SmartInsight() {
               </div>
 
               {/* Vehicle 2 */}
-              <div className="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E2E8F0] hover:border-primary/40 transition-colors">
+              <div className="p-3.5 rounded-xl bg-[#F4F7FE] border border-[#E2E8F4] hover:border-primary/40 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-lg bg-[#E6F4F1] text-primary flex items-center justify-center font-bold text-[12px]">
+                    <span className="w-8 h-8 rounded-lg bg-[#195CF1]/10 text-primary flex items-center justify-center font-bold text-[12px]">
                       02
                     </span>
                     <div>
@@ -136,10 +136,10 @@ export function SmartInsight() {
               </div>
 
               {/* Vehicle 3 */}
-              <div className="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E2E8F0] hover:border-primary/40 transition-colors">
+              <div className="p-3.5 rounded-xl bg-[#F4F7FE] border border-[#E2E8F4] hover:border-primary/40 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-lg bg-[#E6F4F1] text-primary flex items-center justify-center font-bold text-[12px]">
+                    <span className="w-8 h-8 rounded-lg bg-[#195CF1]/10 text-primary flex items-center justify-center font-bold text-[12px]">
                       03
                     </span>
                     <div>
@@ -159,7 +159,7 @@ export function SmartInsight() {
 
               {/* Quick Metrics Bar at bottom of card */}
               <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[#F1F5F9] text-center">
-                <div className="p-2 rounded-lg bg-[#F8FAF9]">
+                <div className="p-2 rounded-lg bg-[#F4F7FE]">
                   <span className="block text-[11px] text-[#64748B]">
                     معدل السرعة
                   </span>
@@ -167,7 +167,7 @@ export function SmartInsight() {
                     72 كم/س
                   </strong>
                 </div>
-                <div className="p-2 rounded-lg bg-[#F8FAF9]">
+                <div className="p-2 rounded-lg bg-[#F4F7FE]">
                   <span className="block text-[11px] text-[#64748B]">
                     الوقود الموفر
                   </span>
@@ -175,7 +175,7 @@ export function SmartInsight() {
                     142 لتر
                   </strong>
                 </div>
-                <div className="p-2 rounded-lg bg-[#F8FAF9]">
+                <div className="p-2 rounded-lg bg-[#F4F7FE]">
                   <span className="block text-[11px] text-[#64748B]">
                     الالتزام
                   </span>

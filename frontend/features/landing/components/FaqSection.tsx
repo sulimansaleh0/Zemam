@@ -88,7 +88,7 @@ export function FaqSection() {
                   <span
                     className={`shrink-0 ml-4 w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 ${
                       isOpen
-                        ? "bg-[#E6F4F1] text-primary rotate-180"
+                        ? "bg-[#195CF1]/10 text-primary rotate-180"
                         : "bg-[#F1F5F9] text-[#64748B]"
                     }`}
                   >

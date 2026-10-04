@@ -4,37 +4,37 @@ import { ZimamLogo } from "./ZimamLogo";
 
 export function Footer() {
   return (
-    <footer className="bg-[#0A5C55] text-white pt-16 pb-12 [direction:rtl]">
+    <footer className="bg-[#041131] text-[#F4F7FE] pt-16 pb-12 border-t border-[#162858] [direction:rtl]">
       <div className="w-full max-w-[1360px] mx-auto px-[72px] max-[1180px]:px-10 max-[700px]:px-6 max-[430px]:px-[18px]">
         {/* Main Footer Grid */}
-        <div className="grid grid-cols-4 max-[920px]:grid-cols-2 max-[550px]:grid-cols-1 gap-10 pb-12 border-b border-white/10">
+        <div className="grid grid-cols-4 max-[920px]:grid-cols-2 max-[550px]:grid-cols-1 gap-10 pb-12 border-b border-[#162858]">
           
           {/* Brand Col */}
           <div className="space-y-4 max-[920px]:col-span-2 max-[550px]:col-span-1">
             <ZimamLogo variant="light" />
-            <p className="text-[14px] text-[#D1FAE5] leading-[1.7] max-w-[320px] font-medium">
+            <p className="text-[14px] text-[#94A3B8] leading-[1.7] max-w-[320px] font-medium">
               المنصة السحابية الرائدة لإدارة وتتبع حركة المركبات والمهام وترشيد الوقود بذكاء واحترافية.
             </p>
           </div>
 
           {/* Col 1: Links */}
           <div className="space-y-3">
-            <h4 className="text-[16px] font-black text-white m-0 mb-4">
+            <h4 className="text-[16px] font-black text-[#F4F7FE] m-0 mb-4">
               المنصة
             </h4>
             <ul className="space-y-2.5 list-none p-0 m-0 text-[14px]">
               <li>
-                <a href="#hero" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <a href="#hero" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   الرئيسية
                 </a>
               </li>
               <li>
-                <a href="#how-it-works" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <a href="#how-it-works" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   كيف يعمل
                 </a>
               </li>
               <li>
-                <a href="#insights" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <a href="#insights" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   المميزات والرؤى
                 </a>
               </li>
@@ -43,27 +43,27 @@ export function Footer() {
 
           {/* Col 2: Services & Apps */}
           <div className="space-y-3">
-            <h4 className="text-[16px] font-black text-white m-0 mb-4">
+            <h4 className="text-[16px] font-black text-[#F4F7FE] m-0 mb-4">
               الخدمات والتطبيقات
             </h4>
             <ul className="space-y-2.5 list-none p-0 m-0 text-[14px]">
               <li>
-                <a href="#pricing" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <a href="#pricing" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   باقات الاشتراك
                 </a>
               </li>
               <li>
-                <a href="#driver-app" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <a href="#driver-app" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   تطبيق زمام للسائق
                 </a>
               </li>
               <li>
-                <a href="#faq" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <a href="#faq" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   الأسئلة الشائعة
                 </a>
               </li>
               <li>
-                <Link href="/login" className="text-[#A7F3D0] hover:text-white transition-colors no-underline">
+                <Link href="/login" className="text-[#94A3B8] hover:text-[#195CF1] transition-colors no-underline">
                   تسجيل الدخول
                 </Link>
               </li>
@@ -72,19 +72,19 @@ export function Footer() {
 
           {/* Col 3: Contact & Support */}
           <div className="space-y-3">
-            <h4 className="text-[16px] font-black text-white m-0 mb-4">
+            <h4 className="text-[16px] font-black text-[#F4F7FE] m-0 mb-4">
               الدعم والتواصل
             </h4>
-            <p className="text-[14px] text-[#D1FAE5] m-0">
+            <p className="text-[14px] text-[#DDE6FA] m-0">
               المملكة العربية السعودية • الرياض
             </p>
-            <p className="text-[14px] text-[#A7F3D0] m-0">
+            <p className="text-[14px] text-[#94A3B8] m-0">
               support@zimam.sa
             </p>
             <div className="pt-2 flex items-center gap-3">
               <a
                 href="#"
-                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+                className="w-9 h-9 rounded-lg bg-white/5 hover:bg-[#195CF1] flex items-center justify-center text-white transition-all border border-white/10 hover:border-transparent"
                 aria-label="X (Twitter)"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ export function Footer() {
               </a>
               <a
                 href="#"
-                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+                className="w-9 h-9 rounded-lg bg-white/5 hover:bg-[#195CF1] flex items-center justify-center text-white transition-all border border-white/10 hover:border-transparent"
                 aria-label="LinkedIn"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -106,7 +106,7 @@ export function Footer() {
         </div>
 
         {/* Copyright Bar */}
-        <div className="pt-8 flex items-center justify-between max-[600px]:flex-col max-[600px]:gap-3 text-[13px] text-[#A7F3D0]/80">
+        <div className="pt-8 flex items-center justify-between max-[600px]:flex-col max-[600px]:gap-3 text-[13px] text-[#94A3B8]">
           <span>© 2026 زمام (ZIMAM). جميع الحقوق محفوظة.</span>
           <span>صُمم وطُوّر بدقة لخدمة قطاع النقل والخدمات اللوجستية</span>
         </div>

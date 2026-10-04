@@ -6,6 +6,7 @@ import { Bell, ChevronDown, CircleHelp, Menu, Search, LogOut } from 'lucide-reac
 import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 import { useAlerts } from '@/features/alerts';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { ZimamLogo } from '@/features/landing/components/ZimamLogo';
 
 interface HeaderProps {
   onMenu: () => void;
@@ -22,13 +23,16 @@ export function Header({ onMenu, searchQuery = '', onSearchChange, showSearch = 
 
   return (
     <header className="flex flex-wrap items-center gap-3 border-b border-[var(--zd-line)] px-4 py-4 sm:px-7 lg:px-10 transition-colors">
-      <button
-        onClick={onMenu}
-        aria-label="فتح القائمة"
-        className="zd-focus rounded-lg bg-[var(--zd-surface-2)] p-2.5 text-[var(--zd-muted)] hover:text-[var(--zd-text)] lg:hidden"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      <div className="flex items-center gap-2.5 lg:hidden">
+        <button
+          onClick={onMenu}
+          aria-label="فتح القائمة"
+          className="zd-focus rounded-lg bg-[var(--zd-surface-2)] p-2.5 text-[var(--zd-muted)] hover:text-[var(--zd-text)]"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <ZimamLogo href="/dashboard" compact />
+      </div>
 
       {showSearch && onSearchChange && (
         <div className="relative order-3 w-full sm:order-none sm:max-w-[310px] sm:flex-1">

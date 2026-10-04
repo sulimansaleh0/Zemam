@@ -27,10 +27,10 @@ export function StatsBanner() {
   return (
     <section
       aria-label="إحصائيات المنصة"
-      className="w-full bg-[#0A5C55] text-white py-12 px-6 relative overflow-hidden"
+      className="w-full bg-[#041131] text-[#F4F7FE] py-14 px-6 relative overflow-hidden border-y border-[#162858]"
     >
-      {/* Subtle background glow effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.08),_transparent_70%)] pointer-events-none" />
+      {/* Subtle brand blue glow effect */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(25,92,241,0.22),_transparent_70%)] pointer-events-none" />
 
       <div className="max-w-[1360px] mx-auto grid grid-cols-4 max-[920px]:grid-cols-2 max-[500px]:grid-cols-1 gap-8 text-center relative z-1 [direction:rtl]">
         {stats.map((item, index) => (
@@ -38,13 +38,13 @@ export function StatsBanner() {
             key={index}
             className="flex flex-col items-center justify-center space-y-1.5"
           >
-            <span className="text-[44px] max-[700px]:text-[36px] font-black tracking-tight text-white font-sans">
+            <span className="text-[46px] max-[700px]:text-[36px] font-black tracking-tight text-[#F4F7FE] font-sans">
               {item.value}
             </span>
-            <span className="text-[17px] font-bold text-[#D1FAE5]">
+            <span className="text-[17px] font-bold text-[#DDE6FA]">
               {item.label}
             </span>
-            <span className="text-[13px] text-[#A7F3D0]/80">
+            <span className="text-[13px] text-[#94A3B8]">
               {item.subtext}
             </span>
           </div>
