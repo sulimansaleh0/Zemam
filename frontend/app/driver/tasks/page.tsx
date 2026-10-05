@@ -103,7 +103,7 @@ export default function DriverTasksPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-teal-700" />
+              <ClipboardList className="h-5 w-5 text-[#195CF1]" />
               <span>مهام التوصيل والشحنات</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -120,8 +120,8 @@ export default function DriverTasksPage() {
           </div>
         )}
         {successNotice && (
-          <div className="flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-800">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-600" />
+          <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#195CF1]" />
             <span>{successNotice}</span>
           </div>
         )}
@@ -131,7 +131,7 @@ export default function DriverTasksPage() {
           <button
             onClick={() => setCurrentTab('inprogress')}
             className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${currentTab === 'inprogress'
-                ? 'bg-teal-700 text-white shadow-xs'
+                ? 'bg-[#195CF1] text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
               }`}
           >
@@ -140,7 +140,7 @@ export default function DriverTasksPage() {
           <button
             onClick={() => setCurrentTab('pending')}
             className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${currentTab === 'pending'
-                ? 'bg-teal-700 text-white shadow-xs'
+                ? 'bg-[#195CF1] text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
               }`}
           >
@@ -149,7 +149,7 @@ export default function DriverTasksPage() {
           <button
             onClick={() => setCurrentTab('finished')}
             className={`flex-1 py-2 rounded-xl font-bold transition-all text-center cursor-pointer ${currentTab === 'finished'
-                ? 'bg-teal-700 text-white shadow-xs'
+                ? 'bg-[#195CF1] text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
               }`}
           >
@@ -160,7 +160,7 @@ export default function DriverTasksPage() {
         {/* ── قائمة بطاقات المهام ── */}
         {isLoading ? (
           <div className="text-center py-12 space-y-3">
-            <RefreshCw className="h-7 w-7 text-teal-700 animate-spin mx-auto" />
+            <RefreshCw className="h-7 w-7 text-[#195CF1] animate-spin mx-auto" />
             <p className="text-xs text-slate-500">جاري تحميل المهام الميدانية...</p>
           </div>
         ) : filteredTasks.length === 0 ? (
@@ -184,9 +184,9 @@ export default function DriverTasksPage() {
                 <div className="flex items-center justify-between">
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${task.status === 'inprogress'
-                        ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                        ? 'bg-blue-50 text-[#195CF1] border border-blue-200'
                         : task.status === 'finished'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}
                   >
@@ -225,7 +225,7 @@ export default function DriverTasksPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-teal-600 shrink-0" />
+                    <span className="h-2 w-2 rounded-full bg-[#195CF1] shrink-0" />
                     <span className="text-slate-400 shrink-0">نقطة التسليم:</span>
                     <span className="font-semibold text-slate-700 truncate">
                       {task.deliveryLocation?.address || 'عنوان العميل المحدد'}
@@ -243,9 +243,9 @@ export default function DriverTasksPage() {
                         )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100/80 py-2.5 text-xs font-bold text-teal-800 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100/80 py-2.5 text-xs font-bold text-[#195CF1] transition-colors"
                     >
-                      <Navigation className="h-3.5 w-3.5 text-teal-700" />
+                      <Navigation className="h-3.5 w-3.5 text-[#195CF1]" />
                       <span>الملاحة (Maps)</span>
                     </a>
                   )}
@@ -254,7 +254,7 @@ export default function DriverTasksPage() {
                     <>
                       <a
                         href={`tel:${task.customer.phone}`}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-teal-700 hover:bg-slate-100"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-[#195CF1] hover:bg-slate-100"
                         title="اتصال بالعميل"
                       >
                         <Phone className="h-4 w-4" />
@@ -278,7 +278,7 @@ export default function DriverTasksPage() {
                     <button
                       onClick={() => handleAccept(task)}
                       disabled={actionLoading}
-                      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-bold py-3 text-xs shadow-xs transition-all cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#195CF1] hover:bg-blue-700 text-white font-bold py-3 text-xs shadow-xs transition-all cursor-pointer"
                     >
                       <Play className="h-4 w-4 fill-current" />
                       <span>قبول المهمة وبدء التحرك 🚀</span>
@@ -291,7 +291,7 @@ export default function DriverTasksPage() {
                         setSelectedTaskForFinish(task);
                         setEndOdometer(task.startOdometer ? String(task.startOdometer + 15) : '');
                       }}
-                      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-xs shadow-xs transition-all cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-xs shadow-xs transition-all cursor-pointer"
                     >
                       <FileCheck className="h-4 w-4" />
                       <span>تسليم الشحنة وتوثيق الإثبات (POD) 🏁</span>
@@ -310,7 +310,7 @@ export default function DriverTasksPage() {
           <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-200">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#195CF1] border border-blue-200">
                   <FileCheck className="h-5 w-5" />
                 </div>
                 <div>
@@ -327,12 +327,12 @@ export default function DriverTasksPage() {
             </div>
 
             {/* إشعار التوثيق الآلي */}
-            <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3.5 text-xs text-teal-900 space-y-1">
-              <p className="font-bold flex items-center gap-1.5 text-teal-800">
-                <CheckCircle2 className="h-4 w-4 text-teal-600" />
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-950 space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-blue-900">
+                <CheckCircle2 className="h-4 w-4 text-[#195CF1]" />
                 <span>توثيق مسار الرحلة والمسافة آلياً</span>
               </p>
-              <p className="text-[11px] text-teal-700 leading-relaxed">
+              <p className="text-[11px] text-[#195CF1] leading-relaxed">
                 يقوم النظام باحتساب مسار الرحلة الحية والمسافة المقطوعة وعداد المركبة النهائي تلقائياً بناءً على بيانات نظام الـ GPS.
               </p>
             </div>
@@ -348,7 +348,7 @@ export default function DriverTasksPage() {
                 value={endOdometer}
                 onChange={(e) => setEndOdometer(e.target.value)}
                 placeholder="مثلاً: 45280"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 font-mono focus:border-teal-700 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 font-mono focus:border-[#195CF1] focus:outline-none"
               />
             </div>
 
@@ -357,7 +357,7 @@ export default function DriverTasksPage() {
               <button
                 onClick={handleFinishConfirm}
                 disabled={actionLoading}
-                className="flex-1 rounded-2xl bg-teal-700 hover:bg-teal-800 py-3 text-xs font-bold text-white transition-colors cursor-pointer"
+                className="flex-1 rounded-2xl bg-[#195CF1] hover:bg-blue-700 py-3 text-xs font-bold text-white transition-colors cursor-pointer"
               >
                 {actionLoading ? 'جاري التسليم...' : 'تأكيد التسليم الرسمي 🏁'}
               </button>

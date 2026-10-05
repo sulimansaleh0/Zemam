@@ -65,14 +65,14 @@ export function DriverBottomNav() {
               href={item.href}
               className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-2xl transition-all select-none ${
                 isActive
-                  ? 'text-teal-700 font-bold'
+                  ? 'text-[#195CF1] font-bold'
                   : 'text-slate-400 hover:text-slate-700 font-medium'
               }`}
             >
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all ${
                   isActive
-                    ? 'bg-teal-50 text-teal-700 border border-teal-200/70 shadow-xs'
+                    ? 'bg-[#195CF1]/10 text-[#195CF1] border border-[#195CF1]/20 shadow-xs'
                     : 'text-slate-400'
                 }`}
               >

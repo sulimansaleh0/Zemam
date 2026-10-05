@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { RefreshCw } from 'lucide-react';
+import { ZimamLogo } from '@/features/landing/components/ZimamLogo';
 import { getGpsSocket } from '@/features/gps/services/gpsSocket';
 import { usePathname } from 'next/navigation';
 
@@ -49,31 +50,19 @@ export function DriverHeader({
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xs">
-      {/* ── لوجو زمام ومعلومات السائق ── */}
+      {/* ── لوجو زمام الرسمي ومعلومات السائق ── */}
       <div className="flex items-center gap-2.5">
-        <Link href="/driver" className="flex items-center gap-2.5 no-underline">
-          <div className="relative w-8 h-8 rounded-xl bg-white border border-[#195CF1]/20 p-1 flex items-center justify-center shadow-xs shrink-0">
-            <Image
-              src="/images/landing/zimam-official-emblem.png?v=3"
-              alt="زمام"
-              width={26}
-              height={26}
-              className="object-contain"
-              priority
-              unoptimized
-            />
+        <ZimamLogo iconOnly compact href="/driver" />
+        <Link href="/driver" className="flex flex-col no-underline">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-black tracking-tight text-slate-900 leading-tight">زمام السائق</span>
+            <span className="rounded-md bg-[#195CF1]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#195CF1] border border-[#195CF1]/20">
+              PWA
+            </span>
           </div>
-          <div>
-            <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5 m-0 leading-tight">
-              <span>زمام السائق</span>
-              <span className="rounded-md bg-[#195CF1]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#195CF1] border border-[#195CF1]/20">
-                PWA
-              </span>
-            </h1>
-            <p className="text-[11px] text-slate-500 font-medium truncate max-w-[170px] m-0">
-              {plateNumber || 'مركبة الأسطول'} {driverName ? `• ${driverName}` : ''}
-            </p>
-          </div>
+          <p className="text-[11px] text-slate-500 font-medium truncate max-w-[170px] m-0">
+            {plateNumber || 'مركبة الأسطول'} {driverName ? `• ${driverName}` : ''}
+          </p>
         </Link>
       </div>
 
@@ -104,7 +93,7 @@ export function DriverHeader({
             className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
             title="تحديث البيانات"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-teal-600' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-[#195CF1]' : ''}`} />
           </button>
         )}
       </div>

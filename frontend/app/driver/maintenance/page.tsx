@@ -147,7 +147,7 @@ export default function DriverMaintenancePage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <Wrench className="h-5 w-5 text-teal-700" />
+              <Wrench className="h-5 w-5 text-[#195CF1]" />
               <span>الصيانة وفحص المركبة</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -170,7 +170,7 @@ export default function DriverMaintenancePage() {
           <button
             onClick={() => setActiveTab('inspection')}
             className={`flex-1 py-2.5 rounded-xl font-bold transition-all text-center cursor-pointer ${activeTab === 'inspection'
-              ? 'bg-teal-700 text-white shadow-xs'
+              ? 'bg-[#195CF1] text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
               }`}
           >
@@ -185,8 +185,8 @@ export default function DriverMaintenancePage() {
           </div>
         )}
         {successNotice && (
-          <div className="flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-800 animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-600" />
+          <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 animate-in fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#195CF1]" />
             <span>{successNotice}</span>
           </div>
         )}
@@ -196,7 +196,7 @@ export default function DriverMaintenancePage() {
           <form onSubmit={handleSubmitReport} className="space-y-4">
             <div className="rounded-3xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
               <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
-                <Truck className="h-4 w-4 text-teal-700" />
+                <Truck className="h-4 w-4 text-[#195CF1]" />
                 <span>المركبة المعنية:</span>
               </label>
 
@@ -204,7 +204,7 @@ export default function DriverMaintenancePage() {
                 <select
                   value={vehicleId}
                   onChange={(e) => setVehicleId(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none"
                 >
                   {availableVehicles.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -283,7 +283,7 @@ export default function DriverMaintenancePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="صوت غير طبيعي في المحرك، تسريب زيت، توقف المركبة عن العمل..."
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-teal-700 focus:outline-none resize-none leading-relaxed"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none resize-none leading-relaxed"
                 />
               </div>
 
@@ -365,7 +365,7 @@ export default function DriverMaintenancePage() {
           <div className="space-y-4">
             <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-4 shadow-sm">
               <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <ShieldCheck className="h-6 w-6 text-teal-700" />
+                <ShieldCheck className="h-6 w-6 text-[#195CF1]" />
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">قائمة الفحص اليومية للسلامة</h3>
                   <p className="text-[11px] text-slate-500">تأكد من النقاط التالية قبل بدء الرحلة</p>
@@ -380,14 +380,14 @@ export default function DriverMaintenancePage() {
                       key={item.id}
                       onClick={() => handleToggleCheck(item.id)}
                       className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${isChecked
-                        ? 'border-teal-300 bg-teal-50/70 text-slate-900'
+                        ? 'border-blue-300 bg-blue-50/70 text-slate-900'
                         : 'border-slate-200 bg-slate-50/80 text-slate-700'
                         }`}
                     >
                       <span className="text-xs font-semibold">{item.label}</span>
                       <div
                         className={`flex h-6 w-6 items-center justify-center rounded-lg border ${isChecked
-                          ? 'border-teal-700 bg-teal-700 text-white'
+                          ? 'border-[#195CF1] bg-[#195CF1] text-white'
                           : 'border-slate-300 bg-white text-transparent'
                           }`}
                       >
@@ -404,7 +404,7 @@ export default function DriverMaintenancePage() {
                   onClick={() => {
                     setSuccessNotice('✅ تم توثيق فحص ما قبل الانطلاق بنجاح! رافقتك السلامة.');
                   }}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-bold py-3.5 text-xs shadow-xs transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#195CF1] hover:bg-blue-700 text-white font-bold py-3.5 text-xs shadow-xs transition-all cursor-pointer"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   <span>تأكيد اكتمال الفحص بنجاح</span>

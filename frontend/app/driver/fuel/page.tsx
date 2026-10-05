@@ -101,7 +101,7 @@ export default function DriverFuelPage() {
 
       await driverTaskService.submitFuel(payload);
 
-      setSuccessNotice('⛽ تم تسجيل فاتورة الوقود بنجاح وإرسالها للاعتماد!');
+      setSuccessNotice(' تم تسجيل فاتورة الوقود بنجاح وإرسالها للاعتماد!');
       setLiters('');
       setCost('');
       setIsFullTank('');
@@ -124,7 +124,7 @@ export default function DriverFuelPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <Fuel className="h-5 w-5 text-teal-700" />
+              <Fuel className="h-5 w-5 text-[#195CF1]" />
               <span>تسجيل تعبئة الوقود</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -140,8 +140,8 @@ export default function DriverFuelPage() {
           </div>
         )}
         {successNotice && (
-          <div className="flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-800 animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-600" />
+          <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 animate-in fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#195CF1]" />
             <span>{successNotice}</span>
           </div>
         )}
@@ -150,7 +150,7 @@ export default function DriverFuelPage() {
           {/* محدد المركبة */}
           <div className="rounded-3xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
             <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
-              <Truck className="h-4 w-4 text-teal-700" />
+              <Truck className="h-4 w-4 text-[#195CF1]" />
               <span>المركبة الحالية:</span>
             </label>
 
@@ -158,7 +158,7 @@ export default function DriverFuelPage() {
               <select
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none"
               >
                 {availableVehicles.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -188,7 +188,7 @@ export default function DriverFuelPage() {
                     onClick={() => setFuelType(type)}
                     className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       fuelType === type
-                        ? 'bg-teal-700 text-white shadow-xs'
+                        ? 'bg-[#195CF1] text-white shadow-xs'
                         : 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -207,7 +207,7 @@ export default function DriverFuelPage() {
               required
               value={isFullTank}
               onChange={(e) => setIsFullTank(e.target.value as 'full' | 'not-full' | '')}
-              className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+              className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none"
             >
               <option value="">حدد حالة الخزان</option>
               <option value="full">ممتلئ بالكامل (FULL)</option>
@@ -227,7 +227,7 @@ export default function DriverFuelPage() {
                   value={liters}
                   onChange={(e) => setLiters(e.target.value)}
                   placeholder="مثلاً: 45.5"
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 font-mono focus:border-teal-700 focus:outline-none"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 font-mono focus:border-[#195CF1] focus:outline-none"
                 />
               </div>
 
@@ -241,7 +241,7 @@ export default function DriverFuelPage() {
                     value={cost}
                     onChange={(e) => setCost(e.target.value)}
                     placeholder="مثلاً: 120"
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 font-mono focus:border-teal-700 focus:outline-none pl-8"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 font-mono focus:border-[#195CF1] focus:outline-none pl-8"
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                     ر.س
@@ -254,7 +254,7 @@ export default function DriverFuelPage() {
             <div className="space-y-1.5 pt-1">
               <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <Gauge className="h-3.5 w-3.5 text-teal-700" />
+                  <Gauge className="h-3.5 w-3.5 text-[#195CF1]" />
                   <span>قراءة العداد (اختياري):</span>
                 </span>
                 <span className="text-[10px] text-slate-400">تُحدث آلياً من المركبة</span>
@@ -264,14 +264,14 @@ export default function DriverFuelPage() {
                 value={odometer}
                 onChange={(e) => setOdometer(e.target.value)}
                 placeholder="مثلاً: 52140"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 font-mono focus:border-teal-700 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 font-mono focus:border-[#195CF1] focus:outline-none"
               />
             </div>
 
             {/* تصوير إيصال الوقود بالكاميرا */}
             <div className="space-y-2 pt-1">
               <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <Camera className="h-3.5 w-3.5 text-teal-700" />
+                <Camera className="h-3.5 w-3.5 text-[#195CF1]" />
                 <span>صورة الفاتورة / شاشة المحطة:</span>
               </label>
 
@@ -285,7 +285,7 @@ export default function DriverFuelPage() {
               />
 
               {receiptPhotoPreview ? (
-                <div className="relative rounded-2xl overflow-hidden border border-teal-200 h-36 bg-slate-100">
+                <div className="relative rounded-2xl overflow-hidden border border-blue-200 h-36 bg-slate-100">
                   <img
                     src={receiptPhotoPreview}
                     alt="Receipt preview"
@@ -306,7 +306,7 @@ export default function DriverFuelPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-slate-500 hover:border-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
+                  className="w-full flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-slate-500 hover:border-[#195CF1] hover:text-[#195CF1] transition-colors cursor-pointer"
                 >
                   <Camera className="h-6 w-6" />
                   <span className="text-xs font-semibold">التقاط صورة الفاتورة بالكاميرا</span>
@@ -322,7 +322,7 @@ export default function DriverFuelPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="محطة ساسكو - طريق الملك فهد"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none"
               />
             </div>
           </div>
@@ -330,9 +330,9 @@ export default function DriverFuelPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-bold py-4 text-sm shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#195CF1] hover:bg-blue-700 text-white font-bold py-4 text-sm shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-50"
           >
-            {isLoading ? 'جاري إرسال الفاتورة...' : 'تأكيد وحفظ فاتورة الوقود ⛽'}
+            {isLoading ? 'جاري إرسال الفاتورة...' : 'تأكيد وحفظ فاتورة الوقود '}
           </button>
         </form>
       </main>

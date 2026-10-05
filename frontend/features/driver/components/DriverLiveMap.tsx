@@ -23,6 +23,7 @@ import {
   MAP_TILE_STYLES,
   type MapTileStyleId,
 } from '@/features/gps/utils/mapMarkers';
+import { fetchDrivingRoute } from '@/features/tasks/utils/mapHelpers';
 
 export interface TraversedPoint {
   lat: number;
@@ -54,6 +55,8 @@ interface DriverLiveMapProps {
   vehicleType?: string;
   traversedPath?: Array<TraversedPoint | [number, number]>;
   className?: string;
+  mapHeight?: string;
+  showSpeedometer?: boolean;
 }
 
 function normalizePoint(p: TraversedPoint | [number, number]): TraversedPoint {
@@ -88,6 +91,8 @@ export function DriverLiveMap({
   vehicleType = 'normal',
   traversedPath = [],
   className = '',
+  mapHeight = '380px',
+  showSpeedometer = true,
 }: DriverLiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -100,8 +105,9 @@ export function DriverLiveMap({
   const deliveryGeofenceRef = useRef<L.Circle | null>(null);
   const casingPolylineRef = useRef<L.Polyline | null>(null);
   const traversedPolylineRef = useRef<L.Polyline | null>(null);
-  const remainingPolylineRef = useRef<L.Polyline | null>(null);
   const waypointsGroupRef = useRef<L.LayerGroup | null>(null);
+  const plannedRoutePolylineRef = useRef<L.Polyline | null>(null);
+  const plannedRouteCasingRef = useRef<L.Polyline | null>(null);
 
   const hasInitialFittedRef = useRef(false);
   const [autoFollowDriver, setAutoFollowDriver] = useState(true);
@@ -155,6 +161,8 @@ export function DriverLiveMap({
       clearTimeout(timer2);
       map.remove();
       mapInstanceRef.current = null;
+      plannedRoutePolylineRef.current = null;
+      plannedRouteCasingRef.current = null;
     };
   }, []);
 
@@ -304,30 +312,7 @@ export function DriverLiveMap({
         dot.addTo(waypointsGroupRef.current!);
       });
     }
-
-    // ── رسم المسار المتبقي المتدفق نحو نقطة التسليم (Remaining Flow Path) ──
-    if (currentCoords?.lat && currentCoords?.lng && deliveryCoords?.lat && deliveryCoords?.lng) {
-      const remainingCoords: [number, number][] = [
-        [currentCoords.lat, currentCoords.lng],
-        [deliveryCoords.lat, deliveryCoords.lng],
-      ];
-
-      if (!remainingPolylineRef.current) {
-        remainingPolylineRef.current = L.polyline(remainingCoords, {
-          color: '#38bdf8',
-          weight: 3.5,
-          dashArray: '8, 14',
-          className: 'zemam-flow-path',
-          opacity: 0.85,
-        }).addTo(map);
-      } else {
-        remainingPolylineRef.current.setLatLngs(remainingCoords);
-      }
-    } else if (remainingPolylineRef.current) {
-      map.removeLayer(remainingPolylineRef.current);
-      remainingPolylineRef.current = null;
-    }
-  }, [traversedPath, currentCoords, deliveryCoords]);
+  }, [traversedPath, currentCoords]);
 
   // 4. دبابيس ودوائر النطاق الجغرافي للاستلام والتسليم
   useEffect(() => {
@@ -401,6 +386,70 @@ export function DriverLiveMap({
     }
   }, [pickupCoords, deliveryCoords]);
 
+  // 5. رسم خطة السير المعينة للمهمة على شبكة الطرق الفعلية (Planned Route: Pickup A -> Delivery B)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const pLat = pickupCoords?.lat ? Number(pickupCoords.lat) : null;
+    const pLng = pickupCoords?.lng ? Number(pickupCoords.lng) : null;
+    const dLat = deliveryCoords?.lat ? Number(deliveryCoords.lat) : null;
+    const dLng = deliveryCoords?.lng ? Number(deliveryCoords.lng) : null;
+
+    if (!pLat || !pLng || !dLat || !dLng) {
+      if (plannedRoutePolylineRef.current) {
+        map.removeLayer(plannedRoutePolylineRef.current);
+        plannedRoutePolylineRef.current = null;
+      }
+      if (plannedRouteCasingRef.current) {
+        map.removeLayer(plannedRouteCasingRef.current);
+        plannedRouteCasingRef.current = null;
+      }
+      return;
+    }
+
+    const abortController = new AbortController();
+    const startPoint: [number, number] = [pLat, pLng];
+    const endPoint: [number, number] = [dLat, dLng];
+
+    void fetchDrivingRoute(startPoint, endPoint, abortController.signal).then((routeData) => {
+      if (abortController.signal.aborted || !mapInstanceRef.current) return;
+      const coords = routeData.coordinates;
+      if (!coords || coords.length < 2) return;
+
+      // 1. غلاف توهج ناعم لمسار الخطة المحددة
+      if (!plannedRouteCasingRef.current) {
+        plannedRouteCasingRef.current = L.polyline(coords, {
+          color: '#818cf8',
+          weight: 6,
+          opacity: 0.25,
+          lineJoin: 'round',
+          lineCap: 'round',
+        }).addTo(mapInstanceRef.current);
+      } else {
+        plannedRouteCasingRef.current.setLatLngs(coords);
+      }
+
+      // 2. خط السير المخطط (منقط بلون بنفسجي مميز لا يتداخل مع المسار الفعلي)
+      if (!plannedRoutePolylineRef.current) {
+        plannedRoutePolylineRef.current = L.polyline(coords, {
+          color: '#6366f1',
+          weight: 3.5,
+          dashArray: '8, 10',
+          opacity: 0.8,
+          lineJoin: 'round',
+          lineCap: 'round',
+        }).addTo(mapInstanceRef.current);
+      } else {
+        plannedRoutePolylineRef.current.setLatLngs(coords);
+      }
+    });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [pickupCoords?.lat, pickupCoords?.lng, deliveryCoords?.lat, deliveryCoords?.lng]);
+
   // إعادة التمركز وتفعيل التتبع
   const handleRecenter = () => {
     setAutoFollowDriver(true);
@@ -422,11 +471,11 @@ export function DriverLiveMap({
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <div className={`relative overflow-hidden rounded-3xl border border-slate-200/90 bg-slate-900 shadow-md ${className}`}>
       {/* حاوية الخريطة */}
       <div
         ref={mapContainerRef}
-        style={{ height: '320px', width: '100%', minHeight: '320px' }}
+        style={{ height: mapHeight, width: '100%', minHeight: '300px' }}
         className="z-0"
       />
 
@@ -436,16 +485,16 @@ export function DriverLiveMap({
         <button
           onClick={handleRecenter}
           type="button"
-          className={`flex h-10 items-center gap-1.5 px-3 rounded-2xl shadow-md border transition-all active:scale-95 cursor-pointer ${
+          className={`flex h-10 items-center gap-1.5 px-3.5 rounded-2xl shadow-lg border transition-all active:scale-95 cursor-pointer select-none ${
             autoFollowDriver
-              ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/20'
+              ? 'bg-[#195CF1] text-white border-blue-500 shadow-blue-500/25'
               : 'bg-white/95 backdrop-blur-md text-slate-700 border-slate-200 hover:bg-slate-50'
           }`}
           title="تثبيت الكاميرا مع حركة المركبة"
         >
-          <Locate className={`h-4 w-4 ${autoFollowDriver ? 'animate-pulse' : 'text-blue-600'}`} />
+          <Locate className={`h-4 w-4 ${autoFollowDriver ? 'animate-pulse' : 'text-[#195CF1]'}`} />
           <span className="text-[11px] font-bold">
-            {autoFollowDriver ? 'كاميرا مثبتة' : 'تمركز'}
+            {autoFollowDriver ? 'تثبيت' : 'تمركز'}
           </span>
         </button>
 
@@ -453,7 +502,7 @@ export function DriverLiveMap({
         <button
           onClick={toggleMapTheme}
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-slate-700 shadow-md border border-slate-200 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-slate-700 shadow-lg border border-slate-200 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
           title={currentStyleId === 'voyager' ? 'التحويل للوضع التكتيكي الليلي' : 'التحويل للوضع النهاري'}
         >
           {currentStyleId === 'voyager' ? (
@@ -467,7 +516,7 @@ export function DriverLiveMap({
         <button
           onClick={toggleFullscreen}
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-slate-700 shadow-md border border-slate-200 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-slate-700 shadow-lg border border-slate-200 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
           title="ملء الشاشة"
         >
           {isFullscreen ? (
@@ -478,17 +527,39 @@ export function DriverLiveMap({
         </button>
       </div>
 
-      {/* مؤشر الخريطة الحية وسرعة القيادة */}
-      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2 rounded-2xl bg-white/95 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-slate-800 border border-slate-200 shadow-md pointer-events-none" dir="rtl">
-        <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-        <Navigation className="h-3.5 w-3.5 text-blue-600" />
-        <span>تتبع ملاحي فائق الدقة</span>
-        {currentCoords?.speed !== undefined && currentCoords.speed > 0 && (
-          <span className="rounded-lg bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-black">
-            {currentCoords.speed} كم/س
-          </span>
-        )}
+      {/* ── دليل ألوان المسار لراحة السائق ومنع التشتت ── */}
+      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 rounded-2xl bg-white/95 backdrop-blur-md px-3 py-1.5 text-[10px] font-bold text-slate-700 border border-slate-200/90 shadow-lg pointer-events-none select-none" dir="rtl">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-3 rounded-full bg-sky-500 inline-block" />
+          <span>المسار الفعلي</span>
+        </div>
+        <span className="text-slate-300">•</span>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-3 rounded-full border border-dashed border-indigo-500 bg-indigo-100 inline-block" />
+          <span>خطة السير</span>
+        </div>
       </div>
+
+      {/* ── عداد السرعة العائم (Cockpit Floating Speedometer) ── */}
+      {showSpeedometer && (
+        <div
+          className="absolute bottom-3 right-3 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md px-3.5 py-1.5 shadow-xl border border-slate-200/90 min-w-[72px] pointer-events-none select-none"
+          dir="rtl"
+        >
+          <span
+            className={`text-2xl font-black font-mono tracking-tight leading-none ${
+              (currentCoords?.speed || 0) > 80
+                ? 'text-rose-600 animate-pulse'
+                : (currentCoords?.speed || 0) > 50
+                ? 'text-amber-600'
+                : 'text-[#195CF1]'
+            }`}
+          >
+            {currentCoords?.speed !== undefined && currentCoords.speed >= 0 ? currentCoords.speed : 0}
+          </span>
+          <span className="text-[9px] font-bold text-slate-500 mt-0.5">كم/ساعة</span>
+        </div>
+      )}
     </div>
   );
 }

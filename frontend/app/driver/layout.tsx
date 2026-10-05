@@ -19,7 +19,7 @@ export default function DriverLayout({
     <div
       dir="rtl"
       data-theme="light"
-      className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-teal-600 selection:text-white"
+      className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-[#195CF1] selection:text-white"
     >
       {/* ── إجبار وضع Light Mode النقي على تطبيق السائق ── */}
       <DriverThemeEnforcer />

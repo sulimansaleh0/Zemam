@@ -105,9 +105,9 @@ export function PwaRegister() {
 
       {/* ── بانر تثبيت تطبيق الـ PWA ── */}
       {!isInstalled && !dismissedBanner && (
-        <div className="mx-3 mt-2 rounded-2xl border border-teal-200/90 bg-white p-3 shadow-md flex items-center justify-between gap-3 text-xs animate-in fade-in">
+        <div className="mx-3 mt-2 rounded-2xl border border-blue-200/90 bg-white p-3 shadow-md flex items-center justify-between gap-3 text-xs animate-in fade-in">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-200 shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#195CF1] border border-blue-200 shrink-0">
               <Download className="h-5 w-5" />
             </div>
             <div>
@@ -119,7 +119,7 @@ export function PwaRegister() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleInstallClick}
-              className="rounded-xl bg-teal-700 hover:bg-teal-800 px-3.5 py-1.5 font-bold text-white text-[11px] shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              className="rounded-xl bg-[#195CF1] hover:bg-blue-700 px-3.5 py-1.5 font-bold text-white text-[11px] shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
               تثبيت
             </button>
@@ -140,7 +140,7 @@ export function PwaRegister() {
           <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl space-y-4 text-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-teal-700" />
+                <Smartphone className="h-4 w-4 text-[#195CF1]" />
                 تثبيت التطبيق على هاتف Android
               </h3>
               <button onClick={() => setShowAndroidPrompt(false)} className="text-slate-400 hover:text-slate-600 p-1">
@@ -150,7 +150,7 @@ export function PwaRegister() {
 
             <ol className="space-y-3 text-xs text-slate-600">
               <li className="flex items-start gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#195CF1] font-bold text-[10px] border border-blue-200">
                   1
                 </span>
                 <span>
@@ -158,7 +158,7 @@ export function PwaRegister() {
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#195CF1] font-bold text-[10px] border border-blue-200">
                   2
                 </span>
                 <span>
@@ -166,7 +166,7 @@ export function PwaRegister() {
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#195CF1] font-bold text-[10px] border border-blue-200">
                   3
                 </span>
                 <span>اضغط على <b>تثبيت</b> وسيظهر التطبيق فوراً على شاشة هاتفك مع باقي التطبيقات.</span>
@@ -175,7 +175,7 @@ export function PwaRegister() {
 
             <button
               onClick={() => setShowAndroidPrompt(false)}
-              className="w-full rounded-xl bg-teal-700 py-2.5 text-xs font-bold text-white hover:bg-teal-800 transition-colors"
+              className="w-full rounded-xl bg-[#195CF1] py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors"
             >
               فهمت ذلك
             </button>
@@ -189,7 +189,7 @@ export function PwaRegister() {
           <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl space-y-4 text-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-teal-700" />
+                <Share2 className="h-4 w-4 text-[#195CF1]" />
                 تثبيت التطبيق على iPhone / iPad
               </h3>
               <button onClick={() => setShowIOSPrompt(false)} className="text-slate-400 hover:text-slate-600 p-1">
@@ -199,19 +199,19 @@ export function PwaRegister() {
 
             <ol className="space-y-3 text-xs text-slate-600">
               <li className="flex items-start gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#195CF1] font-bold text-[10px] border border-blue-200">
                   1
                 </span>
                 <span>اضغط على أيقونة <b>المشاركة (Share)</b> في شريط متصفح Safari بالأسفل.</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#195CF1] font-bold text-[10px] border border-blue-200">
                   2
                 </span>
                 <span>مرر للأسفل في القائمة واختر <b>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</b>.</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#195CF1] font-bold text-[10px] border border-blue-200">
                   3
                 </span>
                 <span>اضغط <b>إضافة (Add)</b> في الزاوية العلوية لتثبيت التطبيق بنجاح.</span>
@@ -220,7 +220,7 @@ export function PwaRegister() {
 
             <button
               onClick={() => setShowIOSPrompt(false)}
-              className="w-full rounded-xl bg-teal-700 py-2.5 text-xs font-bold text-white hover:bg-teal-800 transition-colors"
+              className="w-full rounded-xl bg-[#195CF1] py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors"
             >
               فهمت ذلك
             </button>

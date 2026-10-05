@@ -71,7 +71,7 @@ export default function DriverProfilePage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <User className="h-5 w-5 text-teal-700" />
+              <User className="h-5 w-5 text-[#195CF1]" />
               <span>ملف السائق والوردية</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -81,8 +81,8 @@ export default function DriverProfilePage() {
         </div>
 
         {notice && (
-          <div className="flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-800 animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-600" />
+          <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 animate-in fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#195CF1]" />
             <span>{notice}</span>
           </div>
         )}
@@ -90,13 +90,13 @@ export default function DriverProfilePage() {
         {/* ── بطاقة السائق الرئيسية ── */}
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-sm font-bold text-xl">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#195CF1] text-white shadow-sm font-bold text-xl">
               {profile?.name ? profile.name.slice(0, 2) : 'س'}
             </div>
             <div>
               <h3 className="text-base font-black text-slate-900">{profile?.name || 'سائق زمام'}</h3>
               <p className="text-xs text-slate-500">{profile?.email || 'driver@zemam.sa'}</p>
-              <span className="inline-block mt-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-[10px] font-bold text-teal-700 border border-teal-200">
+              <span className="inline-block mt-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-[#195CF1] border border-blue-200">
                 سائق معتمد (Active Driver)
               </span>
             </div>
@@ -133,7 +133,7 @@ export default function DriverProfilePage() {
 
           <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
             <div className="flex items-center gap-2 text-slate-700">
-              <Users className="h-4 w-4 text-teal-700" />
+              <Users className="h-4 w-4 text-[#195CF1]" />
               <span>الفريق التشغيلي:</span>
             </div>
             <span className="font-bold text-slate-900">
@@ -157,14 +157,14 @@ export default function DriverProfilePage() {
         {/* ── حالة الذاكرة المحلية والـ PWA ── */}
         <div className="rounded-3xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
           <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            <Smartphone className="h-4 w-4 text-teal-700" />
+            <Smartphone className="h-4 w-4 text-[#195CF1]" />
             <span>حالة تطبيق الـ PWA والتخزين المحلي:</span>
           </h4>
 
           <div className="grid grid-cols-2 gap-2 text-center text-xs">
             <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200">
               <span className="text-[10px] text-slate-500 block mb-1">نبضات GPS معلقة</span>
-              <span className="text-base font-bold text-teal-700 font-mono">
+              <span className="text-base font-bold text-[#195CF1] font-mono">
                 {offlineCount.telemetry}
               </span>
             </div>
