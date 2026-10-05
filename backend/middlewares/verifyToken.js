@@ -6,20 +6,35 @@ const { error, serverError } = require("../utils/responses");
 
 module.exports = async (req, res, next) => {
     let token = req.cookies?.token;
+    if (!token && req.headers?.authorization?.startsWith("Bearer ")) {
+        token = req.headers.authorization.split(" ")[1];
+    }
     if (!token) return error(res, 401, "Token Required");
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        const user = await User.findById(decoded._id)
-        if (!user) return error(res, 404, "User Not Found")
-        if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
-            return error(res, 403, "Fleet manager must be assigned to an active team")
+
+        // Reject non-access tokens (e.g. socket tickets, refresh tokens, or reset tokens)
+        if (decoded.purpose || decoded.type === "refresh") {
+            return error(res, 401, "Invalid access token type");
         }
+        if (!decoded._id) {
+            return error(res, 401, "Invalid access token payload");
+        }
+
+        const user = await User.findById(decoded._id);
+        if (!user || user.isDeleted) return error(res, 404, "User Not Found");
+
+        if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
+            return error(res, 403, "Fleet manager must be assigned to an active team");
+        }
+
         if (user.status == mainStatus.ACTIVE) {
             req.user = user;
             return next();
         }
-        return error(res, 401, "You are not active")
+
+        return error(res, 401, "You are not active");
     } catch (err) {
         if (err.name === "TokenExpiredError") {
             return error(res, 401, "access token expired");
