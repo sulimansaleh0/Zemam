@@ -12,10 +12,10 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-[#E2E8F0]">
       <nav
-        className="w-full h-[78px] px-[10%] flex items-center justify-between [direction:rtl]"
+        className="w-full h-16 sm:h-[72px] lg:h-[78px] px-4 sm:px-6 md:px-10 lg:px-[10%] flex items-center justify-between [direction:rtl]"
         aria-label="القائمة الرئيسية"
       >
-        {/* Right side in RTL: Brand Logo starts at 10% */}
+        {/* Right side in RTL: Brand Logo */}
         <div className="flex items-center">
           <ZimamLogo />
         </div>
@@ -80,7 +80,7 @@ export function Navbar() {
       {open && (
         <div
           id="mobile-navigation"
-          className="min-[1040px]:hidden bg-white border-t border-gray-100 px-[10%] py-6 shadow-xl [direction:rtl]"
+          className="min-[1040px]:hidden bg-white border-t border-gray-100 px-4 sm:px-6 md:px-10 py-5 shadow-xl [direction:rtl]"
         >
           <div className="flex flex-col gap-4">
             {landingNavLinks.map((link) => (

@@ -12,13 +12,13 @@ export function MobileAppBanner() {
   return (
     <section
       id="driver-app"
-      className="relative w-full overflow-hidden min-h-[660px] max-[920px]:min-h-[580px] flex items-center bg-[#F4F7FE] scroll-mt-20 [direction:rtl]"
+      className="relative w-full overflow-hidden min-h-[500px] sm:min-h-[580px] lg:min-h-[660px] flex items-center bg-[#F4F7FE] scroll-mt-20 [direction:rtl]"
       aria-label="تطبيق زمام للسائق"
     >
       {/* Background Image: Full-width edge-to-edge across the entire screen like Hero */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none">
         <Image
-          src="/images/landing/driver-app-bg-clean.png"
+          src="/images/landing/driver-app-bg-blue.png"
           alt="تطبيق زمام للسائق"
           fill
           priority={false}
@@ -34,17 +34,17 @@ export function MobileAppBanner() {
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#F4F7FE] to-transparent pointer-events-none" />
       </div>
 
-      {/* Content Container: Full width with 10% horizontal padding matching Hero & Navbar */}
-      <div className="relative z-10 w-full px-[10%] py-28 max-[700px]:py-16">
-        <div className="max-w-[620px] text-right space-y-7">
+      {/* Content Container: Responsive padding matching Hero & Navbar */}
+      <div className="relative z-10 w-full px-4 sm:px-6 md:px-10 lg:px-[10%] py-12 sm:py-16 md:py-20 lg:py-28">
+        <div className="max-w-[620px] text-right space-y-4 sm:space-y-5 lg:space-y-7">
           
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-[#195CF1] text-[14px] font-extrabold shadow-xs border border-[#195CF1]/25">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-[#195CF1] text-[13px] sm:text-[14px] font-extrabold shadow-xs border border-[#195CF1]/25">
             <span>تطبيق الجوال للسائقين • iOS & Android</span>
           </div>
 
           {/* Headline */}
-          <h2 className="text-[#0F172A] text-[52px] max-[1180px]:text-[42px] max-[700px]:text-[32px] font-black leading-[1.2] tracking-tight m-0">
+          <h2 className="text-[#0F172A] text-[26px] min-[380px]:text-[30px] sm:text-[36px] md:text-[42px] lg:text-[52px] font-black leading-[1.28] sm:leading-[1.2] tracking-tight m-0">
             كل مزامنة أسطولك في{" "}
             <span className="relative inline-block text-primary">
               تطبيق واحد
@@ -53,7 +53,7 @@ export function MobileAppBanner() {
           </h2>
 
           {/* Subtitle */}
-          <p className="text-[#334155] text-[19px] max-[700px]:text-[16px] leading-[1.8] m-0 font-medium max-w-[580px]">
+          <p className="text-[#334155] text-[15px] sm:text-[17px] md:text-[18px] lg:text-[19px] leading-[1.7] sm:leading-[1.8] m-0 font-medium max-w-[580px]">
             تتبع، مهام، وتنبيهات لحظية... بالتحكم في يد سائقيك لرفع كفاءة التوصيل وتوثيق التسليمات بأعلى درجات الدقة والاحترافية.
           </p>
 

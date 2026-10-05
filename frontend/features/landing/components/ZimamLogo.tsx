@@ -25,7 +25,7 @@ export function ZimamLogo({
     const content = (
       <div className={`relative ${iconSize} shrink-0`}>
         <Image
-          src="/images/landing/zimam-official-emblem.png?v=3"
+          src="/images/landing/zimam-official-emblem.png"
           alt="زمام"
           fill
           className="object-contain"
@@ -52,21 +52,21 @@ export function ZimamLogo({
 
   // Choose asset files based on tagline flag
   const darkSrc = withTagline
-    ? "/images/landing/zimam-official-dark.png?v=3"
-    : "/images/landing/zimam-official-dark-compact.png?v=3";
+    ? "/images/landing/zimam-official-dark.png"
+    : "/images/landing/zimam-official-dark-compact.png";
 
   const lightSrc = withTagline
-    ? "/images/landing/zimam-official-light.png?v=3"
-    : "/images/landing/zimam-official-light-compact.png?v=3";
+    ? "/images/landing/zimam-official-light.png"
+    : "/images/landing/zimam-official-light-compact.png";
 
   // Dimensions
   const sizeClasses = withTagline
     ? compact
-      ? "w-[145px] h-[38px]"
-      : "w-[170px] h-[44px]"
+      ? "w-[135px] h-[34px] sm:w-[145px] sm:h-[38px]"
+      : "w-[150px] h-[38px] sm:w-[170px] sm:h-[44px]"
     : compact
-    ? "w-[125px] h-[28px]"
-    : "w-[155px] h-[35px]";
+    ? "w-[115px] h-[26px] sm:w-[125px] sm:h-[28px]"
+    : "w-[136px] h-[30px] sm:w-[155px] sm:h-[35px]";
 
   const renderImages = () => {
     if (variant === "light") {

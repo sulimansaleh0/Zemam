@@ -34,7 +34,7 @@ export function AuthShell({ children }: AuthShellProps) {
         </section>
 
         {/* ── Aside — Expressive Fleet Operations & System Showcase ── */}
-        <aside className="relative hidden lg:flex lg:flex-1 flex-col justify-between p-12 xl:p-16 border-r border-[#162858] bg-[#041131] text-white overflow-hidden select-none">
+        <aside className="relative hidden lg:flex lg:flex-1 flex-col justify-between p-12 xl:p-16 border-r border-[#1E3466] bg-[#0C1938] text-white overflow-hidden select-none">
           {/* Ambient Lighting & Royal Blue Glows */}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(25,92,241,0.22),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(25,92,241,0.15),transparent_50%)]" />
           <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 bg-[#195CF1]/15 rounded-full blur-3xl" />
@@ -62,7 +62,7 @@ export function AuthShell({ children }: AuthShellProps) {
             </div>
 
             {/* Expressive System Graphic Showcase */}
-            <div className="relative rounded-[24px] border border-[#195CF1]/30 bg-[#081B4B]/80 backdrop-blur-xl p-6 shadow-[0_25px_60px_rgba(4,17,49,0.6)] overflow-hidden">
+            <div className="relative rounded-[24px] border border-[#195CF1]/30 bg-[#13244D]/80 backdrop-blur-xl p-6 shadow-[0_25px_60px_rgba(12,25,56,0.6)] overflow-hidden">
               {/* Inner ambient glow */}
               <div className="absolute top-0 right-0 w-48 h-48 bg-[#195CF1]/20 rounded-full blur-2xl pointer-events-none" />
 
@@ -70,7 +70,7 @@ export function AuthShell({ children }: AuthShellProps) {
                 {/* Visual side: 3D Phones Mockup */}
                 <div className="relative flex justify-center items-center drop-shadow-[0_15px_30px_rgba(25,92,241,0.25)]">
                   <Image
-                    src="/images/landing/driver-phones-clean.png"
+                    src="/images/landing/driver-phones-blue.png"
                     alt="نظام وتطبيق زمام لإدارة الأسطول"
                     width={320}
                     height={260}
@@ -89,7 +89,7 @@ export function AuthShell({ children }: AuthShellProps) {
                     </span>
                   </div>
 
-                  <div className="rounded-xl bg-[#041131]/90 border border-[#195CF1]/25 p-3">
+                  <div className="rounded-xl bg-[#0C1938]/90 border border-[#195CF1]/25 p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Truck size={16} className="text-[#195CF1]" />
@@ -99,7 +99,7 @@ export function AuthShell({ children }: AuthShellProps) {
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-[#041131]/90 border border-[#195CF1]/25 p-3">
+                  <div className="rounded-xl bg-[#0C1938]/90 border border-[#195CF1]/25 p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ShieldCheck size={16} className="text-[#34D399]" />
@@ -109,7 +109,7 @@ export function AuthShell({ children }: AuthShellProps) {
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-[#041131]/90 border border-[#195CF1]/25 p-3">
+                  <div className="rounded-xl bg-[#0C1938]/90 border border-[#195CF1]/25 p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Activity size={16} className="text-[#F59E0B]" />

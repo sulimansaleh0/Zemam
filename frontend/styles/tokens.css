@@ -22,20 +22,20 @@
   --info-light:     rgba(8, 145, 178, 0.15);
 
   /* ─── Backgrounds ────────────────────────── */
-  --bg:             #041131;
-  --surface:        #081B4B;
-  --surface-2:      #0E2563;
-  --surface-3:      #16327E;
-  --ink:            #F4F7FE;
+  --bg:             #0C1938;
+  --surface:        #13244D;
+  --surface-2:      #1A3063;
+  --surface-3:      #223B7A;
+  --ink:            #F8FAFC;
 
   /* ─── Text ───────────────────────────────── */
-  --text:           #F4F7FE;
+  --text:           #F8FAFC;
   --text-secondary: #94A3B8;
-  --muted:          #64748B;
-  --disabled:       #4B5563;
+  --muted:          #7487A8;
+  --disabled:       #4F607D;
 
   /* ─── Borders ────────────────────────────── */
-  --border:         #162858;
+  --border:         #1E3466;
   --border-focus:   #195CF1;
   --border-error:   #DC2626;
 
