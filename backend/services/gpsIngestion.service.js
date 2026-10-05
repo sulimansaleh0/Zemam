@@ -483,6 +483,12 @@ async function ingestBatchTelemetry({
         // Bulk insert points into TaskLivePoint
         if (resolvedTaskId) {
             await TaskLivePoint.insertMany(cleanPointsToInsert, { ordered: true });
+
+            // إذا كانت المهمة مكتملة أو كان مسارها فارغاً، نقوم فوراً بإعادة احتساب ملخص الرحلة وتوليد encodedPath الحقيقي
+            const targetTask = await Task.findById(resolvedTaskId);
+            if (targetTask && (targetTask.status === taskStatus.FINISHED || !targetTask.tripSummary?.encodedPath)) {
+                await finalizeTripSummary(targetTask);
+            }
         }
 
         const newestPoint = cleanPointsToInsert[cleanPointsToInsert.length - 1];

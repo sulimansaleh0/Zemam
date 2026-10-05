@@ -290,7 +290,7 @@ exports.finishTask = async (req, res) => {
             await task.save()
         }
 
-        const tripSummary = task.tripSummary?.finishedAt
+        const tripSummary = (task.tripSummary?.finishedAt && task.tripSummary?.encodedPath)
             ? task.tripSummary
             : await finalizeTripSummary(task)
         if (!tripSummary) throw new Error("Unable to finalize task GPS summary")
@@ -359,7 +359,9 @@ exports.finishTask = async (req, res) => {
         )
         if (!vehicleUpdate.matchedCount) throw new Error("Vehicle not found while finishing task")
 
-        await TaskLivePoint.deleteMany({ taskId: task._id })
+        if (tripSummary?.encodedPath) {
+            await TaskLivePoint.deleteMany({ taskId: task._id })
+        }
         stopTelemetryTracking(task.vehicleId)
 
         notifyTripCompleted(user.companyId, user.teamId, tripSummary)

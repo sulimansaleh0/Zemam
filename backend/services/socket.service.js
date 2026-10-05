@@ -28,7 +28,9 @@ function initSocket(server) {
             },
             credentials: true
         },
-        transports: ["websocket", "polling"]
+        transports: ["websocket", "polling"],
+        pingInterval: 10000,
+        pingTimeout: 5000
     });
 
     // Authentication Middleware

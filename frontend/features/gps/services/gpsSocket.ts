@@ -37,8 +37,10 @@ export function getGpsSocket(): Socket {
       autoConnect: false,
       addTrailingSlash: true,
       reconnection: true,
-      reconnectionAttempts: 15,
-      reconnectionDelay: 1500,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
       transports: ["websocket", "polling"],
       auth: (callback) => {
         void getSocketTicket()

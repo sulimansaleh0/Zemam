@@ -1,13 +1,22 @@
 const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middlewares/verifyToken");
-const { getLiveFleet, getTripSummary, getVehicleHistory, getLiveTripPath, ingestBatchTelemetry } = require("../controllers/gps.controller");
+const {
+    getLiveFleet,
+    ingestBatchTelemetry,
+    getLiveTripPath,
+    getTripSummary,
+    getVehicleHistory
+} = require("../controllers/gps.controller");
 const getTeam = require("../middlewares/getTeam");
 
-router.use(verifyToken)
-router.use(getTeam)
+router.use(verifyToken);
+router.use(getTeam);
 
 router.get("/live", getLiveFleet);
 router.post("/telemetry/batch", ingestBatchTelemetry);
+router.get("/trip-path/:taskId", getLiveTripPath);
+router.get("/trip-summary/:taskId", getTripSummary);
+router.get("/history/:vehicleId", getVehicleHistory);
 
 module.exports = router;
