@@ -66,8 +66,9 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
 
   // Merge external signal (from page unmount / TanStack Query) and timeout signal
   let combinedSignal: AbortSignal;
+  type AbortSignalWithAny = typeof AbortSignal & { any: (signals: AbortSignal[]) => AbortSignal };
   if (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal && fetchOptions.signal) {
-    combinedSignal = (AbortSignal as any).any([fetchOptions.signal, timeoutController.signal]);
+    combinedSignal = (AbortSignal as unknown as AbortSignalWithAny).any([fetchOptions.signal, timeoutController.signal]);
   } else if (fetchOptions.signal) {
     const parentSignal = fetchOptions.signal;
     if (parentSignal.aborted) {
@@ -97,10 +98,10 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
     clearTimeout(timeoutId);
 
     const text = await res.text();
-    let body: any = null;
+    let body: Record<string, unknown> | null = null;
     if (text) {
       try {
-        body = JSON.parse(text);
+        body = JSON.parse(text) as Record<string, unknown>;
       } catch {
         body = null;
       }
@@ -137,11 +138,18 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
           msg = body.message.trim();
         } else if (typeof body.error === 'string' && body.error.trim()) {
           msg = body.error.trim();
-        } else if (typeof body.error === 'object' && body.error?.message) {
-          msg = String(body.error.message).trim();
+        } else if (typeof body.error === 'object' && body.error !== null && 'message' in body.error) {
+          msg = String((body.error as { message: unknown }).message).trim();
         } else if (Array.isArray(body.errors) && body.errors.length > 0) {
-          msg = body.errors
-            .map((e: any) => (typeof e === 'string' ? e : e.msg || e.message || JSON.stringify(e)))
+          msg = (body.errors as unknown[])
+            .map((e) => {
+              if (typeof e === 'string') return e;
+              if (typeof e === 'object' && e !== null) {
+                const rec = e as Record<string, unknown>;
+                return String(rec.msg || rec.message || JSON.stringify(e));
+              }
+              return String(e);
+            })
             .filter(Boolean)
             .join(', ');
         } else if (typeof body.errors === 'string' && body.errors.trim()) {
@@ -161,15 +169,15 @@ export async function sendRequest<T>(path: string, options: RequestOptions = {})
         success: false, 
         status: res.status, 
         message: msg,
-        code: body?.code,
-        fieldErrors: body?.errors,
+        code: typeof body?.code === 'string' ? body.code : undefined,
+        fieldErrors: body?.errors as Record<string, string> | undefined,
       };
     }
 
     return {
       success: true,
       data: body as T,
-      message: body?.msg ?? 'تمت العملية بنجاح',
+      message: typeof body?.msg === 'string' ? body.msg : 'تمت العملية بنجاح',
     };
   } catch (error: unknown) {
     clearTimeout(timeoutId);

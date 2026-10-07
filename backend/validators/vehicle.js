@@ -1,68 +1,134 @@
 const { body } = require("express-validator");
-const { mainStatus, vehicleStatus } = require("../data/status");
+const { vehicleStatus } = require("../data/status");
 const { vehicleTypes } = require("../data/vehicleTypes");
 
 exports.createVehicleSchema = [
     body("model")
         .trim()
         .notEmpty()
-        .withMessage("Vehicle model is required")
+        .withMessage("اسم وموديل المركبة مطلوب")
         .isString()
-        .withMessage("Vehicle model must be a string"),
+        .withMessage("اسم المركبة يجب أن يكون نصاً صالحاً"),
 
     body("year")
         .notEmpty()
-        .withMessage("Vehicle year is required")
-        .isInt({ min: 1900, max: new Date().getFullYear() })
-        .withMessage("Vehicle year must be a valid year"),
+        .withMessage("سنة الصنع مطلوبة")
+        .isInt({ min: 1900, max: new Date().getFullYear() + 1 })
+        .withMessage("سنة الصنع يجب أن تكون رقماً صحيحاً صالحاً"),
 
     body("plateNumber")
         .trim()
         .notEmpty()
-        .withMessage("Plate number is required")
+        .withMessage("رقم اللوحة مطلوب")
         .isString()
-        .withMessage("Plate number must be a string"),
+        .withMessage("رقم اللوحة يجب أن يكون نصاً صالحاً"),
+
     body("tankCapacity")
         .notEmpty()
-        .withMessage("Tank capacity is required")
+        .withMessage("سعة خزان الوقود مطلوبة")
         .isFloat({ gt: 0 })
-        .withMessage("Tank capacity must be greater than zero"),
+        .withMessage("سعة خزان الوقود يجب أن تكون أكبر من الصفر"),
+
     body("fuelType")
         .notEmpty()
-        .withMessage("Fuel type is required")
+        .withMessage("نوع الوقود مطلوب")
         .isIn(["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"])
-        .withMessage("Invalid fuel type"),
+        .withMessage("نوع الوقود غير صالح"),
 
     body("vehicleType")
         .notEmpty()
-        .withMessage("Vehicle type is required")
+        .withMessage("فئة المركبة مطلوبة")
         .isIn(Object.values(vehicleTypes))
-        .withMessage("Invalid vehicle type"),
+        .withMessage("فئة تصنيف المركبة غير صالحة"),
+
     body("expectedFuelEfficiency")
         .notEmpty()
         .isFloat({ gt: 0 })
-        .withMessage("Expected fuel efficiency must be greater than zero"),
+        .withMessage("معدل كفاءة الوقود المتوقع يجب أن يكون أكبر من الصفر"),
+
     body("licenseNumber")
         .trim()
         .notEmpty()
-        .withMessage("License number is required")
+        .withMessage("رقم رخصة السير (الاستمارة) مطلوب")
         .isString()
-        .withMessage("License number must be a string"),
+        .withMessage("رقم رخصة السير يجب أن يكون نصاً صالحاً"),
+
     body("licenseExpiry")
         .notEmpty()
-        .withMessage("License expiry is required")
+        .withMessage("تاريخ انتهاء رخصة السير مطلوب")
         .isISO8601()
-        .withMessage("License expiry must be a valid date")
+        .withMessage("تاريخ انتهاء رخصة السير يجب أن يكون تاريخاً صالحاً"),
+];
+
+exports.updateVehicleSchema = [
+    body("model")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("اسم وموديل المركبة لا يمكن أن يكون فارغاً")
+        .isString()
+        .withMessage("اسم المركبة يجب أن يكون نصاً صالحاً"),
+
+    body("year")
+        .optional()
+        .isInt({ min: 1900, max: new Date().getFullYear() + 1 })
+        .withMessage("سنة الصنع يجب أن تكون رقماً صحيحاً صالحاً"),
+
+    body("plateNumber")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("رقم اللوحة لا يمكن أن يكون فارغاً")
+        .isString()
+        .withMessage("رقم اللوحة يجب أن يكون نصاً صالحاً"),
+
+    body("tankCapacity")
+        .optional()
+        .isFloat({ gt: 0 })
+        .withMessage("سعة خزان الوقود يجب أن تكون أكبر من الصفر"),
+
+    body("fuelType")
+        .optional()
+        .isIn(["بنزين 91", "بنزين 95", "ديزل", "Diesel", "هجين", "Hybrid", "كهربائي", "EV"])
+        .withMessage("نوع الوقود غير صالح"),
+
+    body("vehicleType")
+        .optional()
+        .isIn(Object.values(vehicleTypes))
+        .withMessage("فئة تصنيف المركبة غير صالحة"),
+
+    body("expectedFuelEfficiency")
+        .optional()
+        .isFloat({ gt: 0 })
+        .withMessage("معدل كفاءة الوقود المتوقع يجب أن يكون أكبر من الصفر"),
+
+    body("licenseNumber")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("رقم رخصة السير لا يمكن أن يكون فارغاً")
+        .isString()
+        .withMessage("رقم رخصة السير يجب أن يكون نصاً صالحاً"),
+
+    body("licenseExpiry")
+        .optional()
+        .isISO8601()
+        .withMessage("تاريخ انتهاء رخصة السير يجب أن يكون تاريخاً صالحاً"),
+
+    body("insuranceExpiry")
+        .optional({ nullable: true, checkFalsy: true })
+        .isISO8601()
+        .withMessage("تاريخ انتهاء التأمين يجب أن يكون تاريخاً صالحاً"),
 ];
 
 exports.updateVehicleStatusSchema = [
     body("status")
         .isIn([vehicleStatus.ACTIVE, vehicleStatus.INACTIVE])
-        .withMessage("Invalid Vehicle status")
-]
+        .withMessage("حالة المركبة المحددة غير صالحة"),
+];
 
 exports.assignDriverSchema = [
     body("driverId")
         .isMongoId()
-        .withMessage("Invalid Driver ID")
-]
+        .withMessage("معرف السائق غير صالح"),
+];

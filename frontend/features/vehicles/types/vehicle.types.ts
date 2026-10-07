@@ -35,7 +35,15 @@ export interface BackendVehicle {
   licenseNumber?: string;   // رقم رخصة السير / الاستمارة
   licenseExpiry?: string;   // تاريخ انتهاء رخصة السير
   issuingAuthority?: string;
-  currentLocation?: { lat?: number; lng?: number; speed?: number; heading?: number; updatedAt?: string };
+  currentLocation?: {
+    type?: 'Point';
+    coordinates?: [number, number]; // [lng, lat]
+    lat?: number;
+    lng?: number;
+    speed?: number;
+    heading?: number;
+    updatedAt?: string;
+  };
   gpsStatus?: string;
   teamId?: string | TeamSummary | null;
   companyId: string;
@@ -115,4 +123,42 @@ export interface VehicleStats {
 
 export interface VehicleStatsResponse {
   stats: VehicleStats;
+}
+
+/** معلومات الترقيم القياسية من الباك إند */
+export interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+/** معاملات الاستعلام والفلاتر للمركبات */
+export interface VehicleQueryParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  vehicleType?: string;
+  search?: string;
+  withoutTeam?: boolean;
+}
+
+export interface ListVehiclesResponse {
+  vehicles: BackendVehicle[];
+  pagination?: PaginationInfo;
+}
+
+/** إحصائيات الأسطول الإجمالية المحسوبة مباشرة في الباك إند */
+export interface FleetOverviewStats {
+  total: number;
+  active: number;
+  inactive: number;
+  inTask: number;
+  inMaintenance: number;
+}
+
+export interface FleetOverviewStatsResponse {
+  stats: FleetOverviewStats;
 }

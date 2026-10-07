@@ -26,6 +26,15 @@ app.use(cors({
 app.use(cookieParser());
 app.use("/api", routes);
 
+// 404 handler for unknown routes
+app.use((req, res) => {
+    res.status(404).json({ status: "fail", msg: `المسار المطلوب ${req.originalUrl} غير موجود` });
+});
+
+// Centralized error handling middleware
+const errorHandler = require("./middlewares/errorHandler");
+app.use(errorHandler);
+
 const server = http.createServer(app);
 initSocket(server);
 

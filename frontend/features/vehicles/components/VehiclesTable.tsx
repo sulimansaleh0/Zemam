@@ -20,10 +20,6 @@ import {
   ArrowDown,
   UserCheck,
   Power,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Search,
   Plus,
   SlidersHorizontal,
@@ -35,15 +31,22 @@ import {
   Gauge,
   Edit2,
 } from 'lucide-react';
-import type { VehicleWithRelations, VehicleStatus } from '../types/vehicle.types';
+import type { VehicleWithRelations, VehicleStatus, PaginationInfo } from '../types/vehicle.types';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { useTeams } from '@/features/teams';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { getVehicleTeamId, getVehicleTeamName } from '../utils/vehicleHelpers';
-import { ActionMenu, ActionMenuItem } from '@/shared/ui/ActionMenu';
+import { ActionMenu, ActionMenuItem, TablePagination } from '@/shared/ui';
 
 interface VehiclesTableProps {
   vehiclesData: VehicleWithRelations[];
+  pagination?: PaginationInfo;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  searchQuery?: string;
+  onSearchChange?: (search: string) => void;
+  statusFilter?: VehicleStatus | 'all';
+  onStatusFilterChange?: (status: VehicleStatus | 'all') => void;
   isLoadingVehicles: boolean;
   onAddVehicleClick: () => void;
   onAssignDriverClick: (selectedVehicle: VehicleWithRelations) => void;
@@ -57,6 +60,13 @@ interface VehiclesTableProps {
 
 export function VehiclesTable({
   vehiclesData,
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  searchQuery: externalSearchQuery,
+  onSearchChange,
+  statusFilter: externalStatusFilter,
+  onStatusFilterChange,
   isLoadingVehicles,
   onAddVehicleClick,
   onAssignDriverClick,
@@ -72,14 +82,31 @@ export function VehiclesTable({
     user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
   const { data: teamsList = [] } = useTeams();
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<VehicleStatus | 'all'>('all');
 
-  // Filtered vehicles list based on status & search
+  // Internal states for uncontrolled usage
+  const [internalSearch, setInternalSearch] = useState('');
+  const [internalStatus, setInternalStatus] = useState<VehicleStatus | 'all'>('all');
+
+  const activeSearch = externalSearchQuery !== undefined ? externalSearchQuery : internalSearch;
+  const activeStatus = externalStatusFilter !== undefined ? externalStatusFilter : internalStatus;
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) onSearchChange(val);
+    else setInternalSearch(val);
+  };
+
+  const handleStatusChange = (val: VehicleStatus | 'all') => {
+    if (onStatusFilterChange) onStatusFilterChange(val);
+    else setInternalStatus(val);
+  };
+
+  // If server pagination is enabled, data is already filtered on backend
   const filteredData = useMemo(() => {
+    if (pagination) return vehiclesData;
+
     return vehiclesData.filter((item) => {
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-      const q = searchQuery.trim().toLowerCase();
+      const matchesStatus = activeStatus === 'all' || item.status === activeStatus;
+      const q = activeSearch.trim().toLowerCase();
       const matchesSearch =
         !q ||
         item.model.toLowerCase().includes(q) ||
@@ -90,7 +117,7 @@ export function VehiclesTable({
 
       return matchesStatus && matchesSearch;
     });
-  }, [vehiclesData, statusFilter, searchQuery]);
+  }, [vehiclesData, pagination, activeStatus, activeSearch]);
 
   // Column definitions
   const columns = useMemo<ColumnDef<VehicleWithRelations>[]>(
@@ -209,7 +236,11 @@ export function VehiclesTable({
         header: 'السائق المعين',
         cell: ({ row }) => {
           const vehicle = row.original;
-          if (!vehicle.driverName) {
+          const driverObj = typeof vehicle.driverId === 'object' && vehicle.driverId !== null ? vehicle.driverId : null;
+          const driverDisplayName = vehicle.driverName || (driverObj?.name && driverObj.name !== 'Default' ? driverObj.name : driverObj?.email?.split('@')[0]);
+          const driverDisplayEmail = vehicle.driverEmail || driverObj?.email;
+
+          if (!driverDisplayName) {
             return (
               <button
                 onClick={() => onAssignDriverClick(vehicle)}
@@ -228,11 +259,11 @@ export function VehiclesTable({
               </div>
               <div>
                 <div className="text-xs font-semibold text-[var(--text)]">
-                  {vehicle.driverName}
+                  {driverDisplayName}
                 </div>
-                {vehicle.driverEmail && (
+                {driverDisplayEmail && (
                   <div className="text-[10px] text-[var(--muted)]" dir="ltr">
-                    {vehicle.driverEmail}
+                    {driverDisplayEmail}
                   </div>
                 )}
               </div>
@@ -357,6 +388,7 @@ export function VehiclesTable({
       onDeleteVehicleClick,
       onEditVehicleClick,
       teamsList,
+      isFleetManager,
     ]
   );
 
@@ -365,15 +397,26 @@ export function VehiclesTable({
     columns,
     state: {
       sorting,
+      ...(pagination
+        ? {
+            pagination: {
+              pageIndex: (currentPage ?? 1) - 1,
+              pageSize: pagination.limit || 8,
+            },
+          }
+        : {}),
     },
+    manualPagination: Boolean(pagination),
+    pageCount: pagination ? pagination.totalPages : undefined,
+    manualFiltering: Boolean(pagination),
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: pagination ? undefined : getPaginationRowModel(),
+    getFilteredRowModel: pagination ? undefined : getFilteredRowModel(),
     initialState: {
       pagination: {
-        pageSize: 8,
+        pageSize: pagination?.limit || 8,
       },
     },
   });
@@ -388,8 +431,8 @@ export function VehiclesTable({
             <Search className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={activeSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="البحث بالموديل، اللوحة، أو السائق..."
               className="w-full pr-9 pl-3 py-2 text-xs rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
             />
@@ -399,8 +442,8 @@ export function VehiclesTable({
           <div className="relative w-full sm:w-44">
             <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as VehicleStatus | 'all')}
+              value={activeStatus}
+              onChange={(e) => handleStatusChange(e.target.value as VehicleStatus | 'all')}
               className="w-full pr-9 pl-3 py-2 text-xs rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
             >
               <option value="all">كل الحالات</option>
@@ -453,7 +496,7 @@ export function VehiclesTable({
                   <Car className="w-8 h-8 text-[var(--muted)] mx-auto mb-2 opacity-30" />
                   <p className="text-xs font-semibold text-[var(--text)]">لا توجد مركبات مسجلة</p>
                   <p className="text-[11px] text-[var(--muted)] mt-0.5">
-                    {searchQuery || statusFilter !== 'all'
+                    {activeSearch || activeStatus !== 'all'
                       ? 'جرّب تغيير عبارة البحث أو الفلتر'
                       : 'ابدأ بإضافة أول مركبة لأسطولك الآن'}
                   </p>
@@ -477,43 +520,20 @@ export function VehiclesTable({
         </table>
       </div>
 
-      {/* Pagination Footer */}
-      {!isLoadingVehicles && table.getPageCount() > 1 && (
-        <div className="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--muted)]">
-          <div>
-            صفحة {table.getState().pagination.pageIndex + 1} من {table.getPageCount()} (إجمالي {filteredData.length} مركبة)
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <ChevronsRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-            >
-              <ChevronsLeft className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {/* Shared Pagination Footer */}
+      {!isLoadingVehicles && (
+        <TablePagination
+          currentPage={pagination ? pagination.page : table.getState().pagination.pageIndex + 1}
+          totalPages={pagination ? pagination.totalPages : table.getPageCount()}
+          totalItems={pagination ? pagination.total : filteredData.length}
+          hasNextPage={pagination ? pagination.hasNextPage : table.getCanNextPage()}
+          hasPrevPage={pagination ? pagination.hasPrevPage : table.getCanPreviousPage()}
+          onPageChange={(p) => {
+            if (pagination) onPageChange?.(p);
+            else table.setPageIndex(p - 1);
+          }}
+          itemLabel="مركبة"
+        />
       )}
     </div>
   );

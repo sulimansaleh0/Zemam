@@ -1,5 +1,5 @@
 const success = (res, status, data) =>
-    res.status(status || 200).json(data || { stauts: "success", msg: "تمت العملية بنجاح" })
+    res.status(status || 200).json(data || { status: "success", msg: "تمت العملية بنجاح" })
 
 const error = (res, status, msg) =>
     res.status(status || 400).json({ status: "fail", msg: msg || "حدث خطأ ما" })

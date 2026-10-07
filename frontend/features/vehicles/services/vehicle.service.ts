@@ -8,15 +8,14 @@ import type {
   AssignDriverInput,
   ChangeVehicleStatusInput,
   VehicleStatsResponse,
+  VehicleQueryParams,
+  ListVehiclesResponse,
+  FleetOverviewStatsResponse,
 } from '../types/vehicle.types';
 
 // ============================================================
 //  Vehicle Service — Pure API Calls Layer (No localStorage/mocks)
 // ============================================================
-
-interface ListVehiclesResponse {
-  vehicles: BackendVehicle[];
-}
 
 interface SingleVehicleResponse {
   vehicle: BackendVehicle;
@@ -24,10 +23,32 @@ interface SingleVehicleResponse {
 
 export const vehicleService = {
   /**
-   * جلب قائمة جميع المركبات
+   * جلب قائمة المركبات مع دعم كامل للترقيم والبحث والفلترة من الخادم
    */
-  getVehicles(signal?: AbortSignal): Promise<ServiceResult<ListVehiclesResponse>> {
-    return sendRequest<ListVehiclesResponse>(API_PATHS.VEHICLES.LIST, { signal });
+  getVehicles(
+    paramsOrSignal?: VehicleQueryParams | AbortSignal,
+    signal?: AbortSignal
+  ): Promise<ServiceResult<ListVehiclesResponse>> {
+    let params: VehicleQueryParams | undefined;
+    let actualSignal: AbortSignal | undefined = signal;
+
+    if (paramsOrSignal && 'aborted' in paramsOrSignal) {
+      actualSignal = paramsOrSignal as AbortSignal;
+    } else {
+      params = paramsOrSignal as VehicleQueryParams | undefined;
+    }
+
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.status && params.status !== 'all') searchParams.set('status', params.status);
+    if (params?.vehicleType && params.vehicleType !== 'all') searchParams.set('vehicleType', params.vehicleType);
+    if (params?.search && params.search.trim()) searchParams.set('search', params.search.trim());
+    if (params?.withoutTeam) searchParams.set('withoutTeam', 'true');
+
+    const qs = searchParams.toString();
+    const path = qs ? `${API_PATHS.VEHICLES.LIST}?${qs}` : API_PATHS.VEHICLES.LIST;
+    return sendRequest<ListVehiclesResponse>(path, { signal: actualSignal });
   },
 
   /**
@@ -49,6 +70,13 @@ export const vehicleService = {
    */
   getVehicleStats(id: string, signal?: AbortSignal): Promise<ServiceResult<VehicleStatsResponse>> {
     return sendRequest<VehicleStatsResponse>(API_PATHS.VEHICLES.STATS(id), { signal });
+  },
+
+  /**
+   * جلب إحصائيات الأسطول الإجمالية (نشطة، غير نشطة، في مهام، صيانة) محسوبة مباشرة في الخادم
+   */
+  getFleetOverviewStats(signal?: AbortSignal): Promise<ServiceResult<FleetOverviewStatsResponse>> {
+    return sendRequest<FleetOverviewStatsResponse>(API_PATHS.VEHICLES.OVERVIEW_STATS, { signal });
   },
 
   /**

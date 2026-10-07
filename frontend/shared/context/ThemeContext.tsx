@@ -38,11 +38,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const savedTheme = (localStorage.getItem(STORAGE_KEY) as Theme) || 'system';
-    setThemeState(savedTheme);
     const resolved = savedTheme === 'system' ? getSystemTheme() : savedTheme;
-    setResolvedTheme(resolved);
     applyThemeToDOM(resolved, savedTheme);
-    setMounted(true);
+
+    React.startTransition(() => {
+      setThemeState(savedTheme);
+      setResolvedTheme(resolved);
+      setMounted(true);
+    });
   }, []);
 
   const setTheme = useCallback((newTheme: Theme) => {

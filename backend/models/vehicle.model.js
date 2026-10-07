@@ -68,8 +68,15 @@ const vehicleSchema = new mongoose.Schema({
         default: vehicleStatus.ACTIVE
     },
     currentLocation: {
-        lat: { type: Number },
-        lng: { type: Number },
+        type: {
+            type: String,
+            enum: ['Point'],
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number], // [longitude, latitude]
+            default: [0, 0]
+        },
         speed: { type: Number, default: 0 },
         heading: { type: Number, default: 0 },
         updatedAt: { type: Date, default: Date.now }
@@ -96,7 +103,28 @@ const vehicleSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-})
+}, { timestamps: true })
+
+// Virtual getters for backwards-compatible lat/lng access
+vehicleSchema.virtual("currentLocation.lat").get(function() {
+    return this.currentLocation?.coordinates?.[1];
+});
+vehicleSchema.virtual("currentLocation.lng").get(function() {
+    return this.currentLocation?.coordinates?.[0];
+});
+vehicleSchema.set("toJSON", { virtuals: true });
+vehicleSchema.set("toObject", { virtuals: true });
+
+// Compound Indexes for query performance, multi-tenant isolation, and GeoJSON 2dsphere
+vehicleSchema.index({ companyId: 1, isDeleted: 1 });
+vehicleSchema.index({ companyId: 1, teamId: 1, isDeleted: 1 });
+vehicleSchema.index(
+    { plateNumber: 1, companyId: 1 },
+    { unique: true, partialFilterExpression: { isDeleted: false } }
+);
+vehicleSchema.index({ driverId: 1, companyId: 1 });
+vehicleSchema.index({ companyId: 1, status: 1 });
+vehicleSchema.index({ "currentLocation.coordinates": "2dsphere" });
 
 const Vehicle = mongoose.model("vehicle", vehicleSchema)
 module.exports = Vehicle

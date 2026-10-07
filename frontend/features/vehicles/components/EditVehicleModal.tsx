@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Car,
   FileText,
@@ -10,6 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
+import { editVehicleSchema, EditVehicleFormValues } from '../schemas/vehicle.schema';
 import type { BackendVehicle, VehicleWithRelations } from '../types/vehicle.types';
 
 interface EditVehicleModalProps {
@@ -27,79 +30,77 @@ export function EditVehicleModal({
   onUpdate,
   isLoading,
 }: EditVehicleModalProps) {
-  const [formData, setFormData] = useState({
-    model: '',
-    year: new Date().getFullYear(),
-    plateNumber: '',
-    vehicleType: '' as '' | 'normal' | 'van' | 'truck',
-    tankCapacity: 0,
-    fuelType: '',
-    expectedFuelEfficiency: 0,
-    licenseNumber: '',
-    licenseExpiry: '',
-    insuranceNumber: '',
-    insuranceCompany: '',
-    insuranceExpiry: '',
+  const [formError, setFormError] = React.useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<EditVehicleFormValues>({
+    resolver: zodResolver(editVehicleSchema),
+    defaultValues: {
+      model: '',
+      year: new Date().getFullYear(),
+      plateNumber: '',
+      vehicleType: 'normal',
+      tankCapacity: 60,
+      fuelType: 'بنزين 91',
+      expectedFuelEfficiency: 12,
+      licenseNumber: '',
+      licenseExpiry: '',
+      insuranceNumber: '',
+      insuranceCompany: '',
+      insuranceExpiry: '',
+    },
   });
 
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const selectedVehicleType = watch('vehicleType');
 
   useEffect(() => {
     if (vehicle && isOpen) {
-      setFormData({
+      reset({
         model: vehicle.model || '',
         year: vehicle.year || new Date().getFullYear(),
         plateNumber: String(vehicle.plateNumber || ''),
-        vehicleType: (vehicle.vehicleType as any) || '',
-        tankCapacity: vehicle.tankCapacity || 0,
-        fuelType: vehicle.fuelType || '',
-        expectedFuelEfficiency: vehicle.expectedFuelEfficiency || 0,
+        vehicleType: (vehicle.vehicleType as 'normal' | 'van' | 'truck') || 'normal',
+        tankCapacity: vehicle.tankCapacity || 60,
+        fuelType: (vehicle.fuelType as EditVehicleFormValues['fuelType']) || 'بنزين 91',
+        expectedFuelEfficiency: vehicle.expectedFuelEfficiency || 12,
         licenseNumber: vehicle.licenseNumber || '',
         licenseExpiry: vehicle.licenseExpiry ? vehicle.licenseExpiry.split('T')[0] : '',
         insuranceNumber: vehicle.insuranceNumber || '',
         insuranceCompany: vehicle.insuranceCompany || '',
         insuranceExpiry: vehicle.insuranceExpiry ? vehicle.insuranceExpiry.split('T')[0] : '',
       });
-      setErrorMsg(null);
+      setFormError(null);
     }
-  }, [vehicle, isOpen]);
+  }, [vehicle, isOpen, reset]);
 
   if (!vehicle) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.model.trim()) {
-      setErrorMsg('يرجى إدخال اسم وموديل المركبة');
-      return;
-    }
-    if (!formData.plateNumber.trim()) {
-      setErrorMsg('يرجى إدخال رقم اللوحة');
-      return;
-    }
-    if (!formData.vehicleType || !formData.tankCapacity || !formData.fuelType || !formData.expectedFuelEfficiency || !formData.licenseNumber.trim() || !formData.licenseExpiry) {
-      setErrorMsg('يرجى إدخال جميع المواصفات المطلوبة ورقم وتاريخ انتهاء رخصة السير');
-      return;
-    }
-
-    setErrorMsg(null);
+  const onSubmit = async (values: EditVehicleFormValues) => {
+    setFormError(null);
     try {
       await onUpdate(vehicle._id, {
-        model: formData.model.trim(),
-        year: Number(formData.year),
-        plateNumber: formData.plateNumber.trim(),
-        vehicleType: formData.vehicleType,
-        tankCapacity: Number(formData.tankCapacity),
-        fuelType: formData.fuelType,
-        expectedFuelEfficiency: Number(formData.expectedFuelEfficiency),
-        licenseNumber: formData.licenseNumber.trim(),
-        licenseExpiry: new Date(formData.licenseExpiry).toISOString(),
-        ...(formData.insuranceNumber.trim() ? { insuranceNumber: formData.insuranceNumber.trim() } : {}),
-        ...(formData.insuranceCompany.trim() ? { insuranceCompany: formData.insuranceCompany.trim() } : {}),
-        ...(formData.insuranceExpiry ? { insuranceExpiry: new Date(formData.insuranceExpiry).toISOString() } : {}),
+        model: values.model.trim(),
+        year: Number(values.year),
+        plateNumber: values.plateNumber.trim(),
+        vehicleType: values.vehicleType,
+        tankCapacity: Number(values.tankCapacity),
+        fuelType: values.fuelType,
+        expectedFuelEfficiency: Number(values.expectedFuelEfficiency),
+        licenseNumber: values.licenseNumber.trim(),
+        licenseExpiry: new Date(values.licenseExpiry).toISOString(),
+        ...(values.insuranceNumber?.trim() ? { insuranceNumber: values.insuranceNumber.trim() } : {}),
+        ...(values.insuranceCompany?.trim() ? { insuranceCompany: values.insuranceCompany.trim() } : {}),
+        ...(values.insuranceExpiry ? { insuranceExpiry: new Date(values.insuranceExpiry).toISOString() } : {}),
       });
       onClose();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'حدث خطأ أثناء تعديل بيانات المركبة');
+      setFormError(err instanceof Error ? err.message : 'حدث خطأ أثناء تعديل بيانات المركبة');
     }
   };
 
@@ -114,12 +115,12 @@ export function EditVehicleModal({
       maxWidth="max-w-[700px]"
       preventClose={isLoading}
     >
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-5 text-xs">
-          {errorMsg && (
+          {formError && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
+              <span>{formError}</span>
             </div>
           )}
 
@@ -135,41 +136,41 @@ export function EditVehicleModal({
                 <label className="font-semibold text-[var(--muted)] block mb-1">الموديل والطراز *</label>
                 <input
                   type="text"
-                  value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                  {...register('model')}
                   placeholder="مثال: تويوتا هايلوكس"
-                  required
+                  disabled={isLoading}
                   className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 />
+                {errors.model && <p className="text-[11px] text-rose-500 mt-1">{errors.model.message}</p>}
               </div>
 
               <div>
                 <label className="font-semibold text-[var(--muted)] block mb-1">سنة الصنع *</label>
                 <input
                   type="number"
-                  value={formData.year}
-                  onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
+                  {...register('year', { valueAsNumber: true })}
                   min={1990}
                   max={new Date().getFullYear() + 1}
-                  required
-                  className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] font-mono"
                 />
+                {errors.year && <p className="text-[11px] text-rose-500 mt-1">{errors.year.message}</p>}
               </div>
 
               <div>
-                <label className="font-semibold text-[var(--muted)] block mb-1">رقم اللوحة (حروف وأرقام) *</label>
+                <label className="font-semibold text-[var(--muted)] block mb-1">رقم اللوحة *</label>
                 <input
                   type="text"
-                  value={formData.plateNumber}
-                  onChange={(e) => setFormData({ ...formData, plateNumber: e.target.value })}
-                  placeholder="مثال: أ ب ج 1234 أو 50-12345"
-                  required
+                  {...register('plateNumber')}
+                  placeholder="مثال: أ ب ج 1234"
+                  disabled={isLoading}
                   className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] font-mono"
                 />
+                {errors.plateNumber && <p className="text-[11px] text-rose-500 mt-1">{errors.plateNumber.message}</p>}
               </div>
 
               <div className="sm:col-span-3">
-                <label className="font-semibold text-[var(--muted)] block mb-1">تصنيف فئة المركبة (وفق المعايير المرورية) *</label>
+                <label className="font-semibold text-[var(--muted)] block mb-1">تصنيف فئة المركبة *</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { value: 'normal', label: 'سيارة ركوب خاصة (خفيف)', desc: 'يقودها رخصة خفيف أو متوسط أو ثقيل' },
@@ -179,17 +180,20 @@ export function EditVehicleModal({
                     <button
                       key={t.value}
                       type="button"
-                      onClick={() => setFormData({ ...formData, vehicleType: t.value as any })}
-                      className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer ${formData.vehicleType === t.value
-                        ? 'bg-[var(--primary)]/10 border-[var(--primary)] text-[var(--primary)] font-bold shadow-xs'
-                        : 'bg-[var(--surface-2)]/40 border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]'
-                        }`}
+                      disabled={isLoading}
+                      onClick={() => setValue('vehicleType', t.value as 'normal' | 'van' | 'truck', { shouldValidate: true })}
+                      className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer ${
+                        selectedVehicleType === t.value
+                          ? 'bg-[var(--primary)]/10 border-[var(--primary)] text-[var(--primary)] font-bold shadow-xs'
+                          : 'bg-[var(--surface-2)]/40 border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]'
+                      }`}
                     >
                       <div className="text-xs font-semibold text-[var(--text)]">{t.label}</div>
                       <div className="text-[10px] text-[var(--muted)] mt-0.5">{t.desc}</div>
                     </button>
                   ))}
                 </div>
+                {errors.vehicleType && <p className="text-[11px] text-rose-500 mt-1">{errors.vehicleType.message}</p>}
               </div>
             </div>
           </div>
@@ -206,45 +210,45 @@ export function EditVehicleModal({
                 <label className="font-semibold text-[var(--muted)] block mb-1">سعة خزان الوقود (لتر) *</label>
                 <input
                   type="number"
-                  value={formData.tankCapacity}
-                  onChange={(e) => setFormData({ ...formData, tankCapacity: Number(e.target.value) })}
-                  min={10}
-                  max={1500}
+                  {...register('tankCapacity', { valueAsNumber: true })}
+                  min={1}
+                  max={2000}
+                  disabled={isLoading}
                   placeholder="مثلاً: 60"
-                  required
                   className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] font-mono"
                 />
-                <span className="text-[10px] text-[var(--muted)] mt-0.5 block">يمنع التعبئة بأكثر منها</span>
+                {errors.tankCapacity && <p className="text-[11px] text-rose-500 mt-1">{errors.tankCapacity.message}</p>}
               </div>
 
               <div>
                 <label className="font-semibold text-[var(--muted)] block mb-1">نوع الوقود المعتمد *</label>
                 <select
-                  value={formData.fuelType}
-                  onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
-                  required
+                  {...register('fuelType')}
+                  disabled={isLoading}
                   className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer"
                 >
-                  <option value="">اختر نوع الوقود</option>
                   <option value="بنزين 91">بنزين 91</option>
                   <option value="بنزين 95">بنزين 95</option>
                   <option value="ديزل">ديزل (Diesel)</option>
                   <option value="هجين">هجين (Hybrid)</option>
                   <option value="كهربائي">كهربائي (EV)</option>
                 </select>
+                {errors.fuelType && <p className="text-[11px] text-rose-500 mt-1">{errors.fuelType.message}</p>}
               </div>
 
               <div>
-                <label className="font-semibold text-[var(--muted)] block mb-1">الكفاءة المتوقعة (كم/لتر)</label>
+                <label className="font-semibold text-[var(--muted)] block mb-1">الكفاءة المتوقعة (كم/لتر) *</label>
                 <input
                   type="number"
                   step="0.1"
-                  value={formData.expectedFuelEfficiency}
-                  onChange={(e) => setFormData({ ...formData, expectedFuelEfficiency: Number(e.target.value) })}
+                  {...register('expectedFuelEfficiency', { valueAsNumber: true })}
                   min={0.1}
-                  required
+                  disabled={isLoading}
                   className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] font-mono"
                 />
+                {errors.expectedFuelEfficiency && (
+                  <p className="text-[11px] text-rose-500 mt-1">{errors.expectedFuelEfficiency.message}</p>
+                )}
               </div>
             </div>
           </div>
@@ -268,23 +272,27 @@ export function EditVehicleModal({
                   <label className="font-semibold text-[var(--muted)] block mb-1">رقم الاستمارة *</label>
                   <input
                     type="text"
-                    value={formData.licenseNumber}
-                    onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
+                    {...register('licenseNumber')}
                     placeholder="رقم الوثيقة الرسمية"
-                    required
+                    disabled={isLoading}
                     className="w-full px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text)] font-mono"
                   />
+                  {errors.licenseNumber && (
+                    <p className="text-[11px] text-rose-500 mt-1">{errors.licenseNumber.message}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="font-semibold text-[var(--muted)] block mb-1">تاريخ انتهاء الاستمارة *</label>
                   <input
                     type="date"
-                    value={formData.licenseExpiry}
-                    onChange={(e) => setFormData({ ...formData, licenseExpiry: e.target.value })}
-                    required
+                    {...register('licenseExpiry')}
+                    disabled={isLoading}
                     className="w-full px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text)] font-mono cursor-pointer"
                   />
+                  {errors.licenseExpiry && (
+                    <p className="text-[11px] text-rose-500 mt-1">{errors.licenseExpiry.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -300,9 +308,9 @@ export function EditVehicleModal({
                     <label className="font-semibold text-[var(--muted)] block mb-1">رقم الوثيقة</label>
                     <input
                       type="text"
-                      value={formData.insuranceNumber}
-                      onChange={(e) => setFormData({ ...formData, insuranceNumber: e.target.value })}
+                      {...register('insuranceNumber')}
                       placeholder="رقم التأمين"
+                      disabled={isLoading}
                       className="w-full px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text)] font-mono"
                     />
                   </div>
@@ -311,9 +319,9 @@ export function EditVehicleModal({
                     <label className="font-semibold text-[var(--muted)] block mb-1">شركة التأمين</label>
                     <input
                       type="text"
-                      value={formData.insuranceCompany}
-                      onChange={(e) => setFormData({ ...formData, insuranceCompany: e.target.value })}
+                      {...register('insuranceCompany')}
                       placeholder="مثال: التعاونية"
+                      disabled={isLoading}
                       className="w-full px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text)]"
                     />
                   </div>
@@ -323,15 +331,14 @@ export function EditVehicleModal({
                   <label className="font-semibold text-[var(--muted)] block mb-1">تاريخ انتهاء التأمين</label>
                   <input
                     type="date"
-                    value={formData.insuranceExpiry}
-                    onChange={(e) => setFormData({ ...formData, insuranceExpiry: e.target.value })}
+                    {...register('insuranceExpiry')}
+                    disabled={isLoading}
                     className="w-full px-2 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text)] font-mono cursor-pointer"
                   />
                 </div>
               </div>
             </div>
           </div>
-
         </div>
 
         {/* Footer Actions */}
@@ -347,7 +354,7 @@ export function EditVehicleModal({
           <button
             type="submit"
             disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[var(--primary)] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
           >
             {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>حفظ التعديلات وتحديث السجلات</span>

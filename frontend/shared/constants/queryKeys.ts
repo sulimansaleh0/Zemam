@@ -15,7 +15,10 @@
 
 export const vehicleKeys = {
   all: ['vehicles'] as const,
+  list: (filter?: unknown) => ['vehicles', 'list', filter ?? 'all'] as const,
+  overviewStats: ['vehicles', 'overview-stats'] as const,
   detail: (id: string) => ['vehicles', id] as const,
+  stats: (id: string) => ['vehicles', id, 'stats'] as const,
 };
 
 export const driverKeys = {

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose")
 const User = require("../models/user.model")
 const Team = require("../models/team.model")
 const Vehicle = require("../models/vehicle.model")
@@ -384,10 +385,14 @@ exports.assignDriverToVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
     const driverId = req.params.id
-    if (!driverId) return error(res, 400, "Driver Id is required")
+    if (!driverId || !mongoose.isValidObjectId(driverId)) {
+        return error(res, 400, "معرف السائق غير صالح أو مطلوب")
+    }
 
     const { vehicleId } = req.body
-    if (!vehicleId) return error(res, 400, "Vehicle Id is required")
+    if (!vehicleId || !mongoose.isValidObjectId(vehicleId)) {
+        return error(res, 400, "معرف المركبة غير صالح أو مطلوب")
+    }
 
     try {
         const driverFilters = { _id: driverId, companyId: user.companyId, isDeleted: false, status: mainStatus.ACTIVE }
@@ -396,34 +401,66 @@ exports.assignDriverToVehicle = async (req, res) => {
             driverFilters.teamId = teamId
             vehicleFilters.teamId = teamId
         }
+
         const [driver, vehicle] = await Promise.all([
             User.findOne(driverFilters),
             Vehicle.findOne(vehicleFilters)
         ])
 
-        if (!driver) return error(res, 404, "Driver not found")
-        if (!vehicle) return error(res, 404, "vehicle not found")
+        if (!driver) return error(res, 404, "السائق غير موجود أو غير نشط في شركتك")
+        if (!vehicle) return error(res, 404, "المركبة غير موجودة أو غير نشطة في شركتك")
 
-        if (!driver.teamId) return error(res, 400, "Driver should have a team")
-        if (!vehicle.teamId) return error(res, 400, "Vehicle should have a team")
+        if (driver.role !== userRoles.DRIVER) {
+            return error(res, 400, "المستخدم المحدد ليس سائقاً")
+        }
 
-        if (driver.teamId.toString() !== vehicle.teamId.toString())
-            return error(res, 400, "Driver and Vehicle must be in the same team")
+        // قواعد مطابقة الفريق التشغيلي بمرونة وذكاء
+        if (vehicle.teamId && driver.teamId) {
+            if (driver.teamId.toString() !== vehicle.teamId.toString()) {
+                return error(res, 400, "يجب أن ينتمي السائق والمركبة لنفس الفريق التشغيلي")
+            }
+        } else if (vehicle.teamId && !driver.teamId) {
+            // إذا كانت المركبة ضمن فريق والسائق متاح في المخزون العام، يتم ضمه تلقائياً لفريق المركبة
+            driver.teamId = vehicle.teamId
+        } else if (!vehicle.teamId && driver.teamId) {
+            return error(res, 400, "المركبة غير مسندة لفريق، بينما السائق منتمٍ لفريق تشغيلي. يرجى إسناد المركبة للفريق أولاً.")
+        }
 
-        if (driver.role !== userRoles.DRIVER)
-            return error(res, 400, "User is not a driver")
-
+        // التحقق من أهلية رخصة السائق لنوع المركبة
         const eligibilityError = getDriverVehicleEligibilityError(driver, vehicle)
         if (eligibilityError) return error(res, 400, eligibilityError)
 
-        await Vehicle.updateMany(
-            { driverId, companyId: user.companyId, _id: { $ne: vehicle._id } },
-            { driverId: null }
-        )
+        // معاملات ذرية ACID
+        let session = null
+        try {
+            session = await mongoose.startSession()
+            session.startTransaction()
+        } catch {
+            session = null
+        }
 
-        vehicle.driverId = driverId
-        await vehicle.save()
-        success(res, 200)
+        try {
+            const sessionOpt = session ? { session } : {}
+
+            // فك ارتباط السائق من أي مركبة أخرى في الشركة لضمان العزل
+            await Vehicle.updateMany(
+                { driverId, companyId: user.companyId, _id: { $ne: vehicle._id } },
+                { driverId: null },
+                sessionOpt
+            )
+
+            vehicle.driverId = driverId
+            await vehicle.save(sessionOpt)
+            await driver.save(sessionOpt)
+
+            if (session) await session.commitTransaction()
+            success(res, 200, { msg: "تم تعيين السائق للمركبة بنجاح", vehicle })
+        } catch (trxErr) {
+            if (session) await session.abortTransaction()
+            throw trxErr
+        } finally {
+            if (session) session.endSession()
+        }
     } catch (err) {
         console.log(err)
         serverError(res)
@@ -433,19 +470,29 @@ exports.assignDriverToVehicle = async (req, res) => {
 exports.removeDriverFromVehicle = async (req, res) => {
     const user = req.user
     const teamId = req.teamId
-    const driverId = req.params.id
-    if (!driverId) return error(res, 400, "Driver Id is required")
+    const identifier = req.params.id
+    if (!identifier || !mongoose.isValidObjectId(identifier)) {
+        return error(res, 400, "المعرف غير صالح أو مطلوب")
+    }
+
     try {
-        let driverFilters = { _id: driverId, companyId: user.companyId }
-        if (teamId) driverFilters.teamId = teamId
-        const driver = await User.findOne(driverFilters)
-        if (!driver) return error(res, 404, "Driver not found")
+        // دعم البحث سواء مرر العميل معرف السائق أو معرف المركبة لضمان عدم الفشل
+        const vehicleQuery = {
+            $or: [{ driverId: identifier }, { _id: identifier }],
+            companyId: user.companyId,
+            isDeleted: false,
+        }
+        if (teamId) vehicleQuery.teamId = teamId
 
-        let vehicleFilters = { driverId, companyId: user.companyId }
-        if (teamId) vehicleFilters.teamId = teamId
+        const vehicle = await Vehicle.findOne(vehicleQuery)
+        if (!vehicle) {
+            return error(res, 404, "لم يتم العثور على مركبة مرتبطة بهذا السائق")
+        }
 
-        await Vehicle.findOneAndUpdate(vehicleFilters, { driverId: null })
-        success(res, 200)
+        vehicle.driverId = null
+        await vehicle.save()
+
+        success(res, 200, { msg: "تم فك ارتباط السائق عن المركبة بنجاح" })
     } catch (err) {
         console.log(err)
         serverError(res)

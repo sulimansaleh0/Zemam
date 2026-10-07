@@ -1,32 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Car,
-  Calendar,
-  Hash,
-  UserCheck,
+  Fuel,
+  Shield,
   Users,
   Loader2,
-  Fuel,
-  Gauge,
-  FileText,
-  Shield,
-  Building,
-  CheckCircle2,
   AlertCircle,
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react';
 import { vehicleFormSchema, VehicleFormValues } from '../schemas/vehicle.schema';
-import { useCreateVehicle, useAvailableDrivers, useAssignDriver } from '../hooks/useVehicles';
+import { useCreateVehicle, useAvailableDrivers } from '../hooks/useVehicles';
 import { useTeams } from '@/features/teams';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { getVehicleTeamId, getVehicleTeamName } from '../utils/vehicleHelpers';
 import { checkDriverVehicleEligibility } from '@/features/drivers/utils/licenseEligibility';
+import type { BackendDriver } from '@/features/drivers';
 import { Modal } from '@/shared/ui/Modal';
+import { VehicleBasicTab } from './form/VehicleBasicTab';
+import { VehicleSpecsTab } from './form/VehicleSpecsTab';
+import { VehicleDocsTab } from './form/VehicleDocsTab';
+import { VehicleAssignTab } from './form/VehicleAssignTab';
 
 interface VehicleFormModalProps {
   isOpen: boolean;
@@ -34,6 +32,13 @@ interface VehicleFormModalProps {
 }
 
 type TabType = 'basic' | 'specs' | 'docs' | 'assign';
+
+const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
+  { id: 'basic', label: '1. الهيكل واللوحة', icon: Car },
+  { id: 'specs', label: '2. الوقود والكفاءة', icon: Fuel },
+  { id: 'docs', label: '3. الرخصة والتأمين', icon: Shield },
+  { id: 'assign', label: '4. الفريق والسائق', icon: Users },
+];
 
 export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
   const { user } = useAuth();
@@ -45,7 +50,6 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
   const { data: teamsList = [], isLoading: isLoadingTeams } = useTeams();
   const { drivers: availableDrivers = [], isLoading: isLoadingDrivers } = useAvailableDrivers();
   const createVehicleMutation = useCreateVehicle();
-  const assignDriverMutation = useAssignDriver();
 
   const userTeamId = getVehicleTeamId(user?.teamId);
   const userTeamName =
@@ -53,10 +57,10 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
 
   // If fleet manager, filter drivers to only their team
   const filteredDrivers = isFleetManager && userTeamId
-    ? availableDrivers.filter((d) => {
-      const dTeamId = getVehicleTeamId(d.teamId);
-      return String(dTeamId) === String(userTeamId);
-    })
+    ? availableDrivers.filter((d: BackendDriver) => {
+        const dTeamId = getVehicleTeamId(d.teamId);
+        return String(dTeamId) === String(userTeamId);
+      })
     : availableDrivers;
 
   const {
@@ -81,30 +85,28 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
   const selectedVehicleType = useWatch({ control, name: 'vehicleType' });
   const selectedDriverId = useWatch({ control, name: 'driverId' });
 
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab('basic');
-      setFormError(null);
-      reset({
-        model: '',
-        plateNumber: '',
-        licenseNumber: '',
-        licenseExpiry: '',
-        teamId: isFleetManager && userTeamId ? userTeamId : '',
-        driverId: '',
-      });
-    }
-  }, [isOpen, isFleetManager, userTeamId, reset]);
+  // Reset form state on close
+  const handleClose = useCallback(() => {
+    setActiveTab('basic');
+    setFormError(null);
+    reset({
+      model: '',
+      plateNumber: '',
+      licenseNumber: '',
+      licenseExpiry: '',
+      teamId: isFleetManager && userTeamId ? userTeamId : '',
+      driverId: '',
+    });
+    onClose();
+  }, [isFleetManager, userTeamId, reset, onClose]);
 
   // Check driver eligibility for selected vehicle type
-  const selectedDriverObj = filteredDrivers.find((d) => d._id === selectedDriverId);
+  const selectedDriverObj = filteredDrivers.find((d: BackendDriver) => d._id === selectedDriverId);
   const driverEligibility = selectedDriverObj && selectedVehicleType
     ? checkDriverVehicleEligibility(selectedDriverObj, { vehicleType: selectedVehicleType })
     : null;
 
-  const isPending =
-    createVehicleMutation.isPending || assignDriverMutation.isPending || isSubmitting;
+  const isPending = createVehicleMutation.isPending || isSubmitting;
 
   const onSubmit = async (values: VehicleFormValues) => {
     if (isPending) return;
@@ -112,7 +114,8 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
     try {
       const assignedTeamId = isFleetManager && userTeamId ? userTeamId : (values.teamId || undefined);
 
-      const newVehicle = await createVehicleMutation.mutateAsync({
+      // Single atomic vehicle creation with driver assignment
+      await createVehicleMutation.mutateAsync({
         model: values.model.trim(),
         year: Number(values.year),
         plateNumber: String(values.plateNumber).trim(),
@@ -126,19 +129,10 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
         ...(values.insuranceNumber?.trim() ? { insuranceNumber: values.insuranceNumber.trim() } : {}),
         ...(values.insuranceExpiry ? { insuranceExpiry: new Date(values.insuranceExpiry).toISOString() } : {}),
         teamId: assignedTeamId,
+        driverId: values.driverId || undefined,
       });
 
-      // إذا اختار المستخدم سائقاً أثناء إنشاء المركبة وكان مؤهلاً، نقوم بتعيينه فوراً
-      if (values.driverId && newVehicle?._id) {
-        if (!driverEligibility || driverEligibility.eligible) {
-          await assignDriverMutation.mutateAsync({
-            vehicleId: newVehicle._id,
-            driverId: values.driverId,
-          });
-        }
-      }
-
-      onClose();
+      handleClose();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'تعذر تسجيل المركبة، يرجى التحقق من البيانات والمحاولة مجدداً');
     }
@@ -147,7 +141,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="إضافة مركبة جديدة للأسطول"
       description="أدخل مواصفات المركبة وبيانات الاستمارة والتأمين وتعيين الفريق والسائق"
       icon={Car}
@@ -163,421 +157,71 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
             <p className="font-medium leading-relaxed">{formError}</p>
           </div>
         )}
+
         {/* Navigation Tabs */}
         <div className="flex border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-6 pt-3 gap-2 overflow-x-auto text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('basic')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'basic'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-          >
-            <Car className="w-3.5 h-3.5" />
-            <span>1. الهيكل واللوحة</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('specs')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'specs'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-          >
-            <Fuel className="w-3.5 h-3.5" />
-            <span>2. الوقود والكفاءة</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('docs')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'docs'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>3. الرخصة والتأمين</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('assign')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${activeTab === 'assign'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>4. الفريق والسائق</span>
-          </button>
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                  isActive
+                    ? 'border-[var(--primary)] text-[var(--primary)]'
+                    : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab Contents */}
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-          {/* TAB 1: BASIC INFO */}
           {activeTab === 'basic' && (
-            <div className="space-y-4">
-              {/* Model */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                  اسم وموديل المركبة <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Car className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="مثال: تويوتا هايلوكس أو مرسيدس آكتروس"
-                    required
-                    {...register('model')}
-                    disabled={isPending}
-                    className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${errors.model ? 'border-rose-500' : 'border-[var(--border)]'
-                      }`}
-                  />
-                </div>
-                {errors.model && (
-                  <span className="text-[11px] text-rose-500 mt-1 block">
-                    {errors.model.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Year & Plate Number Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Year */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    سنة الصنع <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Calendar className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      placeholder="2024"
-                      min="1900"
-                      max={new Date().getFullYear()}
-                      required
-                      {...register('year')}
-                      disabled={isPending}
-                      className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${errors.year ? 'border-rose-500' : 'border-[var(--border)]'
-                        }`}
-                    />
-                  </div>
-                  {errors.year && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {errors.year.message}
-                    </span>
-                  )}
-                </div>
-
-                {/* Plate Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    رقم اللوحة (رقمي) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Hash className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="1234 أو أ ب ج 1234"
-                      dir="ltr"
-                      required
-                      {...register('plateNumber')}
-                      disabled={isPending}
-                      className={`w-full pr-10 pl-3 py-2.5 rounded-xl border bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all ${errors.plateNumber ? 'border-rose-500' : 'border-[var(--border)]'
-                        }`}
-                    />
-                  </div>
-                  {errors.plateNumber && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {errors.plateNumber.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Vehicle Type (Arab hierarchy) */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-2">
-                  فئة ونوع المركبة (المطابقة لرخص القيادة) <span className="text-rose-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { id: 'normal', label: 'سيارة خاصة (خفيف)', desc: 'تتطلب رخصة قيادة خفيف فما فوق' },
-                    { id: 'van', label: 'فان / حافلة (متوسط)', desc: 'تتطلب رخصة متوسط أو ثقيل' },
-                    { id: 'truck', label: 'شاحنة نقل (ثقيل)', desc: 'تتطلب رخصة قيادة ثقيل حصراً' },
-                  ].map((cat) => {
-                    const isSelected = selectedVehicleType === cat.id;
-                    return (
-                      <div
-                        key={cat.id}
-                        onClick={() => setValue('vehicleType', cat.id as VehicleFormValues['vehicleType'], { shouldValidate: true })}
-                        className={`p-3 rounded-xl border text-right cursor-pointer transition-all ${isSelected
-                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]'
-                          : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
-                          }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold text-[var(--text)]">{cat.label}</span>
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-[var(--primary)]" />}
-                        </div>
-                        <p className="text-[10px] text-[var(--muted)] leading-tight">{cat.desc}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                {errors.vehicleType && (
-                  <span className="text-[11px] text-rose-500 mt-1 block">{errors.vehicleType.message}</span>
-                )}
-              </div>
-            </div>
+            <VehicleBasicTab
+              register={register}
+              errors={errors}
+              selectedVehicleType={selectedVehicleType}
+              setValue={setValue}
+              disabled={isPending}
+            />
           )}
 
-          {/* TAB 2: SPECS, FUEL & ODOMETER */}
           {activeTab === 'specs' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Fuel Type */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    نوع الوقود المعتمد <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Fuel className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <select
-                      {...register('fuelType')}
-                      required
-                      className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
-                    >
-                      <option value="">اختر نوع الوقود</option>
-                      <option value="بنزين 91">بنزين 91</option>
-                      <option value="بنزين 95">بنزين 95</option>
-                      <option value="ديزل">ديزل</option>
-                      <option value="هجين">هجين (هايبرد)</option>
-                      <option value="كهربائي">كهربائي</option>
-                    </select>
-                  </div>
-                  {errors.fuelType && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">{errors.fuelType.message}</span>
-                  )}
-                </div>
-
-                {/* Tank Capacity */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    سعة خزان الوقود (لتر) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Fuel className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      placeholder="60"
-                      min="1"
-                      required
-                      {...register('tankCapacity')}
-                      className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
-                    />
-                  </div>
-                  {errors.tankCapacity && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {errors.tankCapacity.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Expected Fuel Efficiency */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                    كفاءة الاستهلاك المتوقعة (كم/لتر) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Gauge className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="12"
-                      min="0.1"
-                      required
-                      {...register('expectedFuelEfficiency')}
-                      className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
-                    />
-                  </div>
-                  {errors.expectedFuelEfficiency && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {errors.expectedFuelEfficiency.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+            <VehicleSpecsTab
+              register={register}
+              errors={errors}
+              disabled={isPending}
+            />
           )}
 
-          {/* TAB 3: REGISTRATION & INSURANCE */}
           {activeTab === 'docs' && (
-            <div className="space-y-4">
-              {/* License / Istimara */}
-              <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[var(--text)]">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  <span>بيانات رخصة السير (الاستمارة)</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      رقم رخصة السير <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="مثال: 987654321"
-                      required
-                      {...register('licenseNumber')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      تاريخ انتهاء الاستمارة <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      {...register('licenseExpiry')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Insurance */}
-              <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[var(--text)]">
-                  <Shield className="w-4 h-4 text-emerald-500" />
-                  <span>بيانات وثيقة التأمين</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      شركة التأمين
-                    </label>
-                    <div className="relative">
-                      <Building className="w-3.5 h-3.5 text-[var(--muted)] absolute right-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="مثال: التعاونية أو تكافل الراجحي"
-                        {...register('insuranceCompany')}
-                        className="w-full pr-8 pl-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      رقم وثيقة التأمين
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="مثال: POL-2024-889"
-                      {...register('insuranceNumber')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-                      تاريخ انتهاء التأمين
-                    </label>
-                    <input
-                      type="date"
-                      {...register('insuranceExpiry')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <VehicleDocsTab
+              register={register}
+              errors={errors}
+              disabled={isPending}
+            />
           )}
 
-          {/* TAB 4: ASSIGN TEAM & DRIVER */}
           {activeTab === 'assign' && (
-            <div className="space-y-4">
-              {/* Assign Team */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                  الفريق التشغيلي {isFleetManager ? '(فريقك)' : '(اختياري)'}
-                </label>
-                <div className="relative">
-                  <Users className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  {isFleetManager ? (
-                    <input
-                      type="text"
-                      readOnly
-                      value={userTeamName}
-                      className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] cursor-not-allowed opacity-90"
-                    />
-                  ) : (
-                    <select
-                      {...register('teamId')}
-                      disabled={isPending || isLoadingTeams}
-                      className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
-                    >
-                      <option value="">المستودع العام (بدون فريق حالياً)</option>
-                      {teamsList.map((t) => (
-                        <option key={t._id} value={t._id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              {/* Assign Driver */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1.5">
-                  السائق المسؤول (اختياري مع فحص الأهلية)
-                </label>
-                <div className="relative">
-                  <UserCheck className="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <select
-                    {...register('driverId')}
-                    disabled={isPending || isLoadingDrivers}
-                    className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
-                  >
-                    <option value="">بدون سائق حالياً (تعيين لاحقاً)</option>
-                    {filteredDrivers.map((d) => (
-                      <option key={d._id} value={d._id}>
-                        {d.name !== 'Default' ? d.name : d.email.split('@')[0]} ({d.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Driver Eligibility Alert */}
-                {selectedDriverObj && driverEligibility && (
-                  <div
-                    className={`mt-2 p-2.5 rounded-xl border text-xs flex items-center gap-2 ${driverEligibility.eligible
-                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                      }`}
-                  >
-                    {driverEligibility.eligible ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        <span>السائق مؤهل رسمياً لقيادة هذه الفئة من المركبات.</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        <span>{driverEligibility.reason || 'السائق غير مؤهل لقيادة هذا النوع من المركبات.'}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <VehicleAssignTab
+              register={register}
+              isFleetManager={isFleetManager}
+              userTeamName={userTeamName}
+              teamsList={teamsList}
+              isLoadingTeams={isLoadingTeams}
+              filteredDrivers={filteredDrivers}
+              isLoadingDrivers={isLoadingDrivers}
+              selectedDriverObj={selectedDriverObj}
+              driverEligibility={driverEligibility}
+              disabled={isPending}
+            />
           )}
         </div>
 
@@ -617,7 +261,7 @@ export function VehicleFormModal({ isOpen, onClose }: VehicleFormModalProps) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isPending}
               className="px-4 py-2 text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-xl transition-colors cursor-pointer disabled:opacity-50"
             >

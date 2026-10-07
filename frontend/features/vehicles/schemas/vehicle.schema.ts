@@ -15,7 +15,7 @@ export const vehicleFormSchema = z.object({
     .number({ invalid_type_error: 'سنة الصنع يجب أن تكون رقماً' })
     .int('سنة الصنع غير صحيحة')
     .min(1900, 'سنة الصنع يجب أن تكون بعد عام 1900')
-    .max(new Date().getFullYear(), 'سنة الصنع لا تتجاوز العام الحالي'),
+    .max(new Date().getFullYear() + 1, 'سنة الصنع غير صحيحة'),
 
   plateNumber: z
     .string()
@@ -45,6 +45,9 @@ export const vehicleFormSchema = z.object({
 });
 
 export type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
+
+export const editVehicleSchema = vehicleFormSchema.omit({ driverId: true, teamId: true });
+export type EditVehicleFormValues = z.infer<typeof editVehicleSchema>;
 
 export const assignDriverSchema = z.object({
   driverId: z.string().min(1, 'يرجى اختيار السائق'),

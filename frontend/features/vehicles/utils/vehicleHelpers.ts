@@ -1,4 +1,4 @@
-﻿import type { VehicleWithRelations } from '../types/vehicle.types';
+import type { VehicleWithRelations } from '../types/vehicle.types';
 
 // ============================================================
 //  Vehicle Helpers — Pure Utility Functions
@@ -40,13 +40,23 @@ export function getVehicleTeamName(
  * استخراج معرف السائق بأمان سواء كان driverId عبارة عن string أو كائن { _id, name }.
  */
 export function getVehicleDriverId(
-  driverId?: string | { _id: string; name?: string; email?: string } | null
+  driverId?: unknown
 ): string | undefined {
   if (!driverId) return undefined;
-  if (typeof driverId === 'object' && '_id' in driverId) {
-    return driverId._id;
+  if (typeof driverId === 'string' && driverId.trim()) {
+    return driverId.trim();
   }
-  return typeof driverId === 'string' && driverId.trim() ? driverId : undefined;
+  if (typeof driverId === 'object' && driverId !== null) {
+    const obj = driverId as Record<string, unknown>;
+    // إذا تم تمرير كائن المركبة نفسه بالخطأ وفيه خاصية driverId
+    if ('driverId' in obj && obj.driverId) {
+      return getVehicleDriverId(obj.driverId);
+    }
+    if ('_id' in obj && typeof obj._id === 'string') {
+      return obj._id;
+    }
+  }
+  return undefined;
 }
 
 /**
