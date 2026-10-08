@@ -81,6 +81,14 @@ const userSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Compound indexes for enterprise query optimization & multi-tenant isolation
+userSchema.index({ companyId: 1, role: 1, isDeleted: 1 });
+userSchema.index({ companyId: 1, teamId: 1, role: 1, isDeleted: 1 });
+userSchema.index({ companyId: 1, isDeleted: 1, status: 1 });
+userSchema.index({ licenseNumber: 1, companyId: 1 }, { sparse: true });
+userSchema.index({ email: 1, isDeleted: 1 });
+
+
 
 userSchema.methods.toJSON = function () {
     const user = this.toObject();

@@ -40,6 +40,12 @@ export const fuelService = {
     if (filters?.vehicleId && filters.vehicleId !== 'all') {
       params.set('vehicleId', filters.vehicleId);
     }
+    if (filters?.driverId && filters.driverId !== 'all') {
+      params.set('driverId', filters.driverId);
+    }
+    if (filters?.userId && filters.userId !== 'all') {
+      params.set('userId', filters.userId);
+    }
     const queryString = params.toString();
     const path = queryString ? `${API_PATHS.FUEL.LIST}?${queryString}` : API_PATHS.FUEL.LIST;
 

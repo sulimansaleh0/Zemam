@@ -88,4 +88,6 @@ export interface FuelStats {
 export interface FuelFilters {
   status?: FuelStatus | 'all';
   vehicleId?: string;
+  driverId?: string;
+  userId?: string;
 }

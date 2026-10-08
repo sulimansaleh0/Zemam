@@ -19,10 +19,28 @@ export const taskService = {
   /**
    * جلب قائمة جميع المهام للشركة أو الفريق الحالي
    */
-  getTasks(signal?: AbortSignal, vehicleId?: string): Promise<ServiceResult<ListTasksResponse>> {
-    const path = vehicleId
-      ? `${API_PATHS.TASKS.LIST}?vehicleId=${encodeURIComponent(vehicleId)}`
-      : API_PATHS.TASKS.LIST;
+  getTasks(
+    filtersOrSignal?: { vehicleId?: string; driverId?: string } | AbortSignal,
+    vehicleIdOrSignal?: string | AbortSignal
+  ): Promise<ServiceResult<ListTasksResponse>> {
+    let signal: AbortSignal | undefined;
+    const params = new URLSearchParams();
+
+    if (filtersOrSignal instanceof AbortSignal) {
+      signal = filtersOrSignal;
+      if (typeof vehicleIdOrSignal === 'string') {
+        params.set('vehicleId', vehicleIdOrSignal);
+      }
+    } else if (filtersOrSignal && typeof filtersOrSignal === 'object') {
+      if (filtersOrSignal.vehicleId) params.set('vehicleId', filtersOrSignal.vehicleId);
+      if (filtersOrSignal.driverId) params.set('driverId', filtersOrSignal.driverId);
+      if (vehicleIdOrSignal instanceof AbortSignal) {
+        signal = vehicleIdOrSignal;
+      }
+    }
+
+    const query = params.toString();
+    const path = query ? `${API_PATHS.TASKS.LIST}?${query}` : API_PATHS.TASKS.LIST;
     return sendRequest<ListTasksResponse>(path, { signal });
   },
 

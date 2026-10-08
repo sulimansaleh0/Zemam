@@ -23,7 +23,9 @@ export const vehicleKeys = {
 
 export const driverKeys = {
   all: ['drivers'] as const,
+  list: (params?: unknown) => ['drivers', 'list', params ?? 'all'] as const,
   detail: (id: string) => ['drivers', id] as const,
+  stats: (id: string) => ['drivers', id, 'stats'] as const,
 };
 
 export const teamKeys = {

@@ -21,7 +21,7 @@ export const createDriverSchema = z.object({
     .string()
     .trim()
     .min(1, 'رقم رخصة القيادة مطلوب')
-    .regex(/^[\p{L}\p{N}]+$/u, 'رقم الرخصة يجب أن يحتوي على أحرف أو أرقام فقط'),
+    .regex(/^[\p{L}\p{N}_\-\s]+$/u, 'رقم الرخصة يجب أن يحتوي على أحرف وأرقام وشرطات فقط'),
   licenseTypes: z.array(z.enum(['normal', 'van', 'truck'])).default(['normal']),
   licenseExpiry: z.string().min(1, 'تاريخ انتهاء الرخصة مطلوب'),
 });

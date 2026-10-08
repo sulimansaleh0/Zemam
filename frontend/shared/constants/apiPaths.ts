@@ -15,6 +15,8 @@ export const API_PATHS = {
 
   DRIVERS: {
     LIST: 'api/user/driver',
+    DETAIL: (id: string) => `api/user/driver/${id}`,
+    STATS: (id: string) => `api/user/driver/${id}/stats`,
     CREATE: 'api/user/driver',
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
     DELETE: (id: string) => `api/user/driver/${id}`,

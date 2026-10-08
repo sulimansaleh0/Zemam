@@ -84,6 +84,12 @@ exports.listFuelRecords = async (req, res) => {
             filters.status = status
         if (vehicleId)
             filters.vehicleId = vehicleId
+        const driverId = req.query.driverId || req.query.userId
+        if (driverId) {
+            if (!mongoose.Types.ObjectId.isValid(driverId))
+                return error(res, 400, "Invalid driver ID")
+            filters.userId = driverId
+        }
         const records = await Fuel.find(filters)
             .populate("vehicleId", "model plateNumber")
             .populate("userId", "name email")

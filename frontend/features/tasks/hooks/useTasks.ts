@@ -27,16 +27,26 @@ export const TASK_QUERY_KEYS = {
   all: ['tasks'] as const,
   detail: (id: string) => ['tasks', id] as const,
   vehicle: (vehicleId: string) => ['tasks', 'vehicle', vehicleId] as const,
+  filtered: (params: { vehicleId?: string; driverId?: string }) => ['tasks', 'filtered', params] as const,
 };
 
 /**
- * Hook لجلب جميع المهام مع العلاقات
+ * Hook لجلب المهام مع العلاقات مع دعم الفلترة حسب المركبة أو السائق
  */
-export function useTasks(vehicleId?: string) {
+export function useTasks(paramsOrVehicleId?: { vehicleId?: string; driverId?: string } | string) {
+  const filterParams =
+    typeof paramsOrVehicleId === 'string'
+      ? { vehicleId: paramsOrVehicleId }
+      : paramsOrVehicleId;
+
+  const queryKey = filterParams
+    ? TASK_QUERY_KEYS.filtered(filterParams)
+    : TASK_QUERY_KEYS.all;
+
   return useQuery({
-    queryKey: vehicleId ? TASK_QUERY_KEYS.vehicle(vehicleId) : TASK_QUERY_KEYS.all,
+    queryKey,
     queryFn: async ({ signal }) => {
-      const result = await taskService.getTasks(signal, vehicleId);
+      const result = await taskService.getTasks(filterParams, signal);
       if (!result.success) {
         if (result.message === 'Request cancelled') return [];
         throw new Error(result.message);

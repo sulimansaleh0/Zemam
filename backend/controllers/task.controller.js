@@ -79,6 +79,11 @@ exports.listTasks = async (req, res) => {
                 return error(res, 400, "Invalid vehicle ID")
             filters.vehicleId = req.query.vehicleId
         }
+        if (req.query.driverId) {
+            if (!mongoose.Types.ObjectId.isValid(req.query.driverId))
+                return error(res, 400, "Invalid driver ID")
+            filters.driverId = req.query.driverId
+        }
         const tasks = await Task.find(filters)
             .populate("driverId", "name email phone avatar")
             .populate("vehicleId", "plateNumber model year type status isInTask")

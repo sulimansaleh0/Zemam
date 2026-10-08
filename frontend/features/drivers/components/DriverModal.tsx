@@ -12,7 +12,6 @@ import {
   Phone,
   FileText,
   Calendar,
-  Truck,
   Car,
   CheckCircle2,
   ShieldCheck,
@@ -109,7 +108,7 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
         licenseTypes: selectedLicenseTypes,
         licenseExpiry: data.licenseExpiry,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'حدث خطأ، حاول مرة أخرى';
       setFormError(msg);
       if (msg.toLowerCase().includes('email') || msg.includes('البريد')) {
@@ -293,12 +292,12 @@ export function DriverModal({ onClose, onSave, isLoading }: DriverModalProps) {
                   { id: 'van', label: 'متوسط (حافلات)', desc: 'فان، حافلات ركاب' },
                   { id: 'truck', label: 'ثقيل (شاحنات)', desc: 'قاطرات، شاحنات نقل' },
                 ].map((cat) => {
-                  const isSelected = selectedLicenseTypes.includes(cat.id as any);
+                  const isSelected = selectedLicenseTypes.includes(cat.id as 'normal' | 'van' | 'truck');
                   return (
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => toggleLicenseType(cat.id as any)}
+                      onClick={() => toggleLicenseType(cat.id as 'normal' | 'van' | 'truck')}
                       className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer ${isSelected
                         ? 'border-[var(--zd-blue)] bg-[var(--zd-blue)]/10 ring-1 ring-[var(--zd-blue)]'
                         : 'border-[var(--zd-line)] bg-[var(--zd-surface)] hover:bg-[var(--zd-surface-2)]'
