@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-type LucideIcon = React.ComponentType<any>;
+type LucideIcon = React.ComponentType<{ className?: string }>;
 
 interface KpiCardProps {
   icon: LucideIcon;

@@ -1,170 +1,179 @@
-const Team = require("../models/team.model")
-const User = require("../models/user.model")
-const Vehicle = require("../models/vehicle.model")
-const getStatics = require("../utils/getStatics")
-const { userRoles } = require("../data/roles")
-const { mainStatus } = require("../data/status")
-const { success, error, serverError } = require("../utils/responses")
+const teamService = require("../services/team.service");
+const { success, error, serverError } = require("../utils/responses");
 
 exports.createTeam = async (req, res) => {
-    const user = req.user
-    const { name, managerId, driversIds, vehiclesIds } = req.body
-    try {
-        const trimmedName = name ? name.trim() : ""
-        const existingTeam = await Team.findOne({
-            name: { $regex: new RegExp(`^${trimmedName}$`, "i") },
-            companyId: user.companyId,
-            isDeleted: false
-        })
-        if (existingTeam) {
-            return error(res, 400, "Team name already exists")
-        }
+  try {
+    const user = req.user;
+    const { name, managerId, driversIds, vehiclesIds } = req.body;
 
-        if (managerId) {
-            const isFleetManager = await User.findOne({ _id: managerId, companyId: user.companyId, role: userRoles.FLEET_MANAGER, isDeleted: false })
-            if (!isFleetManager) return error(res, 400, "cant make a normal user as a fleet manager")
+    const team = await teamService.createTeam(
+      { name, managerId, driversIds, vehiclesIds },
+      user.companyId,
+      user
+    );
 
-            const isInTeam = await Team.findOne({ managerId, companyId: user.companyId, isDeleted: false })
-            if (isInTeam) return error(res, 400, "Already in a team")
-        }
-
-        const team = await Team.create({
-            name: trimmedName,
-            managerId,
-            companyId: user.companyId
-        })
-
-        if (managerId)
-            await User.findByIdAndUpdate(managerId, { teamId: team._id })
-
-        if (Array.isArray(driversIds) && driversIds.length > 0) {
-            await User.updateMany(
-                { _id: { $in: driversIds }, companyId: user.companyId, role: userRoles.DRIVER },
-                { teamId: team._id }
-            )
-        }
-
-        if (Array.isArray(vehiclesIds) && vehiclesIds.length > 0) {
-            await Vehicle.updateMany(
-                { _id: { $in: vehiclesIds }, companyId: user.companyId },
-                { teamId: team._id }
-            )
-        }
-
-        const createdTeam = await Team.findById(team._id).populate("managerId", "name email status phone")
-
-        success(res, 201, { team: createdTeam })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+    return success(res, 201, { team });
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
     }
-}
+    console.error("Error creating team:", err);
+    return serverError(res);
+  }
+};
 
 exports.listTeams = async (req, res) => {
-    const user = req.user
-    try {
-        let filters = {
-            companyId: user.companyId,
-            isDeleted: false
-        }
+  try {
+    const user = req.user;
+    const {
+      search,
+      q,
+      status,
+      managerFilter,
+      page,
+      limit,
+      sort,
+      all = true,
+    } = req.query;
 
-        const teams = await Team.find(filters).populate("managerId", "name email status phone")
-        success(res, 200, { teams })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+    const result = await teamService.listTeams(
+      {
+        companyId: user.companyId,
+        search: search || q,
+        status,
+        managerFilter,
+        page,
+        limit,
+        sort,
+        all,
+      },
+      user
+    );
+
+    return success(res, 200, result);
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
     }
-}
+    console.error("Error listing teams:", err);
+    return serverError(res);
+  }
+};
 
 exports.listTeam = async (req, res) => {
-    const user = req.user
-    const teamId = req.teamId
-    if (!teamId) return error(res, 400, "team Id is required")
-    try {
-        const team = await Team.findOne({ _id: teamId, companyId: user.companyId, isDeleted: false })
-            .populate("managerId", "name email status phone")
-        if (!team) return error(res, 404, "Team not found")
-        success(res, 200, { team })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+  try {
+    const user = req.user;
+    const teamId = req.teamId || req.params.id;
+
+    if (!teamId) {
+      return error(res, 400, "معرّف الفريق مطلوب");
     }
-}
+
+    const team = await teamService.getTeamById(teamId, user.companyId, user);
+    return success(res, 200, { team });
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
+    }
+    console.error("Error fetching team detail:", err);
+    return serverError(res);
+  }
+};
 
 exports.updateTeam = async (req, res) => {
-    const user = req.user
-    const { name } = req.body
-    const teamId = req.params.id || null
-    if (!teamId) return error(res, 400, "team Id is required")
-    try {
-        const team = await Team.findOneAndUpdate({ _id: teamId, companyId: user.companyId, isDeleted: false }, { name })
-        if (!team) return error(res, 404, "Team not found")
-        success(res, 200)
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+  try {
+    const user = req.user;
+    const teamId = req.params.id;
+
+    if (!teamId) {
+      return error(res, 400, "معرّف الفريق مطلوب");
     }
-}
+
+    const updatedTeam = await teamService.updateTeam(
+      teamId,
+      req.body,
+      user.companyId
+    );
+
+    return success(res, 200, { team: updatedTeam });
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
+    }
+    console.error("Error updating team:", err);
+    return serverError(res);
+  }
+};
 
 exports.deleteTeam = async (req, res) => {
-    const user = req.user
-    const teamId = req.params.id || null
-    if (!teamId) return error(res, 400, "team Id is required")
-    try {
-        const team = await Team.findOneAndUpdate({ _id: teamId, companyId: user.companyId }, { isDeleted: true, managerId: null })
-        if (!team) return error(res, 404, "Team not found")
+  try {
+    const user = req.user;
+    const teamId = req.params.id;
 
-        if (team.managerId) {
-            await User.findByIdAndUpdate(team.managerId, { teamId: null })
-        }
-        await Promise.all([
-            Vehicle.updateMany({ teamId: team._id }, { teamId: null, driverId: null }),
-            User.updateMany({ teamId: team._id }, { teamId: null }),
-        ])
-        success(res, 200)
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+    if (!teamId) {
+      return error(res, 400, "معرّف الفريق مطلوب");
     }
-}
+
+    await teamService.deleteTeam(teamId, user.companyId);
+    return success(res, 200, { message: "تم حذف الفريق بنجاح" });
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
+    }
+    console.error("Error deleting team:", err);
+    return serverError(res);
+  }
+};
 
 exports.teamStatics = async (req, res) => {
-    const user = req.user
-    const teamId = req.teamId
-    try {
-        const statics = await getStatics({ teamId, companyId: user.companyId, isDeleted: false })
-        success(res, 200, { statics })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+  try {
+    const user = req.user;
+    const teamId = req.teamId || req.query.teamId || req.params.id;
+
+    const statics = await teamService.getTeamStats(teamId, user.companyId);
+    return success(res, 200, { statics });
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
     }
-}
+    console.error("Error fetching team statics:", err);
+    return serverError(res);
+  }
+};
 
 exports.assignResources = async (req, res) => {
-    const user = req.user
-    const teamId = req.teamId
-    const driversIds = Array.isArray(req.body.driversIds) ? req.body.driversIds : (Array.isArray(req.body.driverIds) ? req.body.driverIds : [])
-    const vehiclesIds = Array.isArray(req.body.vehiclesIds) ? req.body.vehiclesIds : (Array.isArray(req.body.vehicleIds) ? req.body.vehicleIds : [])
-    try {
-        const operations = []
+  try {
+    const user = req.user;
+    const teamId = req.teamId || req.params.id;
 
-        const filters = { companyId: user.companyId, status: mainStatus.ACTIVE, isDeleted: false }
-        if (driversIds.length)
-            operations.push(User.updateMany(
-                { _id: { $in: driversIds }, ...filters, role: userRoles.DRIVER },
-                { $set: { teamId } }
-            ))
-
-        if (vehiclesIds.length)
-            operations.push(Vehicle.updateMany(
-                { _id: { $in: vehiclesIds }, ...filters },
-                { $set: { teamId } }
-            ))
-
-        await Promise.all(operations)
-        success(res, 200)
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+    if (!teamId) {
+      return error(res, 400, "معرّف الفريق مطلوب");
     }
-}
+
+    const driversIds = Array.isArray(req.body.driversIds)
+      ? req.body.driversIds
+      : Array.isArray(req.body.driverIds)
+      ? req.body.driverIds
+      : [];
+
+    const vehiclesIds = Array.isArray(req.body.vehiclesIds)
+      ? req.body.vehiclesIds
+      : Array.isArray(req.body.vehicleIds)
+      ? req.body.vehicleIds
+      : [];
+
+    await teamService.assignResources(
+      teamId,
+      { driversIds, vehiclesIds },
+      user.companyId
+    );
+
+    return success(res, 200, { message: "تم تعيين الموارد بنجاح" });
+  } catch (err) {
+    if (err.statusCode) {
+      return error(res, err.statusCode, err.message);
+    }
+    console.error("Error assigning team resources:", err);
+    return serverError(res);
+  }
+};

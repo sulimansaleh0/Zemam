@@ -2,6 +2,9 @@
 //  Vehicle Types — aligned with Backend Vehicle model
 // ============================================================
 
+import type { PaginationInfo } from '@/shared/types/api.types';
+export type { PaginationInfo };
+
 export interface DriverSummary {
   _id: string;
   name?: string;
@@ -125,15 +128,6 @@ export interface VehicleStatsResponse {
   stats: VehicleStats;
 }
 
-/** معلومات الترقيم القياسية من الباك إند */
-export interface PaginationInfo {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
 
 /** معاملات الاستعلام والفلاتر للمركبات */
 export interface VehicleQueryParams {
