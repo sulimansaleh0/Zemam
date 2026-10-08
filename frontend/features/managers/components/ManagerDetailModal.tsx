@@ -20,10 +20,11 @@ import {
 import { Modal } from '@/shared/ui/Modal';
 import { useQuery } from '@tanstack/react-query';
 import { teamService } from '@/features/teams/services/team.service';
-import { managerService } from '../services/manager.service';
+import { teamKeys } from '@/shared/constants/queryKeys';
+import { useManagerStats } from '../hooks/useManagers';
 import { useVehicles } from '@/features/vehicles';
 import { useDriversList } from '@/features/drivers';
-import type { FleetManager } from '../types/manager.types';
+import type { FleetManager, TeamSummary } from '../types/manager.types';
 
 interface ManagerDetailModalProps {
   isOpen: boolean;
@@ -36,31 +37,20 @@ export function ManagerDetailModal({
   onClose,
   manager,
 }: ManagerDetailModalProps) {
-  const teamId =
+  const teamObj =
     typeof manager?.teamId === 'object' && manager?.teamId !== null
-      ? (manager?.teamId as any)._id
-      : typeof manager?.teamId === 'string'
-      ? manager?.teamId
+      ? (manager.teamId as TeamSummary)
       : null;
 
-  const teamName =
-    typeof manager?.teamId === 'object' && manager?.teamId !== null
-      ? (manager?.teamId as any).name
-      : null;
+  const teamId = teamObj ? teamObj._id : typeof manager?.teamId === 'string' ? manager.teamId : null;
+  const teamName = teamObj ? teamObj.name : null;
 
-  // Fetch direct manager stats from backend
-  const { data: managerStats, isLoading: isLoadingManagerStats } = useQuery({
-    queryKey: ['manager-stats', manager?._id],
-    queryFn: async () => {
-      if (!manager?._id) return null;
-      return await managerService.getManagerStats(manager._id);
-    },
-    enabled: Boolean(isOpen && manager?._id),
-  });
+  // Direct manager stats from backend
+  const { data: managerStats } = useManagerStats(manager?._id, isOpen);
 
-  // Fetch team stats if manager has a team
-  const { data: teamStats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['team-statics', teamId],
+  // Team stats if manager has an assigned team
+  const { data: teamStats } = useQuery({
+    queryKey: teamId ? teamKeys.statics(teamId) : ['team-stats', 'empty'],
     queryFn: async () => {
       if (!teamId) return null;
       return await teamService.getTeamStatics(teamId);
@@ -68,38 +58,35 @@ export function ManagerDetailModal({
     enabled: Boolean(isOpen && teamId),
   });
 
-  const { data: allVehicles = [] } = useVehicles();
-  const { data: allDrivers = [] } = useDriversList();
+  const { data: teamVehicles = [] } = useVehicles(
+    teamId ? { teamId, all: true } : undefined,
+    { enabled: Boolean(isOpen && teamId) }
+  );
+  const { data: teamDrivers = [] } = useDriversList(
+    teamId ? { teamId, all: true } : undefined,
+    { enabled: Boolean(isOpen && teamId) }
+  );
 
   if (!manager) return null;
 
-  const managerVehicles = allVehicles.filter((v) => {
-    const vTeamId = typeof v.teamId === 'object' && v.teamId !== null ? v.teamId._id : v.teamId;
-    return Boolean(vTeamId && teamId && String(vTeamId) === String(teamId));
-  });
-
-  const managerDrivers = allDrivers.filter((d) => {
-    const dTeamId = typeof d.teamId === 'object' && d.teamId !== null ? d.teamId._id : d.teamId;
-    return Boolean(dTeamId && teamId && String(dTeamId) === String(teamId));
-  });
+  const managerVehicles = teamId ? teamVehicles : [];
+  const managerDrivers = teamId ? teamDrivers : [];
 
   const activeVehicles = managerVehicles.filter((v) => v.status === 'active').length;
   const inTaskVehicles = managerVehicles.filter((v) => v.isInTask).length;
   const activeDrivers = managerDrivers.filter((d) => d.status === 'active').length;
 
-  const teamFuelCost = typeof teamStats?.FuelRecordsCost === 'number'
-    ? teamStats.FuelRecordsCost
-    : Array.isArray(teamStats?.FuelRecordsCost)
-    ? (teamStats.FuelRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
-    : 0;
-  const fuelCost = managerStats?.fuelCost ?? teamFuelCost;
+  const getRecordCost = (cost: number | { totalCost?: number }[] | undefined): number => {
+    if (typeof cost === 'number') return cost;
+    if (Array.isArray(cost)) {
+      return cost.reduce((acc, c) => acc + (typeof c?.totalCost === 'number' ? c.totalCost : 0), 0);
+    }
+    return 0;
+  };
 
-  const teamMaintenanceCost = typeof teamStats?.maintenanceRecordsCost === 'number'
-    ? teamStats.maintenanceRecordsCost
-    : Array.isArray(teamStats?.maintenanceRecordsCost)
-    ? (teamStats.maintenanceRecordsCost as any[]).reduce((acc, c) => acc + (c?.totalCost || 0), 0)
-    : 0;
-  const maintenanceCost = managerStats?.maintenanceCost ?? teamMaintenanceCost;
+  const fuelCost = managerStats?.fuelCost ?? getRecordCost(teamStats?.FuelRecordsCost);
+  const maintenanceCost =
+    managerStats?.maintenanceCost ?? getRecordCost(teamStats?.maintenanceRecordsCost);
   const totalTasks = managerStats?.totalTasks ?? (teamStats?.totalTasks ?? 0);
   const completedTasks = managerStats?.completedTasks ?? (teamStats?.finishedTasks ?? 0);
   const delayedTasks = managerStats?.delayedTasks ?? 0;

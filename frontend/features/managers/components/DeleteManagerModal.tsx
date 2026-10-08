@@ -3,7 +3,7 @@
 import React from 'react';
 import { Loader2, UserX } from 'lucide-react';
 import type { FleetManager } from '../types/manager.types';
-import { useDeleteManager } from '../hooks/useManagers';
+import { useDeleteManager } from '../hooks/useManagerMutations';
 import { Modal } from '@/shared/ui/Modal';
 
 interface DeleteManagerModalProps {

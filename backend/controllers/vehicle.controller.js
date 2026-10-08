@@ -22,7 +22,7 @@ exports.listVehicles = async (req, res, next) => {
     try {
         const result = await vehicleService.getVehicles({
             user: req.user,
-            teamId: req.teamId,
+            teamId: req.teamId || req.query.teamId,
             query: req.query,
         });
         return success(res, 200, result);

@@ -38,6 +38,9 @@ export const teamKeys = {
 
 export const managerKeys = {
   all: ['managers'] as const,
+  list: (params?: unknown) => ['managers', 'list', params ?? 'all'] as const,
   byStatus: (status?: string) => ['managers', { status }] as const,
   available: ['managers', 'available'] as const,
+  detail: (id: string) => ['managers', id] as const,
+  stats: (id: string) => ['managers', id, 'stats'] as const,
 };

@@ -1,3 +1,12 @@
+import type { PaginationInfo } from '@/shared/types/api.types';
+export type { PaginationInfo } from '@/shared/types/api.types';
+
+export interface TeamSummary {
+  _id: string;
+  name: string;
+  status?: string;
+}
+
 export interface FleetManager {
   _id: string;
   name?: string;
@@ -6,7 +15,7 @@ export interface FleetManager {
   status?: 'active' | 'inactive' | string;
   roles?: string[];
   companyId?: string;
-  teamId?: string | { _id: string; name: string } | null;
+  teamId?: string | TeamSummary | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,6 +24,20 @@ export type BackendFleetManager = FleetManager;
 
 export interface FleetManagersResponse {
   fleetManagers: FleetManager[];
+}
+
+export interface PaginatedManagersResponse {
+  fleetManagers: FleetManager[];
+  pagination?: PaginationInfo;
+}
+
+export interface ManagersQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: ManagerFilterStatus;
+  withoutTeam?: boolean;
+  teamId?: string;
 }
 
 export interface CreateManagerInput {
@@ -47,4 +70,3 @@ export interface ManagerStats {
 export interface ManagerStatsResponse {
   stats: ManagerStats;
 }
-

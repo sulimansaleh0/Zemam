@@ -54,11 +54,12 @@ export const API_PATHS = {
 
   MANAGERS: {
     LIST: 'api/user/fleet-manager',
+    DETAIL: (id: string) => `api/user/fleet-manager/${id}`,
     CREATE: 'api/user/fleet-manager',
     DELETE: (id: string) => `api/user/fleet-manager/${id}`,
     ASSIGN: (id: string) => `api/user/fleet-manager/${id}/assign-to-team`,
     DISABLE: (id: string) => `api/user/fleet-manager/${id}/remove-from-team`,
-    CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
+    CHANGE_STATUS: (id: string) => `api/user/fleet-manager/${id}/status`,
     STATS: (id: string) => `api/user/managers/${id}/stats`,
   },
 

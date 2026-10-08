@@ -1,0 +1,149 @@
+'use client';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/shared/ui/Toast';
+import { managerService } from '../services/manager.service';
+import { managerKeys, teamKeys } from '@/shared/constants/queryKeys';
+import type { CreateManagerInput } from '../types/manager.types';
+
+/**
+ * Hook to create a new fleet manager
+ */
+export function useCreateManager() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (payload: CreateManagerInput) => managerService.createManager(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      addToast({
+        type: 'success',
+        title: 'تم إنشاء الحساب',
+        message: 'تمت إضافة مدير الأسطول بنجاح',
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'خطأ في الإضافة',
+        message: err.message || 'تعذر إضافة مدير الأسطول، حاول مرة أخرى',
+      });
+    },
+  });
+}
+
+/**
+ * Hook to assign a fleet manager to a team
+ */
+export function useAssignManager() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ managerId, teamId }: { managerId: string; teamId: string }) =>
+      managerService.assignManager(managerId, teamId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      addToast({
+        type: 'success',
+        title: 'تم تعيين المدير',
+        message: 'تم ربط مدير الأسطول بالفريق بنجاح',
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل التعيين',
+        message: err.message || 'تعذر تعيين مدير الأسطول للفريق',
+      });
+    },
+  });
+}
+
+/**
+ * Hook to remove a fleet manager from their team
+ */
+export function useDisableManager() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (managerId: string) => managerService.disableManager(managerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      addToast({
+        type: 'info',
+        title: 'فك الارتباط',
+        message: 'تم فك ارتباط مدير الأسطول عن فريقه بنجاح',
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل فك الارتباط',
+        message: err.message || 'تعذر فك ارتباط مدير الأسطول',
+      });
+    },
+  });
+}
+
+/**
+ * Hook to toggle/change fleet manager status (active/inactive)
+ */
+export function useChangeManagerStatus() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ managerId, status }: { managerId: string; status: 'active' | 'inactive' }) =>
+      managerService.changeManagerStatus(managerId, status),
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      const label = status === 'active' ? 'تفعيل' : 'تعطيل';
+      addToast({
+        type: 'info',
+        title: 'تحديث الحالة',
+        message: `تم ${label} حساب مدير الأسطول بنجاح`,
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'فشل تغيير الحالة',
+        message: err.message || 'تعذر تغيير حالة مدير الأسطول',
+      });
+    },
+  });
+}
+
+/**
+ * Hook to deactivate / delete a fleet manager
+ */
+export function useDeleteManager() {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (managerId: string) => managerService.deleteManager(managerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managerKeys.all });
+      queryClient.invalidateQueries({ queryKey: teamKeys.all });
+      addToast({
+        type: 'info',
+        title: 'تم الحذف',
+        message: 'تم حذف حساب مدير الأسطول بنجاح',
+      });
+    },
+    onError: (err: Error) => {
+      addToast({
+        type: 'error',
+        title: 'خطأ في الحذف',
+        message: err.message || 'تعذر حذف حساب مدير الأسطول',
+      });
+    },
+  });
+}

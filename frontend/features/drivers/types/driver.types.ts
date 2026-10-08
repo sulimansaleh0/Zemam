@@ -80,6 +80,7 @@ export interface DriversQueryParams {
   licenseType?: string;
   withoutTeam?: boolean | string;
   all?: boolean | string;
+  teamId?: string;
 }
 
 /** إحصائيات السائق التشغيلية الشاملة من الخادم */

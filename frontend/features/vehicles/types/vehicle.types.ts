@@ -137,6 +137,8 @@ export interface VehicleQueryParams {
   vehicleType?: string;
   search?: string;
   withoutTeam?: boolean;
+  teamId?: string;
+  all?: boolean | string;
 }
 
 export interface ListVehiclesResponse {

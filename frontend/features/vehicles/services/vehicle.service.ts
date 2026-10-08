@@ -45,6 +45,7 @@ export const vehicleService = {
     if (params?.vehicleType && params.vehicleType !== 'all') searchParams.set('vehicleType', params.vehicleType);
     if (params?.search && params.search.trim()) searchParams.set('search', params.search.trim());
     if (params?.withoutTeam) searchParams.set('withoutTeam', 'true');
+    if (params?.teamId && params.teamId !== 'all') searchParams.set('teamId', params.teamId);
 
     const qs = searchParams.toString();
     const path = qs ? `${API_PATHS.VEHICLES.LIST}?${qs}` : API_PATHS.VEHICLES.LIST;

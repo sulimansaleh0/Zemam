@@ -77,7 +77,7 @@ exports.login = async (req, res) => {
             return error(res, 403, "الحساب معطل أو غير نشط، يرجى مراجعة إدارة الشركة");
         }
         if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
-            return error(res, 403, "Fleet manager must be assigned to an active team")
+            return error(res, 403, "حساب مدير الأسطول غير مرتبط بأي فريق تشغيلي حتى الآن، يرجى مراجعة إدارة الشركة لربطك بفريق تشغيلي للبدء");
         }
 
         // Generate and Store Token

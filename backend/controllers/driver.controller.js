@@ -28,7 +28,7 @@ class DriverController {
   async listDrivers(req, res) {
     try {
       const user = req.user;
-      const teamId = req.teamId;
+      const teamId = req.teamId || req.query.teamId;
       const { withoutTeam, status, licenseType, search, page, limit, all } =
         req.query;
 

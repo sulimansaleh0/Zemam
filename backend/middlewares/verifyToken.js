@@ -26,7 +26,7 @@ module.exports = async (req, res, next) => {
         if (!user || user.isDeleted) return error(res, 404, "User Not Found");
 
         if (user.role === userRoles.FLEET_MANAGER && !user.teamId) {
-            return error(res, 403, "Fleet manager must be assigned to an active team");
+            return error(res, 403, "حساب مدير الأسطول غير مرتبط بأي فريق تشغيلي حتى الآن، يرجى مراجعة إدارة الشركة لربطك بفريق تشغيلي للبدء");
         }
 
         if (user.status == mainStatus.ACTIVE) {

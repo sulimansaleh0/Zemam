@@ -34,17 +34,18 @@ export const VEHICLE_QUERY_KEYS = vehicleKeys;
 /**
  * Hook لجلب جميع المركبات (للقوائم المنسدلة وشاشات التعيين) مع استخراج معلومات السائق والفريق
  */
-export function useVehicles() {
+export function useVehicles(params?: VehicleQueryParams, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: vehicleKeys.all,
+    queryKey: params ? vehicleKeys.list(params) : vehicleKeys.all,
     queryFn: async ({ signal }) => {
-      const result = await vehicleService.getVehicles(undefined, signal);
+      const result = await vehicleService.getVehicles(params, signal);
       if (!result.success) {
         if (result.message === 'Request cancelled') return [];
         throw new Error(result.message);
       }
       return result.data?.vehicles ?? [];
     },
+    enabled: options?.enabled,
     select: (vehicles: BackendVehicle[]): VehicleWithRelations[] => {
       return vehicles.map((v) => {
         const driverObj = typeof v.driverId === 'object' && v.driverId !== null ? (v.driverId as DriverSummary) : null;

@@ -41,6 +41,7 @@ export const driverService = {
         searchParams.set('withoutTeam', String(params.withoutTeam));
       }
       if (params.all !== undefined) searchParams.set('all', String(params.all));
+      if (params.teamId) searchParams.set('teamId', params.teamId);
 
       const qs = searchParams.toString();
       if (qs) {

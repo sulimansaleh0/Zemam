@@ -23,7 +23,7 @@ export const DRIVER_KEYS = driverKeys;
 /**
  * جلب قائمة السائقين مع تحويل البيانات والألوان والأحرف الأولى
  */
-export function useDrivers(params?: DriversQueryParams) {
+export function useDrivers(params?: DriversQueryParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: driverKeys.list(params),
     queryFn: async ({ signal }) => {
@@ -34,6 +34,7 @@ export function useDrivers(params?: DriversQueryParams) {
       }
       return res.data;
     },
+    enabled: options?.enabled,
     select: (data): Driver[] => {
       return (data.drivers || []).map(enrichDriver);
     },

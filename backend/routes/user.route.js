@@ -4,13 +4,8 @@ const { userRoles } = require("../data/roles")
 const {
     me,
     updateProfile,
-    createFleetManager,
-    deleteFleetManager,
-    listFleetManagers,
-    getManagerStats,
-    removeFleetManager,
-    assignManager
 } = require("../controllers/user.controller")
+const managerController = require("../controllers/manager.controller")
 const driverController = require("../controllers/driver.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
@@ -19,7 +14,12 @@ const checkSubscription = require("../middlewares/CheckSubscription")
 const getTeam = require("../middlewares/getTeam")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createFleetManagerSchema, assignManagerSchema } = require("../validators/user")
+const { updateProfileSchema } = require("../validators/user")
+const {
+    createFleetManagerSchema,
+    assignManagerSchema,
+    updateManagerStatusSchema
+} = require("../validators/manager")
 const {
     createDriverSchema,
     updateDriverStatusSchema,
@@ -40,18 +40,28 @@ router.post("/fleet-manager",
     createFleetManagerSchema,
     validate,
     getTeam,
-    createFleetManager
+    managerController.createFleetManager
 )
 
 // List Managers
 router.get("/fleet-manager",
     allowedTo(userRoles.ADMIN),
-    listFleetManagers
+    managerController.listFleetManagers
+)
+
+// Get Manager By ID
+router.get("/fleet-manager/:id",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    managerController.getFleetManagerById
 )
 
 router.get("/managers/:id/stats",
     allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
-    getManagerStats
+    managerController.getManagerStats
+)
+router.get("/fleet-manager/:id/stats",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    managerController.getManagerStats
 )
 
 // Assign Manager to a Team
@@ -60,20 +70,28 @@ router.patch("/fleet-manager/:id/assign-to-team",
     assignManagerSchema,
     validate,
     getTeam,
-    assignManager
+    managerController.assignManager
 )
 
 // Delete Manager from a Team
 router.patch("/fleet-manager/:id/remove-from-team",
     allowedTo(userRoles.ADMIN),
-    removeFleetManager
+    managerController.removeFleetManager
+)
+
+// Change Manager Status (Active / Inactive)
+router.patch("/fleet-manager/:id/status",
+    allowedTo(userRoles.ADMIN),
+    updateManagerStatusSchema,
+    validate,
+    managerController.changeManagerStatus
 )
 
 // delete Manager
 router.delete(
     "/fleet-manager/:id",
     allowedTo(userRoles.ADMIN),
-    deleteFleetManager
+    managerController.deleteFleetManager
 )
 
 // Set Driver To Team
