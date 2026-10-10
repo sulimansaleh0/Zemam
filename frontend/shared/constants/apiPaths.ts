@@ -65,6 +65,7 @@ export const API_PATHS = {
 
   TASKS: {
     LIST: 'api/task',
+    STATS: 'api/task/stats',
     CREATE: 'api/task',
     DETAIL: (id: string) => `api/task/${id}`,
     UPDATE: (id: string) => `api/task/${id}`,

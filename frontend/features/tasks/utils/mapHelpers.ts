@@ -4,8 +4,8 @@
 
 export interface RouteData {
   coordinates: [number, number][]; // [lat, lng] array for Leaflet Polyline
-  distanceKm: number;
-  durationMinutes: number;
+  distanceKm?: number;
+  durationMinutes?: number;
 }
 
 export interface GeocodingResult {
@@ -15,29 +15,7 @@ export interface GeocodingResult {
 }
 
 /**
- * حساب المسافة المستقيمة بدقة (Haversine Formula) بالكيلومتر
- */
-export function calculateHaversineDistanceKm(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371; // نصف قطر الأرض بالكيلومتر
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
-}
-
-/**
- * جلب المسار الفعلي على الطرق والمسافة الحقيقية عبر OSRM Driving Engine
+ * جلب المسار الفعلي على الطرق عبر OSRM Driving Engine
  */
 export async function fetchDrivingRoute(
   start: [number, number], // [lat, lng]
@@ -74,20 +52,12 @@ export async function fetchDrivingRoute(
         durationMinutes,
       };
     }
-  } catch (err) {
-    // If routing fails or network is restricted, fallback to direct line with Haversine distance
+  } catch {
+    // If routing fails or network is offline, gracefully return direct straight line
   }
-
-  const directDist = calculateHaversineDistanceKm(startLat, startLng, endLat, endLng);
-  // Estimate road driving distance as roughly 1.3x straight line
-  const estimatedDrivingKm = Math.round(directDist * 1.3 * 10) / 10;
-  // Estimate driving time at 60 km/h average
-  const estimatedMins = Math.max(1, Math.round((estimatedDrivingKm / 60) * 60));
 
   return {
     coordinates: [start, end],
-    distanceKm: estimatedDrivingKm,
-    durationMinutes: estimatedMins,
   };
 }
 
@@ -113,7 +83,19 @@ export async function searchPlaces(
 
     if (!data.features || !Array.isArray(data.features)) return [];
 
-    return data.features.map((feature: any) => {
+    interface PhotonFeature {
+      geometry: { coordinates: [number, number] };
+      properties: {
+        name?: string;
+        street?: string;
+        city?: string;
+        district?: string;
+        state?: string;
+        country?: string;
+      };
+    }
+
+    return (data.features as PhotonFeature[]).map((feature) => {
       const [lng, lat] = feature.geometry.coordinates;
       const p = feature.properties;
       const parts = [p.name, p.street, p.city || p.district, p.state, p.country].filter(Boolean);

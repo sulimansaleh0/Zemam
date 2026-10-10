@@ -5,11 +5,12 @@ import type {
   BackendTask,
   CreateTaskInput,
   UpdateTaskInput,
+  TaskQueryParams,
+  ListTasksResponse,
+  TaskStats,
 } from '../types/task.types';
 
-export interface ListTasksResponse {
-  tasks: BackendTask[];
-}
+export type { ListTasksResponse };
 
 export interface SingleTaskResponse {
   task: BackendTask;
@@ -17,31 +18,58 @@ export interface SingleTaskResponse {
 
 export const taskService = {
   /**
-   * جلب قائمة جميع المهام للشركة أو الفريق الحالي
+   * جلب قائمة المهام مع دعم الفلترة والبحث والترقيم
    */
   getTasks(
-    filtersOrSignal?: { vehicleId?: string; driverId?: string } | AbortSignal,
-    vehicleIdOrSignal?: string | AbortSignal
+    params?: TaskQueryParams,
+    signal?: AbortSignal
   ): Promise<ServiceResult<ListTasksResponse>> {
-    let signal: AbortSignal | undefined;
-    const params = new URLSearchParams();
+    let url: string = API_PATHS.TASKS.LIST;
+    if (params) {
+      const searchParams = new URLSearchParams();
+      if (params.page !== undefined) searchParams.set('page', String(params.page));
+      if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
+      if (params.search) searchParams.set('search', params.search);
+      if (params.status && params.status !== 'all') searchParams.set('status', params.status);
+      if (params.vehicleId) searchParams.set('vehicleId', params.vehicleId);
+      if (params.driverId) searchParams.set('driverId', params.driverId);
+      if (params.teamId) searchParams.set('teamId', params.teamId);
+      if (params.all !== undefined) searchParams.set('all', String(params.all));
 
-    if (filtersOrSignal instanceof AbortSignal) {
-      signal = filtersOrSignal;
-      if (typeof vehicleIdOrSignal === 'string') {
-        params.set('vehicleId', vehicleIdOrSignal);
-      }
-    } else if (filtersOrSignal && typeof filtersOrSignal === 'object') {
-      if (filtersOrSignal.vehicleId) params.set('vehicleId', filtersOrSignal.vehicleId);
-      if (filtersOrSignal.driverId) params.set('driverId', filtersOrSignal.driverId);
-      if (vehicleIdOrSignal instanceof AbortSignal) {
-        signal = vehicleIdOrSignal;
+      const qs = searchParams.toString();
+      if (qs) {
+        url += `?${qs}`;
       }
     }
+    return sendRequest<ListTasksResponse>(url, { signal });
+  },
 
-    const query = params.toString();
-    const path = query ? `${API_PATHS.TASKS.LIST}?${query}` : API_PATHS.TASKS.LIST;
-    return sendRequest<ListTasksResponse>(path, { signal });
+  /**
+   * جلب الإحصائيات التشغيلية الصافية للمهام من الخادم
+   */
+  getTaskStats(signal?: AbortSignal): Promise<ServiceResult<{ stats: TaskStats }>> {
+    return sendRequest<{ stats: TaskStats }>(API_PATHS.TASKS.STATS, { signal });
+  },
+
+  /**
+   * جلب مهام السائق الخاص
+   */
+  getDriverTasks(
+    params?: { page?: number; limit?: number; all?: boolean },
+    signal?: AbortSignal
+  ): Promise<ServiceResult<ListTasksResponse>> {
+    let url: string = API_PATHS.TASKS.DRIVER_LIST;
+    if (params) {
+      const searchParams = new URLSearchParams();
+      if (params.page !== undefined) searchParams.set('page', String(params.page));
+      if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
+      if (params.all !== undefined) searchParams.set('all', String(params.all));
+      const qs = searchParams.toString();
+      if (qs) {
+        url += `?${qs}`;
+      }
+    }
+    return sendRequest<ListTasksResponse>(url, { signal });
   },
 
   /**
@@ -61,15 +89,15 @@ export const taskService = {
   /**
    * تحديث بيانات المهمة (مسموح فقط في حالة pending)
    */
-  updateTask(id: string, data: UpdateTaskInput): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.TASKS.UPDATE(id), data);
+  updateTask(id: string, data: UpdateTaskInput): Promise<ServiceResult<{ task: BackendTask }>> {
+    return patchRequest<{ task: BackendTask }>(API_PATHS.TASKS.UPDATE(id), data);
   },
 
   /**
    * قبول المهمة وبدء تنفيذها (بواسطة السائق عند حلول موعد البدء)
    */
-  acceptTask(id: string): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.TASKS.ACCEPT(id), {});
+  acceptTask(id: string): Promise<ServiceResult<{ task: BackendTask }>> {
+    return patchRequest<{ task: BackendTask }>(API_PATHS.TASKS.ACCEPT(id), {});
   },
 
   /**
@@ -82,7 +110,7 @@ export const taskService = {
   /**
    * إلغاء أو رفض المهمة مع حفظ السبب
    */
-  declineTask(id: string, declineReason?: string): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.TASKS.DECLINE(id), { declineReason });
+  declineTask(id: string, declineReason?: string): Promise<ServiceResult<{ task: BackendTask }>> {
+    return patchRequest<{ task: BackendTask }>(API_PATHS.TASKS.DECLINE(id), { declineReason });
   },
 };

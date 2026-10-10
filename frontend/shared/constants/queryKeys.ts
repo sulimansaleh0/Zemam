@@ -44,3 +44,12 @@ export const managerKeys = {
   detail: (id: string) => ['managers', id] as const,
   stats: (id: string) => ['managers', id, 'stats'] as const,
 };
+
+export const taskKeys = {
+  all: ['tasks'] as const,
+  list: (params?: unknown) => ['tasks', 'list', params ?? 'all'] as const,
+  detail: (id: string) => ['tasks', id] as const,
+  stats: ['tasks', 'stats'] as const,
+  driverTasks: (params?: unknown) => ['tasks', 'driver', params ?? 'all'] as const,
+};
+

@@ -58,6 +58,7 @@ const taskLivePointSchema = new mongoose.Schema({
 });
 
 taskLivePointSchema.index({ taskId: 1, timestamp: 1 });
+taskLivePointSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
 
 const TaskLivePoint = mongoose.model("taskLivePoint", taskLivePointSchema);
 module.exports = TaskLivePoint;

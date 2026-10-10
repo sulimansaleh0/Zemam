@@ -1,17 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Calendar,
   CheckCircle2,
   Clock,
-  HelpCircle,
   Info,
   Loader2,
-  MapPin,
-  Navigation,
   Pencil,
   PlusCircle,
   Truck,
@@ -39,8 +36,8 @@ interface VehicleOption {
   plateNumber: number | string;
   status?: string;
   isInTask?: boolean;
-  teamId?: string | { _id: string; name?: string };
-  driverId?: string | { _id: string; name?: string };
+  teamId?: string | { _id: string; name?: string } | null;
+  driverId?: string | { _id: string; name?: string } | null;
 }
 
 interface DriverOption {
@@ -49,7 +46,7 @@ interface DriverOption {
   email?: string;
   phone?: string;
   status?: string;
-  teamId?: string | { _id: string; name?: string };
+  teamId?: string | { _id: string; name?: string } | null;
 }
 
 interface TaskFormModalProps {
@@ -62,13 +59,6 @@ interface TaskFormModalProps {
   teams?: TeamOption[];
   initialTask?: TaskWithRelations | null;
 }
-
-const SAUDI_PRESETS = [
-  { name: 'مستودعات الرياض المركزية', lat: '24.7136', lng: '46.6753' },
-  { name: 'ميناء جدة الإسلامي', lat: '21.4858', lng: '39.1925' },
-  { name: 'المنطقة اللوجستية بالدمام', lat: '26.4207', lng: '50.0888' },
-  { name: 'المدينة الصناعية الثانية بالرياض', lat: '24.5712', lng: '46.8624' },
-];
 
 export function TaskFormModal({
   isOpen,
@@ -83,9 +73,65 @@ export function TaskFormModal({
   const { user } = useAuth();
   const isAdmin = user?.role !== 'fleet-manager' && user?.role !== 'fleet_manager';
 
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [manualTeamId, setManualTeamId] = useState<string | null>(null);
+
+  // حساب القيم المبدئية للنموذج عند الفتح أو التعديل دون الحاجة لـ useEffect
+  const formValues = useMemo<CreateTaskFormValues>(() => {
+    if (!initialTask) {
+      return {
+        description: '',
+        vehicleId: '',
+        driverId: '',
+        startTime: '',
+        expectedEndTime: '',
+        pickupLocation: { address: '', lat: '', lng: '' },
+        deliveryLocation: { address: '', lat: '', lng: '' },
+      };
+    }
+
+    const vId =
+      typeof initialTask.vehicleId === 'object' && initialTask.vehicleId !== null
+        ? initialTask.vehicleId._id
+        : String(initialTask.vehicleId || '');
+
+    const dId =
+      typeof initialTask.driverId === 'object' && initialTask.driverId !== null
+        ? initialTask.driverId._id
+        : String(initialTask.driverId || '');
+
+    let formattedTime = '';
+    if (initialTask.startTime) {
+      try {
+        const d = new Date(initialTask.startTime);
+        const offset = d.getTimezoneOffset() * 60000;
+        formattedTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+      } catch {
+        formattedTime = '';
+      }
+    }
+
+    let formattedEndTime = '';
+    if (initialTask.expectedEndTime) {
+      try {
+        const d = new Date(initialTask.expectedEndTime);
+        const offset = d.getTimezoneOffset() * 60000;
+        formattedEndTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+      } catch {
+        formattedEndTime = '';
+      }
+    }
+
+    return {
+      description: initialTask.description || '',
+      vehicleId: vId,
+      driverId: dId,
+      startTime: formattedTime,
+      expectedEndTime: formattedEndTime,
+      pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
+      deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
+    };
+  }, [initialTask]);
 
   const {
     register,
@@ -96,18 +142,14 @@ export function TaskFormModal({
     formState: { errors, isSubmitting },
   } = useForm<CreateTaskFormValues>({
     resolver: zodResolver(createTaskSchema),
-    defaultValues: {
-      description: '',
-      vehicleId: '',
-      driverId: '',
-      startTime: '',
-      expectedEndTime: '',
-      pickupLocation: { address: '', lat: '', lng: '' },
-      deliveryLocation: { address: '', lat: '', lng: '' },
+    values: formValues,
+    resetOptions: {
+      keepDirtyValues: false,
     },
   });
 
   const descriptionValue = watch('description') || '';
+  const selectedVehicleId = watch('vehicleId') || '';
   const pickupLocation = watch('pickupLocation') || { address: '', lat: '', lng: '' };
   const deliveryLocation = watch('deliveryLocation') || { address: '', lat: '', lng: '' };
 
@@ -119,81 +161,89 @@ export function TaskFormModal({
     setValue('deliveryLocation', loc, { shouldValidate: true });
   };
 
-  // إيجاد المركبة المختارة حالياً
+  // المركبة المختارة حالياً
   const currentVehicle = useMemo(() => {
     return vehicles.find((v) => v._id === selectedVehicleId);
   }, [vehicles, selectedVehicleId]);
 
-  // استخراج معرف فريق المركبة
-  const vehicleTeamId = useMemo(() => {
-    if (!currentVehicle?.teamId) return null;
-    return typeof currentVehicle.teamId === 'object'
-      ? currentVehicle.teamId._id
-      : currentVehicle.teamId;
-  }, [currentVehicle]);
+  // استخراج معرف فريق المهمة المبدئي في وضع التعديل
+  const initialTaskTeamId = useMemo(() => {
+    if (!initialTask?.teamId) return '';
+    return typeof initialTask.teamId === 'object' && initialTask.teamId !== null
+      ? initialTask.teamId._id
+      : String(initialTask.teamId);
+  }, [initialTask]);
 
-  // المعرف الفعال للفريق
+  // الفريق الفعال المعتمد
   const effectiveTeamId = useMemo(() => {
-    return selectedTeamId || vehicleTeamId || '';
-  }, [selectedTeamId, vehicleTeamId]);
+    if (manualTeamId !== null) return manualTeamId;
+    if (initialTaskTeamId) return initialTaskTeamId;
+    if (currentVehicle?.teamId) {
+      return typeof currentVehicle.teamId === 'object' && currentVehicle.teamId !== null
+        ? currentVehicle.teamId._id
+        : String(currentVehicle.teamId);
+    }
+    return '';
+  }, [manualTeamId, initialTaskTeamId, currentVehicle]);
 
-  // تصفية المركبات المتاحة والنشطة مع مراعاة الفريق المختار إن وجد
+  // تصفية المركبات النشطة المطابقة للفريق المختار إن وجد
   const activeVehicles = useMemo(() => {
     return vehicles.filter((v) => {
       const isActive = v.status === 'active' || !v.status;
       if (!isActive) return false;
-      if (selectedTeamId) {
-        const vTeamId = typeof v.teamId === 'object' ? v.teamId?._id : v.teamId;
-        return vTeamId === selectedTeamId;
+      if (effectiveTeamId) {
+        const vTeamId =
+          typeof v.teamId === 'object' && v.teamId !== null ? v.teamId._id : v.teamId;
+        return vTeamId === effectiveTeamId;
       }
       return true;
     });
-  }, [vehicles, selectedTeamId]);
+  }, [vehicles, effectiveTeamId]);
 
-  // تصفية السائقين التابعين لنفس الفريق التشغيلي تلقائياً لمنع خطأ 400
+  // تصفية السائقين التابعين لنفس الفريق التشغيلي
   const compatibleDrivers = useMemo(() => {
     if (!effectiveTeamId) return [];
     return drivers.filter((d) => {
       const driverTeamId =
-        typeof d.teamId === 'object' ? d.teamId?._id : d.teamId;
+        typeof d.teamId === 'object' && d.teamId !== null ? d.teamId._id : d.teamId;
       return driverTeamId === effectiveTeamId;
     });
   }, [drivers, effectiveTeamId]);
 
-  // عند تغيير الفريق يدوياً من الأدمن
+  // معالجة تغيير الفريق يدوياً
   const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const tId = e.target.value;
-    setSelectedTeamId(tId);
+    setManualTeamId(tId);
 
-    // إذا تغير الفريق وكانت المركبة الحالية لا تنتمي للفريق الجديد، يتم تفريغ الاختيار
     if (currentVehicle) {
       const vTeamId =
-        typeof currentVehicle.teamId === 'object'
+        typeof currentVehicle.teamId === 'object' && currentVehicle.teamId !== null
           ? currentVehicle.teamId._id
           : currentVehicle.teamId;
       if (vTeamId && vTeamId !== tId) {
-        setSelectedVehicleId('');
         setValue('vehicleId', '', { shouldValidate: true });
         setValue('driverId', '', { shouldValidate: true });
       }
     }
   };
 
-  // عند تغيير المركبة، يتم تعيين سائقها التلقائي أو تحديث قائمة السائقين وتحديث الفريق إن لم يكن محدداً
+  // معالجة اختيار المركبة وتحديث السائق التلقائي إن وُجد
   const handleVehicleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const vId = e.target.value;
-    setSelectedVehicleId(vId);
     setValue('vehicleId', vId, { shouldValidate: true });
 
     const veh = vehicles.find((v) => v._id === vId);
     if (veh) {
-      const vTeamId = typeof veh.teamId === 'object' ? veh.teamId?._id : veh.teamId;
-      if (vTeamId && !selectedTeamId) {
-        setSelectedTeamId(vTeamId);
+      const vTeamId =
+        typeof veh.teamId === 'object' && veh.teamId !== null ? veh.teamId._id : veh.teamId;
+      if (vTeamId && !manualTeamId) {
+        setManualTeamId(vTeamId);
       }
       if (veh.driverId) {
         const dId =
-          typeof veh.driverId === 'object' ? veh.driverId._id : veh.driverId;
+          typeof veh.driverId === 'object' && veh.driverId !== null
+            ? veh.driverId._id
+            : veh.driverId;
         setValue('driverId', dId, { shouldValidate: true });
       } else {
         setValue('driverId', '', { shouldValidate: true });
@@ -203,71 +253,12 @@ export function TaskFormModal({
     }
   };
 
-  // ملء النموذج في وضع التعديل، أو إعادة ضبطه عند الإغلاق
-  useEffect(() => {
-    if (isOpen && initialTask) {
-      const vId =
-        typeof initialTask.vehicleId === 'object'
-          ? initialTask.vehicleId._id
-          : initialTask.vehicleId;
-      const dId =
-        typeof initialTask.driverId === 'object'
-          ? initialTask.driverId._id
-          : initialTask.driverId || '';
-      const tId =
-        typeof initialTask.teamId === 'object'
-          ? (initialTask.teamId as any)?._id
-          : initialTask.teamId || '';
-
-      setSelectedVehicleId(vId);
-      setSelectedTeamId(tId);
-
-      let formattedTime = '';
-      if (initialTask.startTime) {
-        try {
-          const d = new Date(initialTask.startTime);
-          const offset = d.getTimezoneOffset() * 60000;
-          formattedTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
-        } catch {
-          formattedTime = '';
-        }
-      }
-
-      let formattedEndTime = '';
-      if (initialTask.expectedEndTime) {
-        try {
-          const d = new Date(initialTask.expectedEndTime);
-          const offset = d.getTimezoneOffset() * 60000;
-          formattedEndTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
-        } catch {
-          formattedEndTime = '';
-        }
-      }
-
-      reset({
-        description: initialTask.description || '',
-        vehicleId: vId,
-        driverId: dId,
-        startTime: formattedTime,
-        expectedEndTime: formattedEndTime,
-        pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
-        deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
-      });
-    } else if (!isOpen) {
-      reset({
-        description: '',
-        vehicleId: '',
-        driverId: '',
-        startTime: '',
-        expectedEndTime: '',
-        pickupLocation: { address: '', lat: '', lng: '' },
-        deliveryLocation: { address: '', lat: '', lng: '' },
-      });
-      setSelectedVehicleId('');
-      setSelectedTeamId('');
-    }
+  const handleCloseModal = () => {
     setFormError(null);
-  }, [isOpen, initialTask, reset]);
+    setManualTeamId(null);
+    reset();
+    onClose();
+  };
 
   const handleFormSubmit = handleSubmit(async (values) => {
     setFormError(null);
@@ -298,16 +289,17 @@ export function TaskFormModal({
       };
 
       await onSubmit(payload);
-      onClose();
-    } catch (err: any) {
-      setFormError(err?.message || 'حدث خطأ أثناء حفظ المهمة');
+      handleCloseModal();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'حدث خطأ أثناء حفظ المهمة';
+      setFormError(message);
     }
   });
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleCloseModal}
       title={initialTask ? 'تعديل بيانات المهمة' : 'إنشاء وتعيين مهمة جديدة'}
       description={
         initialTask
@@ -324,10 +316,11 @@ export function TaskFormModal({
             <p className="font-medium leading-relaxed">{formError}</p>
           </div>
         )}
-        {/* الجسم القابل للتمرير */}
+
+        {/* جسم النموذج القابل للتمرير */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* ── العمود الأول: بيانات وتفاصيل المهمة (5 أعمدة) ── */}
+            {/* ── العمود الأول: تفاصيل المهمة والموارد (5 أعمدة) ── */}
             <div className="lg:col-span-5 space-y-4">
               {/* وصف المهمة */}
               <div className="space-y-1">
@@ -336,89 +329,74 @@ export function TaskFormModal({
                     وصف المهمة والتعليمات <span className="text-rose-500">*</span>
                   </label>
                   <span
-                    className={`text-[10px] font-medium ${descriptionValue.length < 15 ? 'text-amber-500' : 'text-emerald-500'
-                      }`}
+                    className={`text-[10px] font-medium ${
+                      descriptionValue.length < 10 ? 'text-amber-500' : 'text-emerald-500'
+                    }`}
                   >
-                    {descriptionValue.length}/15 حرف كحد أدنى
+                    {descriptionValue.length}/10 أحرف كحد أدنى
                   </span>
                 </div>
                 <textarea
                   rows={3}
                   {...register('description')}
-                  placeholder="اكتب وصفاً دقيقاً للمهمة (يجب ألا يقل عن 15 حرفاً بحسب معايير النظام)..."
-                  className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
+                  placeholder="اكتب وصفاً تفصيلياً للمهمة وتعليمات التسليم..."
+                  className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none transition resize-none"
                 />
                 {errors.description && (
                   <p className="text-xs text-rose-500">{errors.description.message}</p>
                 )}
               </div>
 
-              {/* الفريق المسؤول (للأدمن أو عند وجود قائمة فرق) */}
-              {(isAdmin || teams.length > 0) && (
+              {/* اختيار الفريق للأدمن */}
+              {isAdmin && (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-[var(--zd-text)]">
-                      الفريق المسؤول {isAdmin && <span className="text-rose-500">*</span>}
-                    </label>
-                    {selectedTeamId && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedTeamId('');
-                          setSelectedVehicleId('');
-                          setValue('vehicleId', '', { shouldValidate: true });
-                          setValue('driverId', '', { shouldValidate: true });
-                        }}
-                        className="text-[10px] text-[var(--zd-muted)] hover:text-rose-400 transition cursor-pointer"
-                      >
-                        إلغاء التحديد
-                      </button>
-                    )}
-                  </div>
+                  <label className="text-xs font-semibold text-[var(--zd-text)]">
+                    الفريق التشغيلي المسؤول <span className="text-rose-500">*</span>
+                  </label>
                   <div className="relative">
-                    <Users className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                    <Users className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)] pointer-events-none" />
                     <select
-                      value={selectedTeamId}
+                      value={effectiveTeamId}
                       onChange={handleTeamChange}
-                      className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                      className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none appearance-none cursor-pointer"
                     >
-                      <option value="">
-                        {isAdmin ? 'اختر الفريق التشغيلي المسؤول...' : 'تصفية حسب الفريق (اختياري)...'}
-                      </option>
-                      {teams.map((t) => (
-                        <option key={t._id} value={t._id}>
-                          {t.name}
+                      <option value="">— اختر الفريق المسؤول عن المهمة —</option>
+                      {teams.map((team) => (
+                        <option key={team._id} value={team._id}>
+                          {team.name}
                         </option>
                       ))}
                     </select>
                   </div>
-                  {isAdmin && !selectedTeamId && (
-                    <p className="text-[10px] text-amber-500">
-                      يجب تحديد الفريق لتصفية المركبات والسائقين التابعين له
-                    </p>
-                  )}
                 </div>
               )}
 
-              {/* المركبة المخصصة */}
+              {/* اختيار المركبة */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-[var(--zd-text)]">
-                  المركبة المخصصة <span className="text-rose-500">*</span>
+                  المركبة المخصصة للمهمة <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <Truck className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <Truck className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)] pointer-events-none" />
                   <select
                     value={selectedVehicleId}
                     onChange={handleVehicleChange}
-                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none appearance-none cursor-pointer"
                   >
-                    <option value="">اختر المركبة...</option>
-                    {activeVehicles.map((v) => (
-                      <option key={v._id} value={v._id}>
-                        {v.model} - لوحة: {v.plateNumber}{' '}
-                        {v.isInTask ? '(في مهمة)' : ''}
-                      </option>
-                    ))}
+                    <option value="">— اختر مركبة من الأسطول —</option>
+                    {activeVehicles.map((vehicle) => {
+                      const isBusy = vehicle.isInTask;
+                      return (
+                        <option
+                          key={vehicle._id}
+                          value={vehicle._id}
+                          disabled={Boolean(isBusy && vehicle._id !== initialTask?.vehicleId)}
+                        >
+                          {vehicle.model} (لوحة: {vehicle.plateNumber})
+                          {isBusy ? ' [مشغولة بمهمة]' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 {errors.vehicleId && (
@@ -426,55 +404,29 @@ export function TaskFormModal({
                 )}
               </div>
 
-              {/* السائق المسؤول */}
+              {/* اختيار السائق */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[var(--zd-text)]">
-                  السائق المسؤول <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[var(--zd-text)]">
+                    السائق المكلف بالرحلة
+                  </label>
+                  <span className="text-[10px] text-[var(--zd-muted)]">(اختياري)</span>
+                </div>
                 <div className="relative">
-                  <User className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <User className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)] pointer-events-none" />
                   <select
                     {...register('driverId')}
-                    disabled={!selectedVehicleId || compatibleDrivers.length === 0}
-                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] disabled:cursor-not-allowed disabled:opacity-50 focus:border-[var(--zd-blue)] focus:outline-none"
+                    className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] py-2.5 pr-10 pl-3 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none appearance-none cursor-pointer"
                   >
-                    {!selectedVehicleId ? (
-                      <option value="">اختر المركبة أولاً لمعاينة سائقي فريقها</option>
-                    ) : compatibleDrivers.length === 0 ? (
-                      <option value="">لا يوجد سائقون نشطون في نفس فريق المركبة</option>
-                    ) : (
-                      <>
-                        <option value="">اختر السائق...</option>
-                        {compatibleDrivers.map((d) => (
-                          <option key={d._id} value={d._id}>
-                            {d.name || d.email} ({d.phone || 'بدون هاتف'})
-                          </option>
-                        ))}
-                      </>
-                    )}
+                    <option value="">— تعيين سائق لاحقاً —</option>
+                    {compatibleDrivers.map((driver) => (
+                      <option key={driver._id} value={driver._id}>
+                        {driver.name || driver.email} {driver.phone ? `(${driver.phone})` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                {errors.driverId && (
-                  <p className="text-xs text-rose-500">{errors.driverId.message}</p>
-                )}
               </div>
-
-              {/* تنبيه ذكي لتطابق الفريق */}
-              {effectiveTeamId ? (
-                <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-[11px] text-blue-400">
-                  <Info className="h-4 w-4 shrink-0 text-blue-400" />
-                  <span>
-                    تم قصر السائقين والمركبات على نفس الفريق التشغيلي لضمان قبول المهمة.
-                  </span>
-                </div>
-              ) : (
-                selectedVehicleId && (
-                  <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-2.5 text-[11px] text-amber-400">
-                    <Info className="h-4 w-4 shrink-0 text-amber-400" />
-                    <span>تنبيه: هذه المركبة غير مرتبطة بفريق تشغيلي حالياً.</span>
-                  </div>
-                )
-              )}
 
               {/* موعد الانطلاق */}
               <div className="space-y-1.5">
@@ -482,7 +434,7 @@ export function TaskFormModal({
                   موعد وتاريخ انطلاق المهمة <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <Calendar className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <Calendar className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)] pointer-events-none" />
                   <input
                     type="datetime-local"
                     {...register('startTime')}
@@ -500,7 +452,7 @@ export function TaskFormModal({
                   الوقت المتوقع للتسليم <span className="text-[var(--zd-muted)] text-[11px]">(اختياري)</span>
                 </label>
                 <div className="relative">
-                  <Clock className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)]" />
+                  <Clock className="absolute right-3 top-3 h-4 w-4 text-[var(--zd-muted)] pointer-events-none" />
                   <input
                     type="datetime-local"
                     {...register('expectedEndTime')}
@@ -541,7 +493,7 @@ export function TaskFormModal({
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseModal}
               disabled={isLoading || isSubmitting}
               className="rounded-xl border border-[var(--zd-line)] px-4 py-2 text-xs font-semibold text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)] transition cursor-pointer"
             >

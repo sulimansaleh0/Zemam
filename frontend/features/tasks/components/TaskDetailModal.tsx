@@ -1,42 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import {
   AlertTriangle,
   Calendar,
-  CheckCircle2,
-  Clock,
-  Compass,
   Eye,
   FileText,
+  Fuel,
   Gauge,
-  MapPin,
-  Navigation,
   Phone,
-  Route,
-  Shield,
-  Timer,
   Truck,
   User,
-  Zap,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import { getTaskStatusConfig, formatTaskDateTime } from '../utils/taskHelpers';
-import { fetchDrivingRoute, type RouteData } from '../utils/mapHelpers';
-import { decodePolyline } from '@/features/gps/utils/gpsHelpers';
 import type { TaskWithRelations } from '../types/task.types';
-
-const LeafletMapCanvas = dynamic(() => import('./LeafletMapCanvas'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[240px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] text-xs text-[var(--zd-muted)]">
-      <Compass className="h-6 w-6 animate-spin text-[var(--zd-blue)]" />
-      <span>جاري تحميل مسار الخريطة...</span>
-    </div>
-  ),
-});
+import { TaskDetailMapSection } from './TaskDetailMapSection';
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -45,41 +25,22 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps) {
-  const [routeData, setRouteData] = useState<RouteData | null>(null);
-  const pickupLat = task?.pickupLocation?.lat ? parseFloat(task.pickupLocation.lat) : NaN;
-  const pickupLng = task?.pickupLocation?.lng ? parseFloat(task.pickupLocation.lng) : NaN;
-  const deliveryLat = task?.deliveryLocation?.lat ? parseFloat(task.deliveryLocation.lat) : NaN;
-  const deliveryLng = task?.deliveryLocation?.lng ? parseFloat(task.deliveryLocation.lng) : NaN;
-
-  const hasCoords = !isNaN(pickupLat) && !isNaN(pickupLng) && !isNaN(deliveryLat) && !isNaN(deliveryLng);
-
-  useEffect(() => {
-    if (!task || !hasCoords) {
-      setRouteData(null);
-      return;
-    }
-
-    let isMounted = true;
-    fetchDrivingRoute([pickupLat, pickupLng], [deliveryLat, deliveryLng]).then((res) => {
-      if (isMounted) setRouteData(res);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [task?._id, pickupLat, pickupLng, deliveryLat, deliveryLng, hasCoords]);
-
-  const decodedTripPath = React.useMemo(() => {
-    if (task?.tripSummary?.encodedPath) {
-      return decodePolyline(task.tripSummary.encodedPath);
-    }
-    return undefined;
-  }, [task?.tripSummary?.encodedPath]);
   if (!task) return null;
 
   const statusConfig = getTaskStatusConfig(task.status);
-  const vehicleId = typeof task.vehicleId === 'object' ? task.vehicleId?._id : task.vehicleId;
-  const driverId = typeof task.driverId === 'object' ? task.driverId?._id : task.driverId;
+  const vehicleId =
+    typeof task.vehicleId === 'object' && task.vehicleId !== null
+      ? task.vehicleId._id
+      : typeof task.vehicleId === 'string'
+      ? task.vehicleId
+      : null;
+
+  const driverId =
+    typeof task.driverId === 'object' && task.driverId !== null
+      ? task.driverId._id
+      : typeof task.driverId === 'string'
+      ? task.driverId
+      : null;
 
   return (
     <Modal
@@ -106,7 +67,10 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
             </div>
             <div className="flex items-center gap-1.5 text-xs text-[var(--zd-muted)]">
               <Calendar className="h-3.5 w-3.5 text-[var(--zd-blue)]" />
-              <span>موعد الانطلاق: <strong className="text-[var(--zd-text)]">{task.formattedStartTime}</strong></span>
+              <span>
+                موعد الانطلاق:{' '}
+                <strong className="text-[var(--zd-text)]">{task.formattedStartTime}</strong>
+              </span>
             </div>
           </div>
 
@@ -124,7 +88,7 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            {/* ── العمود الأيمن: بيانات المهمة والمركبة والسائق (5 أعمدة) ── */}
+            {/* ── العمود الأيمن: بيانات المهمة والتشغيل (5 أعمدة) ── */}
             <div className="lg:col-span-5 space-y-4">
               {/* وصف المهمة */}
               <div className="space-y-1.5 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3.5">
@@ -145,19 +109,24 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                 </div>
                 <div className="mt-2 text-xs space-y-1.5 text-[var(--zd-muted)]">
                   <p className="flex justify-between">
-                    <span className="text-[var(--zd-muted)]">الموديل:</span>
+                    <span>الموديل:</span>
                     {vehicleId ? (
-                      <Link href={`/vehicles/${vehicleId}`} className="font-semibold text-[var(--zd-text)] hover:text-[var(--zd-blue)] hover:underline">
+                      <Link
+                        href={`/vehicles/${vehicleId}`}
+                        className="font-semibold text-[var(--zd-text)] hover:text-[var(--zd-blue)] hover:underline"
+                      >
                         {task.vehicleModel}
                       </Link>
-                    ) : <span className="font-semibold text-[var(--zd-text)]">{task.vehicleModel}</span>}
+                    ) : (
+                      <span className="font-semibold text-[var(--zd-text)]">{task.vehicleModel}</span>
+                    )}
                   </p>
                   <p className="flex justify-between">
-                    <span className="text-[var(--zd-muted)]">رقم اللوحة:</span>
+                    <span>رقم اللوحة:</span>
                     <span className="font-semibold text-[var(--zd-text)]">{task.vehiclePlate}</span>
                   </p>
                   <p className="flex justify-between">
-                    <span className="text-[var(--zd-muted)]">الفريق:</span>
+                    <span>الفريق:</span>
                     <span className="font-semibold text-[var(--zd-text)]">{task.teamName}</span>
                   </p>
                 </div>
@@ -171,22 +140,60 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
                 </div>
                 <div className="mt-2 text-xs space-y-1.5 text-[var(--zd-muted)]">
                   <p className="flex justify-between">
-                    <span className="text-[var(--zd-muted)]">الاسم:</span>
+                    <span>الاسم:</span>
                     {driverId ? (
-                      <Link href={`/drivers/${driverId}`} className="font-semibold text-[var(--zd-text)] hover:text-[var(--zd-blue)] hover:underline">
+                      <Link
+                        href={`/drivers/${driverId}`}
+                        className="font-semibold text-[var(--zd-text)] hover:text-[var(--zd-blue)] hover:underline"
+                      >
                         {task.driverName}
                       </Link>
-                    ) : <span className="font-semibold text-[var(--zd-text)]">{task.driverName}</span>}
+                    ) : (
+                      <span className="font-semibold text-[var(--zd-text)]">{task.driverName}</span>
+                    )}
                   </p>
                   <p className="flex justify-between items-center">
-                    <span className="text-[var(--zd-muted)]">الهاتف:</span>
+                    <span>الهاتف:</span>
                     <span className="font-semibold text-[var(--zd-text)] flex items-center gap-1">
                       <Phone className="h-3 w-3 text-emerald-500" />
-                      {task.driverPhone}
+                      {task.driverPhone || '—'}
                     </span>
                   </p>
                 </div>
               </div>
+
+              {/* العداد والوقود للمهام المكتملة */}
+              {(task.startOdometer !== undefined || task.endOdometer !== undefined || task.fuelConsumedLitres !== undefined) && (
+                <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3.5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[var(--zd-text)]">
+                    <Gauge className="h-4 w-4 text-purple-500" />
+                    <span>سجلات العداد والوقود</span>
+                  </div>
+                  <div className="text-xs space-y-1.5 text-[var(--zd-muted)]">
+                    {task.startOdometer !== undefined && (
+                      <div className="flex justify-between">
+                        <span>عداد البداية:</span>
+                        <span className="font-semibold text-[var(--zd-text)]">{task.startOdometer} كم</span>
+                      </div>
+                    )}
+                    {task.endOdometer !== undefined && (
+                      <div className="flex justify-between">
+                        <span>عداد النهاية:</span>
+                        <span className="font-semibold text-[var(--zd-text)]">{task.endOdometer} كم</span>
+                      </div>
+                    )}
+                    {task.fuelConsumedLitres !== undefined && (
+                      <div className="flex justify-between items-center border-t border-[var(--zd-line)]/50 pt-1.5">
+                        <span className="flex items-center gap-1 text-amber-500 font-medium">
+                          <Fuel className="h-3.5 w-3.5" />
+                          <span>الوقود المستهلك:</span>
+                        </span>
+                        <span className="font-bold text-amber-400">{task.fuelConsumedLitres} لتر</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* التواريخ والأوقات */}
               <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/30 p-3 text-[11px] text-[var(--zd-muted)] space-y-1.5">
@@ -217,102 +224,7 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
 
             {/* ── العمود الأيسر: خريطة المسار والنقاط (7 أعمدة) ── */}
             <div className="lg:col-span-7 space-y-3">
-              {/* المسار الجغرافي */}
-              <div className="space-y-3 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3.5">
-                <span className="text-xs font-bold text-[var(--zd-text)]">المسار ونقاط التحرك</span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-start gap-2 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-2">
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-emerald-500 text-[11px]">الانطلاق A</p>
-                      <p className="text-[var(--zd-text)] text-[11px] truncate">{task.pickupLocation?.address || '—'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-2">
-                    <Navigation className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-blue-500 text-[11px]">التسليم B</p>
-                      <p className="text-[var(--zd-text)] text-[11px] truncate">{task.deliveryLocation?.address || '—'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* خريطة المسار التفاعلية المصغرة */}
-                {hasCoords && (
-                  <div className="space-y-2 pt-1">
-                    <LeafletMapCanvas
-                      pickupPosition={[pickupLat, pickupLng]}
-                      deliveryPosition={[deliveryLat, deliveryLng]}
-                      routeCoordinates={decodedTripPath || routeData?.coordinates}
-                      showGeofence={true}
-                      className="h-[280px] w-full rounded-2xl"
-                      readOnly={true}
-                    />
-
-                    {/* إذا كانت المهمة منتهية ويوجد ملخص GPS فعلي */}
-                    {task.tripSummary ? (
-                      <div className="space-y-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs">
-                        <div className="flex items-center justify-between border-b border-emerald-500/15 pb-2">
-                          <span className="font-bold text-emerald-600 flex items-center gap-1.5">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>تقرير التتبع الفعلي للمهمة (GPS Trip Summary)</span>
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
-                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
-                            <span className="text-[10px] text-[var(--zd-muted)] block">المسافة الفعلية</span>
-                            <span className="font-black text-blue-600 text-sm">
-                              {task.tripSummary.totalDistanceKm ?? '—'} كم
-                            </span>
-                          </div>
-                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
-                            <span className="text-[10px] text-[var(--zd-muted)] block">زمن القيادة</span>
-                            <span className="font-black text-emerald-600 text-sm">
-                              {task.tripSummary.durationMinutes ?? '—'} دقيقة
-                            </span>
-                          </div>
-                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
-                            <span className="text-[10px] text-[var(--zd-muted)] block">متوسط السرعة</span>
-                            <span className="font-black text-amber-600 text-sm">
-                              {task.tripSummary.averageSpeed ?? '—'} كم/س
-                            </span>
-                          </div>
-                          <div className="rounded-lg bg-[var(--zd-surface)] p-2 border border-[var(--zd-line)]">
-                            <span className="text-[10px] text-[var(--zd-muted)] block">أقصى سرعة</span>
-                            <span className="font-black text-purple-600 text-sm">
-                              {task.tripSummary.maxSpeed ?? '—'} كم/س
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : routeData ? (
-                      <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shrink-0">
-                            <Route className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-[var(--zd-muted)]">المسافة المقدرة</p>
-                            <p className="text-xs font-bold text-blue-400">{routeData.distanceKm} كم</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm shrink-0">
-                            <Timer className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-[var(--zd-muted)]">الوقت المتوقع</p>
-                            <p className="text-xs font-bold text-emerald-400">{routeData.durationMinutes} دقيقة تقريباً</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </div>
+              <TaskDetailMapSection task={task} />
             </div>
           </div>
         </div>
