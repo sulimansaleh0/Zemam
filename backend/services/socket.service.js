@@ -5,6 +5,7 @@ const { userRoles } = require("../data/roles");
 const { mainStatus } = require("../data/status");
 const { processTelemetryUpdate } = require("./gpsIngestion.service");
 const { allowedOrigins } = require("../data");
+const { zemamGeoCodec } = require("../utils/geoSync");
 
 let io = null;
 
@@ -104,14 +105,34 @@ function initSocket(server) {
             }
         });
 
-        // Handle driver location update (PWA telemetry pulse)
-        socket.on("driver:location_update", async (payload, acknowledge) => {
+        // Handle driver location update (PWA telemetry pulse - supports both binary and JSON)
+        const handleLocationPayload = async (payload, acknowledge) => {
             const respond = (result) => {
                 if (typeof acknowledge === "function") acknowledge(result);
             };
             try {
-                if (user.role !== userRoles.DRIVER || !payload || !payload.vehicleId) {
-                    respond({ ok: false, message: "A driver and vehicle are required" });
+                if (user.role !== userRoles.DRIVER || !payload) {
+                    respond({ ok: false, message: "A driver is required" });
+                    return;
+                }
+
+                let { vehicleId, taskId, lat, lng, speed, heading, accuracy, timestamp } = payload;
+
+                // Decode compact binary GPS pulse if present
+                if (payload.bin) {
+                    const binData = Buffer.isBuffer(payload.bin)
+                        ? new Uint8Array(payload.bin)
+                        : (payload.bin instanceof Uint8Array ? payload.bin : new Uint8Array(payload.bin));
+                    const decoded = zemamGeoCodec.decodePoint(binData);
+                    lat = decoded.lat;
+                    lng = decoded.lon;
+                    if (decoded.speed != null) speed = decoded.speed;
+                    if (decoded.heading != null) heading = decoded.heading;
+                    timestamp = Date.now() - (decoded.ageSec || 0) * 1000;
+                }
+
+                if (!vehicleId) {
+                    respond({ ok: false, message: "A vehicleId is required" });
                     return;
                 }
 
@@ -120,17 +141,17 @@ function initSocket(server) {
                 const driverId = user._id;
 
                 const result = await processTelemetryUpdate({
-                    vehicleId: payload.vehicleId,
-                    taskId: payload.taskId,
+                    vehicleId,
+                    taskId,
                     driverId,
                     companyId,
                     teamId,
-                    lat: payload.lat,
-                    lng: payload.lng,
-                    speed: payload.speed,
-                    heading: payload.heading,
-                    accuracy: payload.accuracy,
-                    timestamp: payload.timestamp
+                    lat,
+                    lng,
+                    speed,
+                    heading,
+                    accuracy,
+                    timestamp: timestamp || Date.now()
                 });
 
                 // Broadcast location update to relevant rooms
@@ -144,7 +165,10 @@ function initSocket(server) {
                 console.error("❌ [Socket] Error processing driver location update:", err.message);
                 respond({ ok: false, message: err.message });
             }
-        });
+        };
+
+        socket.on("driver:location_update", handleLocationPayload);
+        socket.on("driver:location_bin", handleLocationPayload);
 
         socket.on("disconnect", (reason) => {
             console.log(`🔴 [Socket] Client disconnected: ${socket.id} (${reason})`);

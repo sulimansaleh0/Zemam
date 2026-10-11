@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { VehicleLiveTelemetry } from '../types/gps.types';
+import type { VehicleLiveTelemetry, GpsFilterOptions } from '../types/gps.types';
 import { getCurrentLocation } from '@/shared/lib/navigatorClient';
 import {
   createUnifiedVehicleMarker,
@@ -30,6 +30,8 @@ interface GpsMapCanvasProps {
   selectedVehicleId: string | null;
   onSelectVehicle?: (vehicleId: string) => void;
   activePolyline?: Array<[number, number] | TrajectoryPoint>;
+  filters?: GpsFilterOptions;
+  onFilterChange?: (filters: GpsFilterOptions) => void;
   className?: string;
 }
 
@@ -56,6 +58,8 @@ export default function GpsMapCanvas({
   selectedVehicleId,
   onSelectVehicle,
   activePolyline,
+  filters,
+  onFilterChange,
   className = 'h-full w-full',
 }: GpsMapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -436,7 +440,7 @@ export default function GpsMapCanvas({
       <div ref={containerRef} className="h-full w-full" />
 
       {/* شريط أدوات الخريطة الموحد في الزاوية العلوية المقابلة */}
-      <div className="absolute top-3 start-3">
+      <div className="absolute top-3 start-3 z-[500]">
         <MapControls
           currentStyleId={currentStyleId}
           onStyleChange={handleStyleChange}
@@ -450,6 +454,35 @@ export default function GpsMapCanvas({
           containerElement={containerRef.current}
         />
       </div>
+
+      {/* ── شريط فلترة الحالات السريع المباشر على الخريطة ── */}
+      {filters && onFilterChange && (
+        <div className="absolute top-3 end-3 z-[500] hidden sm:flex items-center gap-1 rounded-2xl bg-slate-900/90 backdrop-blur-md p-1 border border-slate-700/60 shadow-xl select-none" dir="rtl">
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'moving', label: 'متحركة', dot: 'bg-emerald-500' },
+            { id: 'idle', label: 'متوقفة', dot: 'bg-amber-500' },
+            { id: 'available', label: 'متاحة', dot: 'bg-blue-500' },
+            { id: 'offline', label: 'آخر توقف', dot: 'bg-slate-400' },
+          ].map((tab) => {
+            const isActive = filters.status === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onFilterChange({ ...filters, status: tab.id as any })}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                {tab.dot && <span className={`h-2 w-2 rounded-full ${tab.dot} ${isActive && tab.id === 'moving' ? 'animate-pulse' : ''}`} />}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* إشعار حفظ مقر الشركة بنجاح */}
       {hqSavedNotice && (

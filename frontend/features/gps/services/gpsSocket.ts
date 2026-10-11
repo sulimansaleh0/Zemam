@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import type { DriverTelemetryPayload, TripSummary, VehicleLiveTelemetry } from '../types/gps.types';
 import { sendRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
+import { zemamGeoCodec } from '@/shared/lib/geoSync';
 
 export function getSocketUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -117,6 +118,35 @@ export function emitDriverLocation(payload: DriverTelemetryPayload) {
 
   // إرسال نبضة واحدة فقط لتجنب المعالجة المزدوجة في الباك إند
   socket.emit('driver:location_update', payload);
+}
+
+/**
+ * إرسال نبضة GPS مشفرة بنظام باينري فائق الخفة (~8 بايت) لتوفير باقة النت والبطارية على شبكات 2G/EDGE
+ */
+export function emitDriverLocationBin(payload: DriverTelemetryPayload) {
+  const socket = getGpsSocket();
+  if (!socket.connected) {
+    socket.connect();
+  }
+
+  try {
+    const binaryPulse = zemamGeoCodec.encodePoint({
+      lat: payload.lat,
+      lon: payload.lng,
+      speed: payload.speed != null ? payload.speed / 3.6 : 0,
+      heading: payload.heading ?? 0,
+      ageSec: payload.timestamp ? Math.max(0, Math.round((Date.now() - payload.timestamp) / 1000)) : 0,
+    });
+
+    socket.emit('driver:location_bin', {
+      vehicleId: payload.vehicleId,
+      taskId: payload.taskId,
+      bin: binaryPulse,
+    });
+  } catch {
+    // عودة تلقائية إلى JSON في حالة حدوث أي تعذر في التشفير
+    socket.emit('driver:location_update', payload);
+  }
 }
 
 /**

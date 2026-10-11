@@ -2,6 +2,7 @@ import { sendRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type { ServiceResult } from '@/shared/types/api.types';
 import type { VehicleLiveTelemetry, TripSummary, DriverTelemetryPayload } from '../types/gps.types';
+import { fetchPositions, zemamGeoCodec, IndexTable } from '@/shared/lib/geoSync';
 
 export interface LiveFleetResponse {
   vehicles: VehicleLiveTelemetry[];
@@ -47,11 +48,60 @@ export interface TaskLivePointsResponse {
   };
 }
 
+const fleetIndexTable = new IndexTable();
+
 export const gpsService = {
   /**
-   * جلب أحدث المواقع اللحظية لأسطول المركبات (حسب صلاحيات المستخدم: كل الشركة للأدمن، وفريقه لمدير الأسطول)
+   * جلب أحدث المواقع اللحظية لأسطول المركبات مع دعم البروتوكول الباينري المضغوط
+   * والتراجع التلقائي إلى JSON القياسي عند عدم توفر الباينري
    */
-  getLiveFleet(signal?: AbortSignal): Promise<ServiceResult<LiveFleetResponse>> {
+  async getLiveFleet(signal?: AbortSignal): Promise<ServiceResult<LiveFleetResponse>> {
+    try {
+      const url = typeof window !== 'undefined' ? `/${API_PATHS.GPS.LIVE}` : `${process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || ''}/${API_PATHS.GPS.LIVE}`;
+      const result = await fetchPositions(url, {
+        codec: zemamGeoCodec,
+        idOf: (n) => fleetIndexTable.idOf(n),
+        init: {
+          credentials: 'include',
+          signal,
+        },
+      });
+
+      // حفظ الفهارس المستلمة
+      if (result.payload.index) {
+        for (const [n, id] of result.payload.index) {
+          fleetIndexTable.set(n, id);
+        }
+      }
+
+      // في حال تم إرجاع مصفوفة المركبات الكاملة عبر خاصية extra
+      if (Array.isArray(result.payload.vehicles)) {
+        return {
+          success: true,
+          message: 'Fleet retrieved successfully',
+          data: { vehicles: result.payload.vehicles as VehicleLiveTelemetry[] },
+        };
+      }
+
+      const rawData = result.payload as any;
+      if (rawData?.data?.vehicles) {
+        return {
+          success: true,
+          message: 'Fleet retrieved successfully',
+          data: { vehicles: rawData.data.vehicles },
+        };
+      }
+      if (rawData?.vehicles) {
+        return {
+          success: true,
+          message: 'Fleet retrieved successfully',
+          data: { vehicles: rawData.vehicles },
+        };
+      }
+    } catch {
+      // التراجع التلقائي لـ sendRequest العادي
+    }
+
     return sendRequest<LiveFleetResponse>(API_PATHS.GPS.LIVE, { signal });
   },
 

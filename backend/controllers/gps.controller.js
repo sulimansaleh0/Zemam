@@ -4,13 +4,21 @@ const Task = require("../models/task.model");
 const TaskLivePoint = require("../models/taskLivePoint.model");
 const { ingestBatchTelemetry, finalizeTripSummary, encodePolyline } = require("../services/gpsIngestion.service");
 const { success, error, serverError } = require("../utils/responses");
-const { taskStatus, mainStatus } = require("../data/status");
+const { taskStatus, mainStatus, gpsStatus } = require("../data/status");
 const { userRoles } = require("../data/roles");
+const {
+    IndexTable,
+    positionsReply,
+    wantsBinary,
+    sendReply,
+    zemamGeoCodec
+} = require("../utils/geoSync");
 
 /**
  * GET /api/gps/live
  * Fetches all vehicles for the authenticated user's company/team
  * with current GPS coordinates and live task telemetry.
+ * Supports compact binary protocol (Accept: application/octet-stream) with JSON fallback.
  */
 exports.getLiveFleet = async (req, res) => {
     const user = req.user;
@@ -43,12 +51,37 @@ exports.getLiveFleet = async (req, res) => {
             });
         });
 
-        const formattedVehicles = vehicles.map((v) => {
+        const formattedVehicles = vehicles.map((v, index) => {
             const activeTask = activeTasksByVehicle.get(v._id.toString());
-            const hasLocation = v.currentLocation && v.currentLocation.lat != null && v.currentLocation.lng != null;
+            
+            // Extract coordinates handling both lean arrays [lng, lat] and virtual lat/lng
+            const lat = v.currentLocation?.lat ?? v.currentLocation?.coordinates?.[1];
+            const lng = v.currentLocation?.lng ?? v.currentLocation?.coordinates?.[0];
+            const hasLocation = lat != null && lng != null && !isNaN(lat) && !isNaN(lng);
+
+            const speed = v.currentLocation?.speed || 0;
+            const heading = v.currentLocation?.heading || 0;
+            const updatedAt = v.currentLocation?.updatedAt
+                ? new Date(v.currentLocation.updatedAt)
+                : new Date();
+            const timeSinceUpdateMs = Date.now() - updatedAt.getTime();
+            const isStale = !hasLocation || (timeSinceUpdateMs > 10 * 60 * 1000); // 10 minutes
+
+            // Calculate live status dynamically
+            let calculatedGpsStatus = gpsStatus.AVAILABLE;
+            if (isStale) {
+                calculatedGpsStatus = gpsStatus.OFFLINE;
+            } else if (speed > 0) {
+                calculatedGpsStatus = gpsStatus.MOVING;
+            } else if (activeTask || v.isInTask) {
+                calculatedGpsStatus = gpsStatus.IDLE;
+            } else {
+                calculatedGpsStatus = gpsStatus.AVAILABLE;
+            }
 
             return {
                 vehicleId: v._id.toString(),
+                seq: v.seq || (index + 1),
                 plateNumber: v.plateNumber,
                 model: v.model,
                 year: v.year,
@@ -60,20 +93,51 @@ exports.getLiveFleet = async (req, res) => {
                 driverPhone: v.driverId?.phone,
                 driverAvatar: v.driverId?.avatar,
                 currentLocation: hasLocation ? {
-                    lat: v.currentLocation.lat,
-                    lng: v.currentLocation.lng,
-                    speed: v.currentLocation.speed || 0,
-                    heading: v.currentLocation.heading || 0,
-                    updatedAt: v.currentLocation.updatedAt ? new Date(v.currentLocation.updatedAt).toISOString() : new Date().toISOString()
+                    lat,
+                    lng,
+                    speed,
+                    heading,
+                    updatedAt: updatedAt.toISOString()
                 } : null,
-                gpsStatus: v.gpsStatus || "available",
+                gpsStatus: calculatedGpsStatus,
                 isInTask: !!activeTask || !!v.isInTask,
                 activeTaskId: activeTask?.taskId,
                 activeTaskTitle: activeTask?.title
             };
-
         });
 
+        // Binary Content Negotiation for ultra-low bandwidth / 2G networks
+        if (wantsBinary(req.headers["accept"])) {
+            const table = new IndexTable(
+                formattedVehicles.map((v) => [v.seq, v.vehicleId])
+            );
+
+            const livePositions = formattedVehicles
+                .filter((v) => v.currentLocation != null)
+                .map((v) => ({
+                    id: v.vehicleId,
+                    n: v.seq,
+                    lat: v.currentLocation.lat,
+                    lon: v.currentLocation.lng,
+                    speed: v.currentLocation.speed,
+                    heading: v.currentLocation.heading,
+                    at: new Date(v.currentLocation.updatedAt)
+                }));
+
+            const reply = positionsReply({
+                codec: zemamGeoCodec,
+                accept: req.headers["accept"],
+                acceptEncoding: req.headers["accept-encoding"],
+                positions: livePositions,
+                table,
+                index: table.entries(),
+                extra: { vehicles: formattedVehicles }
+            });
+
+            return sendReply(res, reply);
+        }
+
+        // Standard JSON fallback
         return success(res, 200, { vehicles: formattedVehicles });
     } catch (err) {
         console.error("❌ [GPS Controller] Error fetching live fleet:", err);

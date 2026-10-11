@@ -26,8 +26,10 @@ import {
 } from 'lucide-react';
 import {
   emitDriverLocation,
+  emitDriverLocationBin,
   getGpsSocket,
 } from '@/features/gps/services/gpsSocket';
+import { worthSending } from '@/shared/lib/geoSync';
 import { watchCurrentLocation, type Coordinates } from '@/shared/lib/navigatorClient';
 import { calculateHaversineDistance } from '@/features/gps/utils/gpsHelpers';
 import type { DriverTelemetryPayload } from '@/features/gps/types/gps.types';
@@ -469,16 +471,33 @@ export default function DriverMobileTrackingPage() {
       // 2. المنعطفات (تغير زاوية الاتجاه >= 15 درجة): إرسال فوري لمنع الخط المستقيم (بحد أدنى 2-2.5 ثانية)
       // 3. الحركة في خط مستقيم: إرسال كل 4 ثوانٍ (أو 8 ثوانٍ في وضع توفير البيانات لخفض الاستهلاك بنسبة 60%)
       // 4. نبضة دورية كل 30 ثانية (أو 60 ثانية في وضع التوفير)
+      // 1. فحص خوارزمية السكون والمسافة (Standing-Still Throttling عبر worthSending):
+      // إذا كانت المركبة متوقفة، لا توقظ مودم الاتصال إلا كل 60 ثانية كنَبضة حية (Heartbeat)
+      // لتوفير بطارية الهاتف وباقة 2G/3G بنسبة تصل إلى 75%
+      const isWorth = worthSending(
+        lastEmittedCoordsRef.current
+          ? {
+              lat: lastEmittedCoordsRef.current.lat,
+              lon: lastEmittedCoordsRef.current.lng,
+              sentAt: lastEmittedTimeRef.current,
+            }
+          : null,
+        { lat: lat5, lon: lng5 },
+        now,
+        {
+          minMeters: isLowDataMode ? 20 : 15,
+          heartbeatMs: isLowDataMode ? 60000 : 45000,
+        }
+      );
+
       const timeElapsed = now - lastEmittedTimeRef.current;
-      const isStationary = speedKmH < 3 && deltaMeters < 5;
-      const turnMinInterval = isLowDataMode ? 2500 : 2000;
+      const turnMinInterval = isLowDataMode ? 3000 : 2000;
       const isTurning = headingDelta >= 15 && timeElapsed >= turnMinInterval;
       const straightInterval = isLowDataMode ? 8000 : 4000;
-      const isMovingInterval = !isStationary && timeElapsed >= straightInterval;
-      const heartbeatInterval = isLowDataMode ? 60000 : 30000;
-      const isHeartbeat = timeElapsed >= heartbeatInterval;
+      const isThrottleOk = timeElapsed >= straightInterval;
 
-      const shouldEmit = (lastEmittedTimeRef.current === 0) || isTurning || isMovingInterval || isHeartbeat;
+      // إرسال النبضة إذا كانت الأولى، أو تحركت المركبة مسافة كافية مع فاصل زمني، أو انعطفت، أو نبضة السكون الدورية
+      const shouldEmit = (lastEmittedTimeRef.current === 0) || (isWorth && (isThrottleOk || isTurning));
 
       if (shouldEmit) {
         const payload: DriverTelemetryPayload = {
@@ -496,7 +515,8 @@ export default function DriverMobileTrackingPage() {
         const isCurrentlyConnected = typeof navigator !== 'undefined' && navigator.onLine && socketConnected;
 
         if (isCurrentlyConnected && offlineQueueCount === 0 && !isFlushingRef.current) {
-          emitDriverLocation(payload);
+          // بث نبضة باينري فائقة الخفة (~8 بايت)
+          emitDriverLocationBin(payload);
           setTripStats((prev) => ({
             ...prev,
             sentPointsCount: prev.sentPointsCount + 1,
@@ -585,7 +605,7 @@ export default function DriverMobileTrackingPage() {
       };
 
       if (typeof navigator !== 'undefined' && navigator.onLine && socketConnected) {
-        emitDriverLocation(payload);
+        emitDriverLocationBin(payload);
         lastEmittedTimeRef.current = now;
       } else {
         await queueTelemetryPoint(payload);

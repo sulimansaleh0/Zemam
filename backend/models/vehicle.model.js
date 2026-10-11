@@ -22,6 +22,11 @@ const vehicleSchema = new mongoose.Schema({
         enum: Object.values(vehicleTypes),
         required: true
     },
+    seq: {
+        type: Number,
+        sparse: true,
+        index: true
+    },
     currentOdometer: {
         type: Number,
         min: 0,
