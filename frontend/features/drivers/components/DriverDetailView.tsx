@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import { useDriverDetailPage } from '../hooks/useDriverDetailPage';
 import { AssignVehicleModal } from './AssignVehicleModal';
 import { AssignDriverToTeamModal } from './AssignDriverToTeamModal';
@@ -161,39 +160,8 @@ export function DriverDetailView({ driverId }: DriverDetailViewProps) {
   }
 
   return (
-    <main
-      className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]"
-      dir="rtl"
-    >
-      <div className="flex min-h-[100dvh]">
-        {/* ── Sidebar ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── Main Content Area ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery=""
-            onSearchChange={() => {}}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
-            {/* 1. Header & Executive Profile */}
+    <div className="space-y-6" dir="rtl">
+      {/* 1. Header & Executive Profile */}
             <DriverDetailHeader
               driver={driver}
               displayName={displayName}
@@ -255,9 +223,6 @@ export function DriverDetailView({ driverId }: DriverDetailViewProps) {
               scoreHistory={scoreHistory}
               onSelectTask={setSelectedTask}
             />
-          </div>
-        </div>
-      </div>
 
       {/* ── Modals ── */}
       <TaskDetailModal
@@ -291,6 +256,6 @@ export function DriverDetailView({ driverId }: DriverDetailViewProps) {
           isLoading={isDeleting}
         />
       )}
-    </main>
+    </div>
   );
 }

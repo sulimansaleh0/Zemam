@@ -13,7 +13,6 @@ import {
   UsersRound,
   Zap,
 } from 'lucide-react';
-import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { GpsTrackerView } from '@/features/gps/components/GpsTrackerView';
 import { useFleetGps } from '@/features/gps/hooks/useFleetGps';
@@ -22,49 +21,12 @@ export default function GpsPage() {
   const { user } = useAuth();
   const isFleetManager = user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
-  const {
-    userName,
-    menuOpen,
-    setMenuOpen,
-    searchQuery,
-    setSearchQuery,
-    logout,
-  } = useDashboard();
-
-  const { stats, isLoading, refreshFleet } = useFleetGps();
+  const { stats } = useFleetGps();
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── القائمة الجانبية للنظام (Sidebar) ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── غطاء الموبايل عند فتح القائمة ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── منطقة المحتوى الرئيسية ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
-            {/* ── ترويسة الصفحة (Hero Header) ── */}
-            <section className="zd-rise flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <div className="space-y-6" dir="rtl">
+      {/* ── ترويسة الصفحة (Hero Header) ── */}
+      <section className="zd-rise flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
                 <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--zd-muted)]">
                   <CalendarDays className="h-3.5 w-3.5" />{' '}
@@ -160,11 +122,8 @@ export default function GpsPage() {
               </div>
             </div>
 
-            {/* ── لوحة الخريطة التفاعلية المركزية (Live GPS Canvas) ── */}
-            <GpsTrackerView />
-          </div>
-        </div>
-      </div>
-    </main>
+      {/* ── لوحة الخريطة التفاعلية المركزية (Live GPS Canvas) ── */}
+      <GpsTrackerView />
+    </div>
   );
 }

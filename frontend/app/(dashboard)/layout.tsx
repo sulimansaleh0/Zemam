@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { Sidebar, Header } from '@/features/dashboard';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user, status, isLoading } = useAuth();
+  const { user, status, isLoading, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -61,5 +63,39 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
+      <div className="flex min-h-[100dvh]">
+        {/* ── القائمة الجانبية للنظام (Sidebar) ── */}
+        <Sidebar
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          userName={user?.name || 'مستخدم'}
+          onLogout={logout}
+        />
+
+        {/* ── غطاء الموبايل عند فتح القائمة ── */}
+        {menuOpen && (
+          <button
+            aria-label="إغلاق القائمة"
+            onClick={() => setMenuOpen(false)}
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden cursor-pointer"
+          />
+        )}
+
+        {/* ── منطقة المحتوى الرئيسية ── */}
+        <div className="min-w-0 flex-1 flex flex-col">
+          <Header
+            onMenu={() => setMenuOpen(true)}
+            showSearch={false}
+            userName={user?.name || 'مستخدم'}
+          />
+
+          <div className="flex-1 mx-auto max-w-[1540px] w-full px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
+            {children}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }

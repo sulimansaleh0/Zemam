@@ -11,7 +11,6 @@ import {
   Loader2,
   Edit2,
 } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import { useTasks } from '@/features/tasks';
 import { useFuel } from '@/features/fuel';
 import { useMaintenance } from '@/features/maintenance';
@@ -68,10 +67,6 @@ export function VehicleDetailView({ vehicleId }: VehicleDetailViewProps) {
     handleUpdateVehicle: updateVehicleOnBackend,
     handleRemoveTeam,
     handleUnassignDriver,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
   } = useVehicleDetailPage(vehicleId);
 
   const handleUpdateVehicle = async (_vId: string, updatedData: UpdateVehicleInput) => {
@@ -84,34 +79,9 @@ export function VehicleDetailView({ vehicleId }: VehicleDetailViewProps) {
   };
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery=""
-            onSearchChange={() => {}}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
-            {/* ── Breadcrumb ── */}
-            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
+    <div className="space-y-6" dir="rtl">
+      {/* ── Breadcrumb ── */}
+      <div className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
               <Link href="/vehicles" className="hover:text-[var(--primary)] transition-colors">
                 سجل المركبات
               </Link>
@@ -258,9 +228,6 @@ export function VehicleDetailView({ vehicleId }: VehicleDetailViewProps) {
                 />
               </>
             )}
-          </div>
-        </div>
-      </div>
 
       {/* ── Modals ── */}
       <AssignDriverModal
@@ -288,6 +255,6 @@ export function VehicleDetailView({ vehicleId }: VehicleDetailViewProps) {
         onUpdate={handleUpdateVehicle}
         isLoading={isUpdating}
       />
-    </main>
+    </div>
   );
 }

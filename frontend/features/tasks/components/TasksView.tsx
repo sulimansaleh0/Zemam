@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ClipboardList, Plus, RefreshCw, AlertCircle } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { useTasksPage } from '../hooks/useTasksPage';
 import { TaskStatsCards } from './TaskStatsCards';
 import { TasksTable } from './TasksTable';
@@ -12,9 +10,6 @@ import { TaskDetailModal } from './TaskDetailModal';
 import { DeclineTaskModal } from './DeclineTaskModal';
 
 export function TasksView() {
-  const { logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const {
     tasks,
     totalCount,
@@ -48,39 +43,10 @@ export function TasksView() {
     isDeclining,
     handleFormSubmit,
     handleConfirmDecline,
-    userName,
   } = useTasksPage();
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── القائمة الجانبية ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── مساحة المحتوى الرئيسي ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
+    <div className="space-y-6" dir="rtl">
             {/* ── ترويسة الصفحة والإجراءات ── */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -153,9 +119,6 @@ export function TasksView() {
               totalCount={totalCount}
               onPageChange={setPage}
             />
-          </div>
-        </div>
-      </div>
 
       {/* ── نافذة إنشاء / تعديل مهمة ── */}
       <TaskFormModal
@@ -187,6 +150,6 @@ export function TasksView() {
         isLoading={isDeclining}
         task={selectedTaskForDecline}
       />
-    </main>
+    </div>
   );
 }

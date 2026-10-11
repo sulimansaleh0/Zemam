@@ -11,9 +11,7 @@ import {
 import {
   AlertsAndDrivers,
   DashboardDrivers,
-  Header,
   KpiCard,
-  Sidebar,
   TodayTasksList,
   TrendChart,
   useDashboard,
@@ -32,12 +30,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const isFleetManager = user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
-  const {
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
-  } = useDashboard();
+  const { userName } = useDashboard();
 
   const { data: vehiclesList = [], isLoading: isLoadingVehicles } = useVehicles();
   const { data: driversList = [], isLoading: isLoadingDrivers } = useDriversList();
@@ -106,36 +99,9 @@ export default function DashboardPage() {
     : null;
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── Sidebar ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── Main Content Area ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            showSearch={false}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
-            {/* ── Welcome Hero ── */}
-            <section className="zd-rise mb-7 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+    <div className="space-y-6" dir="rtl">
+      {/* ── Welcome Hero ── */}
+      <section className="zd-rise mb-7 flex flex-col justify-between gap-5 md:flex-row md:items-end">
               <div>
                 <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--zd-muted)]">
                   <CalendarDays className="h-3.5 w-3.5" />{' '}
@@ -306,9 +272,6 @@ export default function DashboardPage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--zd-teal)]" /> البيانات المسجلة في النظام
               </span>
             </footer>
-          </div>
-        </div>
-      </div>
-    </main>
+    </div>
   );
 }

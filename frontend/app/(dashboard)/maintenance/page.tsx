@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { AlertCircle, Plus, RefreshCw, Wrench } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import {
   useMaintenancePage,
   useCreateMaintenance,
@@ -39,10 +38,6 @@ export default function MaintenancePage() {
     selectedRecordForVerify,
     setSelectedRecordForVerify,
     vehicles,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
   } = useMaintenancePage();
 
   const createMaintenanceMutation = useCreateMaintenance();
@@ -67,34 +62,7 @@ export default function MaintenancePage() {
   };
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── القائمة الجانبية ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── مساحة المحتوى الرئيسي ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            showSearch={false}
-            userName={userName}
-          />
-
-          <div className="p-4 md:p-6 lg:p-8 space-y-6 flex-1">
+    <div className="space-y-6" dir="rtl">
             {/* ── شريط رأس الصفحة وأزرار الإجراءات ── */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -163,9 +131,6 @@ export default function MaintenancePage() {
               onViewDetails={(record) => setSelectedRecordForDetails(record)}
               onVerifyRecord={(record) => setSelectedRecordForVerify(record)}
             />
-          </div>
-        </div>
-      </div>
 
       {/* ── النوافذ المنبثقة (Modals) ── */}
       <MaintenanceFormModal
@@ -190,6 +155,6 @@ export default function MaintenancePage() {
         onConfirm={handleVerifyConfirm}
         isLoading={verifyMaintenanceMutation.isPending}
       />
-    </main>
+    </div>
   );
 }

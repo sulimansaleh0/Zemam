@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Users, Plus, RefreshCw, AlertCircle } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import { useTeamsPage } from '../hooks/useTeamsPage';
 import { TeamsTable } from './TeamsTable';
 import { TeamStatsCards } from './TeamStatsCards';
@@ -21,9 +20,6 @@ export function TeamsView() {
     isFleetManager,
     userName,
     companyName,
-    menuOpen,
-    setMenuOpen,
-    logout,
     teamsList,
     allTeams,
     pagination,
@@ -70,35 +66,7 @@ export function TeamsView() {
   }
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── Sidebar ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── Main Content Area ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery=""
-            onSearchChange={() => {}}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
+    <div className="space-y-6" dir="rtl">
             {/* ── Page Header Hero ── */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -207,9 +175,6 @@ export function TeamsView() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> اتصال قاعدة البيانات نشط
               </span>
             </footer>
-          </div>
-        </div>
-      </div>
 
       {/* ── Modals ── */}
       <CreateTeamModal
@@ -265,6 +230,6 @@ export function TeamsView() {
         manager={selectedManagerForDelete?.manager || null}
         teamName={selectedManagerForDelete?.teamName}
       />
-    </main>
+    </div>
   );
 }

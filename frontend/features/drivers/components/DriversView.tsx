@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { AlertCircle, FileDown, Loader2, Plus, RefreshCw, UsersRound } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import { useDriversPage } from '../hooks/useDriversPage';
 import { DriverMetrics } from './DriverMetrics';
 import { DriversTable } from './DriversTable';
@@ -13,10 +12,6 @@ import { AssignDriverToTeamModal } from './AssignDriverToTeamModal';
 
 export function DriversView() {
   const {
-    // Auth & Info
-    userName,
-    logout,
-
     // Data
     drivers,
     allDrivers,
@@ -45,9 +40,7 @@ export function DriversView() {
     teamFilter,
     handleTeamFilterChange,
 
-    // Shell & Modal
-    menuOpen,
-    setMenuOpen,
+    // Modal
     modal,
     setModal,
 
@@ -68,35 +61,7 @@ export function DriversView() {
   } = useDriversPage();
 
   return (
-    <main className="zamam-drivers zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── Sidebar ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── Content ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery=""
-            onSearchChange={() => {}}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
+    <div className="space-y-6" dir="rtl">
             {/* ── Page Hero ── */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -223,9 +188,6 @@ export function DriversView() {
                 البيانات متصلة مباشرة بالخادم
               </span>
             </footer>
-          </div>
-        </div>
-      </div>
 
       {/* ── Create Driver Modal ── */}
       {modal.type === 'create' && (
@@ -264,6 +226,6 @@ export function DriversView() {
           onClose={() => setModal({ type: 'closed' })}
         />
       )}
-    </main>
+    </div>
   );
 }

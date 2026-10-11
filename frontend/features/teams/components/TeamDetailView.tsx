@@ -23,7 +23,6 @@ import {
   Fuel,
   Wrench,
 } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import { useTeamDetailPage } from '../hooks/useTeamDetailPage';
 import { EditTeamModal } from './EditTeamModal';
 import { DeleteTeamModal } from './DeleteTeamModal';
@@ -121,36 +120,8 @@ export function TeamDetailView({ teamId }: TeamDetailViewProps) {
       : 0;
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── Sidebar ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── Main Content Area ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery=""
-            onSearchChange={() => {}}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
-            {/* ── Breadcrumb & Top Action Bar ── */}
+    <div className="space-y-6" dir="rtl">
+      {/* ── Breadcrumb & Top Action Bar ── */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)] mb-1">
@@ -506,9 +477,6 @@ export function TeamDetailView({ teamId }: TeamDetailViewProps) {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
 
       {/* ── Edit Team Modal ── */}
       <EditTeamModal
@@ -532,6 +500,6 @@ export function TeamDetailView({ teamId }: TeamDetailViewProps) {
         onClose={() => setIsAddResourcesModalOpen(false)}
         team={team}
       />
-    </main>
+    </div>
   );
 }

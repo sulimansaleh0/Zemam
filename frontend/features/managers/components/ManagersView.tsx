@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { UserCheck, Plus, RefreshCw, AlertCircle } from 'lucide-react';
-import { Sidebar, Header } from '@/features/dashboard';
 import { useManagersPage } from '../hooks/useManagersPage';
 import { ManagerStatsCards } from './ManagerStatsCards';
 import { ManagersTable } from './ManagersTable';
@@ -14,10 +13,6 @@ import { ManagerDetailModal } from './ManagerDetailModal';
 export function ManagersView() {
   const {
     isFleetManager,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -54,37 +49,9 @@ export function ManagersView() {
   const effectiveManagersForStats = allManagers.length > 0 ? allManagers : managersList;
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── Sidebar ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
-
-        {/* ── Mobile Overlay ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── Main Content Area ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery=""
-            onSearchChange={() => {}}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
-            {/* ── Page Header Hero ── */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-6" dir="rtl">
+      {/* ── Page Header Hero ── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-[var(--primary)] mb-1">
                   <UserCheck className="w-4 h-4" />
@@ -187,9 +154,6 @@ export function ManagersView() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> اتصال قاعدة البيانات نشط
               </span>
             </footer>
-          </div>
-        </div>
-      </div>
 
       {/* ── Modals ── */}
       {modalState.type === 'create' && (
@@ -226,6 +190,6 @@ export function ManagersView() {
           manager={modalState.manager}
         />
       )}
-    </main>
+    </div>
   );
 }
