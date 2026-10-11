@@ -20,6 +20,14 @@ export const createFuelSchema = z.object({
         .number({ required_error: 'كمية الوقود (باللتر) مطلوبة', invalid_type_error: 'الكمية يجب أن تكون رقماً' })
         .gt(0, 'كمية الوقود يجب أن تكون أكبر من صفر')
     ),
+  odometer: z
+    .preprocess(
+      (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+      z
+        .number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
+        .min(0, 'قراءة العداد لا يمكن أن تكون سالبة')
+        .optional()
+    ),
 });
 
 export type CreateFuelFormValues = z.infer<typeof createFuelSchema>;
@@ -31,3 +39,10 @@ export const verifyFuelSchema = z.object({
 });
 
 export type VerifyFuelFormValues = z.infer<typeof verifyFuelSchema>;
+
+export const voidFuelSchema = z.object({
+  reason: z.string().optional(),
+});
+
+export type VoidFuelFormValues = z.infer<typeof voidFuelSchema>;
+

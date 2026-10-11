@@ -87,6 +87,7 @@ export const API_PATHS = {
     CREATE: 'api/fuel',
     STATS: 'api/fuel/stats',
     VERIFY: (id: string) => `api/fuel/${id}/verify`,
+    VOID: (id: string) => `api/fuel/${id}/void`,
   },
 
   ALERTS: {

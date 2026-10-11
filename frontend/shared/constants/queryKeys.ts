@@ -53,3 +53,10 @@ export const taskKeys = {
   driverTasks: (params?: unknown) => ['tasks', 'driver', params ?? 'all'] as const,
 };
 
+export const fuelKeys = {
+  all: ['fuel'] as const,
+  list: (params?: unknown) => ['fuel', 'list', params ?? 'all'] as const,
+  stats: (vehicleId?: string) => ['fuel', 'stats', vehicleId ?? 'all'] as const,
+};
+
+

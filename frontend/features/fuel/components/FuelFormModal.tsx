@@ -8,6 +8,7 @@ import {
   Coins,
   Droplet,
   Fuel,
+  Gauge,
   Info,
   Loader2,
   MapPin,
@@ -64,6 +65,7 @@ export function FuelFormModal({
       isFullTank: false,
       cost: undefined,
       qty: undefined,
+      odometer: undefined,
     },
   });
 
@@ -135,6 +137,7 @@ export function FuelFormModal({
         isFullTank: values.isFullTank,
         cost: values.cost,
         qty: values.qty,
+        odometer: values.odometer !== undefined && values.odometer !== null ? values.odometer : undefined,
         image: selectedFile,
         location: gpsLocation ? { lat: gpsLocation.lat, lng: gpsLocation.lng } : undefined,
       });
@@ -254,6 +257,37 @@ export function FuelFormModal({
                 <p className="mt-1 text-[11px] text-rose-500">{errors.cost.message}</p>
               )}
             </div>
+          </div>
+
+          {/* قراءة عداد المسافات الحالية عند التعبئة */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-[var(--zd-text)]">
+                قراءة العداد عند التعبئة (كم)
+              </label>
+              {selectedVehicle?.currentOdometer !== undefined && (
+                <span className="text-[11px] text-[var(--zd-muted)]">
+                  العداد الحالي للمركبة: <strong className="text-[var(--zd-text)] font-mono">{Number(selectedVehicle.currentOdometer).toLocaleString('ar-SA')} كم</strong>
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                {...register('odometer')}
+                placeholder="أدخل قراءة عداد المركبة الحالية بالمحطة (مثال: 125400)"
+                className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3 py-2.5 pl-8 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
+              />
+              <Gauge className="absolute left-2.5 top-3 h-3.5 w-3.5 text-[var(--zd-muted)]" />
+            </div>
+            <p className="mt-1 text-[11px] text-[var(--zd-muted)]">
+              سيتم تحديث عداد المركبة تلقائياً إذا كانت القراءة المدخلة أكبر من القراءة السابقة.
+            </p>
+            {errors.odometer && (
+              <p className="mt-1 text-[11px] text-rose-500">{errors.odometer.message}</p>
+            )}
           </div>
 
           {/* تنبيه تجاوز سعة الخزان */}

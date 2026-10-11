@@ -5,12 +5,15 @@ import type {
   BackendFuelRecord,
   CreateFuelInput,
   VerifyFuelInput,
+  VoidFuelInput,
   FuelStats,
   FuelFilters,
+  PaginationInfo,
 } from '../types/fuel.types';
 
 export interface ListFuelResponse {
   records: BackendFuelRecord[];
+  pagination?: PaginationInfo;
 }
 
 export interface FuelStatsResponse {
@@ -25,9 +28,13 @@ export interface VerifyFuelResponse {
   record: BackendFuelRecord;
 }
 
+export interface VoidFuelResponse {
+  record: BackendFuelRecord;
+}
+
 export const fuelService = {
   /**
-   * جلب قائمة سجلات واستهلاك الوقود مع الفلترة
+   * جلب قائمة سجلات واستهلاك الوقود مع الفلترة والبحث والترقيم
    */
   getFuelRecords(
     filters?: FuelFilters,
@@ -46,6 +53,19 @@ export const fuelService = {
     if (filters?.userId && filters.userId !== 'all') {
       params.set('userId', filters.userId);
     }
+    if (filters?.search && filters.search.trim()) {
+      params.set('search', filters.search.trim());
+    }
+    if (filters?.page) {
+      params.set('page', String(filters.page));
+    }
+    if (filters?.limit) {
+      params.set('limit', String(filters.limit));
+    }
+    if (filters?.all) {
+      params.set('all', 'true');
+    }
+
     const queryString = params.toString();
     const path = queryString ? `${API_PATHS.FUEL.LIST}?${queryString}` : API_PATHS.FUEL.LIST;
 
@@ -81,6 +101,10 @@ export const fuelService = {
     formData.append('qty', String(data.qty));
     formData.append('image', data.image);
 
+    if (data.odometer !== undefined && data.odometer !== null) {
+      formData.append('odometer', String(data.odometer));
+    }
+
     if (data.location) {
       if (data.location.lat !== undefined) formData.append('location[lat]', String(data.location.lat));
       if (data.location.lng !== undefined) formData.append('location[lng]', String(data.location.lng));
@@ -96,6 +120,15 @@ export const fuelService = {
   verifyFuelRecord(data: VerifyFuelInput): Promise<ServiceResult<VerifyFuelResponse>> {
     return patchRequest<VerifyFuelResponse>(API_PATHS.FUEL.VERIFY(data.id), {
       status: data.status,
+    });
+  },
+
+  /**
+   * إلغاء اعتماد إيصال الوقود وعكس رصيد الوقود في خزان المركبة
+   */
+  voidFuelRecord(data: VoidFuelInput): Promise<ServiceResult<VoidFuelResponse>> {
+    return patchRequest<VoidFuelResponse>(API_PATHS.FUEL.VOID(data.id), {
+      reason: data.reason,
     });
   },
 };

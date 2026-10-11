@@ -41,14 +41,16 @@ export default function DriverFuelPage() {
         if (res.ok) {
           const data = await res.json();
           const raw = data?.vehicles || data?.data?.vehicles || [];
-          if (raw.length > 0) {
-            const list = raw.map((v: any) => ({
-              id: v.vehicleId || v._id,
+          if (Array.isArray(raw) && raw.length > 0) {
+            const list = raw.map((v: { vehicleId?: string; _id?: string; plateNumber?: string; model?: string }) => ({
+              id: v.vehicleId || v._id || '',
               plate: v.plateNumber || 'بدون لوحة',
               model: v.model || 'مركبة',
             }));
             setAvailableVehicles(list);
-            setVehicleId(list[0].id);
+            if (list[0]?.id) {
+              setVehicleId(list[0].id);
+            }
           }
         }
       } catch {}
@@ -109,8 +111,8 @@ export default function DriverFuelPage() {
       setNotes('');
       setReceiptPhoto(null);
       setReceiptPhotoPreview(null);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'فشل تسجيل فاتورة الوقود');
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'فشل تسجيل فاتورة الوقود');
     } finally {
       setIsLoading(false);
     }
