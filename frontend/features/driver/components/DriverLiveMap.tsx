@@ -4,22 +4,16 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
-  Compass,
-  Layers,
   Locate,
-  Lock,
   Maximize2,
   Minimize2,
   Moon,
-  Navigation,
   Sun,
-  Unlock,
 } from 'lucide-react';
 
 import {
   createUnifiedVehicleMarker,
   createUnifiedLocationPin,
-  createBreadcrumbDot,
   MAP_TILE_STYLES,
   type MapTileStyleId,
 } from '@/features/gps/utils/mapMarkers';
@@ -103,9 +97,7 @@ export function DriverLiveMap({
   const deliveryMarkerRef = useRef<L.Marker | null>(null);
   const pickupGeofenceRef = useRef<L.Circle | null>(null);
   const deliveryGeofenceRef = useRef<L.Circle | null>(null);
-  const casingPolylineRef = useRef<L.Polyline | null>(null);
   const traversedPolylineRef = useRef<L.Polyline | null>(null);
-  const waypointsGroupRef = useRef<L.LayerGroup | null>(null);
   const plannedRoutePolylineRef = useRef<L.Polyline | null>(null);
   const plannedRouteCasingRef = useRef<L.Polyline | null>(null);
 
@@ -138,8 +130,6 @@ export function DriverLiveMap({
 
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     L.control.scale({ imperial: false, metric: true, position: 'bottomright' }).addTo(map);
-
-    waypointsGroupRef.current = L.layerGroup().addTo(map);
 
     // إلغاء وضع التتبع التلقائي عند قيام السائق بسحب الخريطة يدوياً
     map.on('dragstart', () => {
@@ -247,27 +237,13 @@ export function DriverLiveMap({
 
     const latLngs: [number, number][] = fullTrack.map((p) => [p.lat, p.lng]);
 
-    // رسم المسار المقطوع بتوهج نيون حاد
+    // رسم المسار المقطوع الصافي
     if (latLngs.length >= 2) {
-      // الغلاف الخارجي النيوني
-      if (!casingPolylineRef.current) {
-        casingPolylineRef.current = L.polyline(latLngs, {
-          color: '#0369a1',
-          weight: 8,
-          opacity: 0.35,
-          lineJoin: 'round',
-          lineCap: 'round',
-        }).addTo(map);
-      } else {
-        casingPolylineRef.current.setLatLngs(latLngs);
-      }
-
-      // المسار الصلب الرئيسي
       if (!traversedPolylineRef.current) {
         traversedPolylineRef.current = L.polyline(latLngs, {
           color: '#0284c7',
-          weight: 4.5,
-          opacity: 0.95,
+          weight: 5,
+          opacity: 0.9,
           lineJoin: 'round',
           lineCap: 'round',
         }).addTo(map);
@@ -285,10 +261,6 @@ export function DriverLiveMap({
         startMarkerRef.current.setLatLng(startCoord);
       }
     } else {
-      if (casingPolylineRef.current) {
-        map.removeLayer(casingPolylineRef.current);
-        casingPolylineRef.current = null;
-      }
       if (traversedPolylineRef.current) {
         map.removeLayer(traversedPolylineRef.current);
         traversedPolylineRef.current = null;
@@ -297,20 +269,6 @@ export function DriverLiveMap({
         map.removeLayer(startMarkerRef.current);
         startMarkerRef.current = null;
       }
-    }
-
-    // رسم نقاط الأثر الملونة بالسرعة اللحظية
-    if (waypointsGroupRef.current) {
-      waypointsGroupRef.current.clearLayers();
-      const step = fullTrack.length > 50 ? Math.ceil(fullTrack.length / 50) : 1;
-
-      fullTrack.forEach((p, idx) => {
-        if (idx === 0 || idx === fullTrack.length - 1) return;
-        if (idx % step !== 0) return;
-
-        const dot = createBreadcrumbDot(p.lat, p.lng, idx + 1, p.speed, p.timestamp);
-        dot.addTo(waypointsGroupRef.current!);
-      });
     }
   }, [traversedPath, currentCoords]);
 

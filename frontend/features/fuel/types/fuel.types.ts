@@ -44,8 +44,10 @@ export interface BackendFuelRecord {
   fuelIssueType?: FuelIssueType;
   fuelIssueMessage?: string | null;
   nextOdoMeter?: number | null;
-  location?: FuelLocation;
   status: FuelStatus;
+  voidedBy?: string | PopulatedUser | null;
+  voidedAt?: string | null;
+  voidReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,12 +68,18 @@ export interface CreateFuelInput {
   cost: number;
   qty: number;
   image: File; // صورة فاتورة الوقود مطلوبة إجبارياً
+  odometer?: number;
   location?: FuelLocation;
 }
 
 export interface VerifyFuelInput {
   id: string;
   status: 'approved' | 'declined';
+}
+
+export interface VoidFuelInput {
+  id: string;
+  reason?: string;
 }
 
 export interface FuelStats {
@@ -85,7 +93,22 @@ export interface FuelStats {
   fuelBalanceLitres: number;
 }
 
+import type { PaginationInfo } from '@/shared/types/api.types';
+export type { PaginationInfo };
+
+export interface PaginatedFuelResult {
+  records: FuelRecordWithRelations[];
+  pagination: PaginationInfo;
+}
+
 export interface FuelFilters {
   status?: FuelStatus | 'all';
   vehicleId?: string;
+  driverId?: string;
+  userId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  all?: boolean;
 }
+

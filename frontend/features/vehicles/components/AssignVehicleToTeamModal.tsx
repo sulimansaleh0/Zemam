@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Building2, Users, Loader2 } from 'lucide-react';
 import { useAssignVehicleToTeam } from '../hooks/useVehicles';
 import { useTeams } from '@/features/teams';
-import type { VehicleWithRelations } from '../types/vehicle.types';
+import type { VehicleWithRelations, BackendVehicle } from '../types/vehicle.types';
 import { Modal } from '@/shared/ui/Modal';
 
 interface AssignVehicleToTeamModalProps {
   isOpen: boolean;
   onClose: () => void;
-  vehicle: VehicleWithRelations | null;
+  vehicle: BackendVehicle | VehicleWithRelations | null;
 }
 
 export function AssignVehicleToTeamModal({
@@ -23,12 +23,11 @@ export function AssignVehicleToTeamModal({
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedTeamId('');
-      setErrorMsg(null);
-    }
-  }, [isOpen, vehicle]);
+  const handleClose = () => {
+    setSelectedTeamId('');
+    setErrorMsg(null);
+    onClose();
+  };
 
   if (!vehicle) return null;
 
@@ -54,7 +53,7 @@ export function AssignVehicleToTeamModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="تعيين المركبة لفريق تشغيلي"
       description={<>المركبة: <strong>{vehicle.model} ({vehicle.year})</strong> - لوحة: {vehicle.plateNumber}</>}
       icon={Building2}
@@ -102,7 +101,7 @@ export function AssignVehicleToTeamModal({
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={assignMutation.isPending}
             className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-xl transition-colors cursor-pointer disabled:opacity-50"
           >

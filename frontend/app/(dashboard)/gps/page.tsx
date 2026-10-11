@@ -2,19 +2,14 @@
 
 import React from 'react';
 import {
-  CalendarDays,
-  Car,
   Compass,
   MapPin,
   Radio,
-  RefreshCw,
-  Route,
   Truck,
-  UsersRound,
   Zap,
 } from 'lucide-react';
-import { Sidebar, Header, useDashboard } from '@/features/dashboard';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import { GpsTrackerView } from '@/features/gps/components/GpsTrackerView';
 import { useFleetGps } from '@/features/gps/hooks/useFleetGps';
 
@@ -22,81 +17,23 @@ export default function GpsPage() {
   const { user } = useAuth();
   const isFleetManager = user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
-  const {
-    userName,
-    menuOpen,
-    setMenuOpen,
-    searchQuery,
-    setSearchQuery,
-    logout,
-  } = useDashboard();
-
-  const { stats, isLoading, refreshFleet } = useFleetGps();
+  const fleetHook = useFleetGps();
+  const { stats, refreshFleet, isLoading, error } = fleetHook;
 
   return (
-    <main className="zamam-dashboard zd-grid min-h-[100dvh] text-[var(--zd-text)]" dir="rtl">
-      <div className="flex min-h-[100dvh]">
-        {/* ── القائمة الجانبية للنظام (Sidebar) ── */}
-        <Sidebar
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          userName={userName}
-          onLogout={logout}
-        />
+    <div className="space-y-6" dir="rtl">
+      {/* ── تنبيه الخطأ الموحد ── */}
+      {error && <ErrorAlert error={error} onRetry={() => refreshFleet()} />}
 
-        {/* ── غطاء الموبايل عند فتح القائمة ── */}
-        {menuOpen && (
-          <button
-            aria-label="إغلاق القائمة"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
-        {/* ── منطقة المحتوى الرئيسية ── */}
-        <div className="min-w-0 flex-1">
-          <Header
-            onMenu={() => setMenuOpen(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            userName={userName}
-          />
-
-          <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10 space-y-6">
-            {/* ── ترويسة الصفحة (Hero Header) ── */}
-            <section className="zd-rise flex flex-col justify-between gap-4 md:flex-row md:items-end">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-[11px] text-[var(--zd-muted)]">
-                  <CalendarDays className="h-3.5 w-3.5" />{' '}
-                  {new Date().toLocaleDateString('ar-SA', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                  <span className="opacity-40">•</span>
-                  <span className="flex items-center gap-1 font-semibold text-emerald-500">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    بث لحظي مباشر
-                  </span>
-                  {isFleetManager && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 border border-blue-500/20">
-                      فريقك التشغيلي فقط
-                    </span>
-                  )}
-                </div>
-
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[var(--zd-text)] flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
-                    <Radio className="h-5 w-5 animate-pulse" />
-                  </div>
-                  <span>مركز تتبع الأسطول المباشر (GPS Tracking)</span>
-                </h1>
-                <p className="mt-1 text-xs text-[var(--zd-muted)]">
-                  مراقبة حركة المركبات لحظياً، قراءات السرعة، زوايا الاتجاه، وسجلات الرحلات المكتملة
-                </p>
-              </div>
-            </section>
+      {/* ── ترويسة الصفحة الموحدة ── */}
+      <PageHeader
+        title="مركز تتبع الأسطول المباشر (GPS Tracking)"
+        description="مراقبة حركة المركبات لحظياً، قراءات السرعة، زوايا الاتجاه، وسجلات الرحلات المكتملة"
+        icon={Radio}
+        count={stats.total}
+        onRefresh={() => refreshFleet()}
+        isRefreshing={isLoading}
+      />
 
             {/* ── شريط بطاقات مؤشرات الأداء الحية (Live KPI Counters) ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -160,11 +97,8 @@ export default function GpsPage() {
               </div>
             </div>
 
-            {/* ── لوحة الخريطة التفاعلية المركزية (Live GPS Canvas) ── */}
-            <GpsTrackerView />
-          </div>
-        </div>
-      </div>
-    </main>
+      {/* ── لوحة الخريطة التفاعلية المركزية (Live GPS Canvas) ── */}
+      <GpsTrackerView fleetHook={fleetHook} />
+    </div>
   );
 }

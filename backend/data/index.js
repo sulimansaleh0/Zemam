@@ -9,7 +9,7 @@ exports.maintenanceCategories = {
 }
 
 exports.maintenancePriority = {
-    HIGH: "High",
+    HIGH: "high",
     LOW: "low"
 }
 

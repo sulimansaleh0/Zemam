@@ -7,16 +7,19 @@ import {
   Eye,
   Fuel,
   Receipt,
+  RotateCcw,
   ShieldCheck,
   Truck,
   User,
   X,
+  Loader2,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
 import {
   getFuelStatusConfig,
   formatCostSAR,
   formatLiters,
+  formatFuelDate,
 } from '../utils/fuelHelpers';
 import type { FuelRecordWithRelations } from '../types/fuel.types';
 
@@ -25,6 +28,8 @@ interface FuelDetailModalProps {
   onClose: () => void;
   record: FuelRecordWithRelations | null;
   onOpenVerify?: (record: FuelRecordWithRelations) => void;
+  onVoidRecord?: (record: FuelRecordWithRelations, reason?: string) => Promise<void>;
+  isVoiding?: boolean;
 }
 
 export function FuelDetailModal({
@@ -32,13 +37,25 @@ export function FuelDetailModal({
   onClose,
   record,
   onOpenVerify,
+  onVoidRecord,
+  isVoiding = false,
 }: FuelDetailModalProps) {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isVoidConfirmOpen, setIsVoidConfirmOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
 
   if (!record) return null;
 
   const statusConfig = getFuelStatusConfig(record.status);
   const isPending = record.status === 'pending';
+  const isApproved = record.status === 'approved';
+
+  const handleConfirmVoid = async () => {
+    if (!onVoidRecord) return;
+    await onVoidRecord(record, voidReason.trim() || undefined);
+    setIsVoidConfirmOpen(false);
+    setVoidReason('');
+  };
 
   return (
     <>
@@ -70,6 +87,26 @@ export function FuelDetailModal({
                 <span>تاريخ التوثيق: <strong className="text-[var(--zd-text)]">{record.formattedDate}</strong></span>
               </div>
             </div>
+
+            {/* تنبيه إلغاء الاعتماد وعكس الرصيد */}
+            {(record.voidReason || record.voidedAt) && (
+              <div className="flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-rose-500 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">تم إلغاء اعتماد هذا الإيصال وعكس رصيد الوقود في المركبة</p>
+                  {record.voidReason && (
+                    <p className="text-[11px] text-rose-300">
+                      سبب الإلغاء: <span className="font-semibold">{record.voidReason}</span>
+                    </p>
+                  )}
+                  {record.voidedAt && (
+                    <p className="text-[10px] text-rose-400/80">
+                      تاريخ الإلغاء: {formatFuelDate(record.voidedAt)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* بيانات المركبة والسائق */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -187,6 +224,53 @@ export function FuelDetailModal({
                 </div>
               </div>
             )}
+
+            {/* بطاقة تأكيد إلغاء الاعتماد وعكس الرصيد */}
+            {isVoidConfirmOpen && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 space-y-3 animate-in fade-in">
+                <div className="flex items-center gap-2 text-rose-400">
+                  <AlertTriangle className="h-4 w-4" />
+                  <p className="text-xs font-bold">تأكيد إلغاء اعتماد الفاتورة وعكس رصيد الوقود</p>
+                </div>
+                <p className="text-[11px] text-rose-300 leading-relaxed">
+                  سيتم إلغاء اعتماد هذه الفاتورة وخصم كمية الوقود ({formatLiters(record.qty)}) من رصيد المركبة في عملية آمنة (Transaction).
+                </p>
+                <div>
+                  <label className="block text-[11px] font-medium text-[var(--zd-muted)] mb-1">
+                    سبب الإلغاء (اختياري)
+                  </label>
+                  <input
+                    type="text"
+                    value={voidReason}
+                    onChange={(e) => setVoidReason(e.target.value)}
+                    placeholder="مثال: فاتورة مكررة، إدخال بيانات خاطئة بالخطأ..."
+                    className="w-full rounded-xl border border-rose-500/40 bg-[var(--zd-surface)] px-3 py-2 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsVoidConfirmOpen(false);
+                      setVoidReason('');
+                    }}
+                    disabled={isVoiding}
+                    className="rounded-lg border border-[var(--zd-line)] px-3 py-1.5 text-xs font-semibold text-[var(--zd-muted)] hover:bg-[var(--zd-surface)] cursor-pointer"
+                  >
+                    تراجع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmVoid}
+                    disabled={isVoiding}
+                    className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    {isVoiding && <Loader2 className="h-3 w-3 animate-spin" />}
+                    <span>تأكيد الإلغاء وعكس الرصيد</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* تذييل المودال */}
@@ -199,19 +283,32 @@ export function FuelDetailModal({
               إغلاق
             </button>
 
-            {isPending && onOpenVerify && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenVerify(record);
-                }}
-                className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-600 transition cursor-pointer"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span>مراجعة الإيصال (اعتماد / رفض)</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isApproved && onVoidRecord && !isVoidConfirmOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsVoidConfirmOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-400 shadow-sm hover:bg-rose-500/20 transition cursor-pointer"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>إلغاء الاعتماد (عكس الرصيد)</span>
+                </button>
+              )}
+
+              {isPending && onOpenVerify && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenVerify(record);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-600 transition cursor-pointer"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>مراجعة الإيصال (اعتماد / رفض)</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Modal>

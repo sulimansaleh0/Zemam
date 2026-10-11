@@ -93,7 +93,14 @@ const taskSchema = new mongoose.Schema({
         startedAt: Date,
         finishedAt: Date
     }
-})
+}, { timestamps: true })
+
+taskSchema.index({ companyId: 1, status: 1 });
+taskSchema.index({ companyId: 1, teamId: 1, status: 1 });
+taskSchema.index({ companyId: 1, driverId: 1, status: 1 });
+taskSchema.index({ vehicleId: 1, status: 1 });
+taskSchema.index({ companyId: 1, createdAt: -1 });
+taskSchema.index({ companyId: 1, startTime: -1 });
 
 const Task = mongoose.model("task", taskSchema)
 module.exports = Task

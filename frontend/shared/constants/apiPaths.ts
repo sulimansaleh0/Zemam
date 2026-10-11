@@ -15,10 +15,13 @@ export const API_PATHS = {
 
   DRIVERS: {
     LIST: 'api/user/driver',
+    DETAIL: (id: string) => `api/user/driver/${id}`,
+    STATS: (id: string) => `api/user/driver/${id}/stats`,
     CREATE: 'api/user/driver',
     CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
     DELETE: (id: string) => `api/user/driver/${id}`,
     ASSIGN: (driverId: string) => `api/user/driver/${driverId}/assign-to-vehicle`,
+    REMOVE_FROM_VEHICLE: (driverId: string) => `api/user/driver/${driverId}/remove-from-vehicle`,
     DISABLE: (driverId: string) => `api/user/driver/${driverId}/remove-from-vehicle`,
     ASSIGN_TEAM: (driverId: string) => `api/user/driver/${driverId}/assign-to-team`,
     REMOVE_TEAM: (driverId: string) => `api/user/driver/${driverId}/remove-from-team`,
@@ -30,6 +33,7 @@ export const API_PATHS = {
     CREATE: 'api/vehicle',
     UPDATE: (id: string) => `api/vehicle/${id}`,
     STATS: (id: string) => `api/vehicle/${id}/stats`,
+    OVERVIEW_STATS: 'api/vehicle/overview/stats',
     DELETE: (id: string) => `api/vehicle/${id}`,
     CHANGE_STATUS: (id: string) => `api/vehicle/${id}/status`,
     ASSIGN_TEAM: (vehicleId: string) => `api/vehicle/${vehicleId}/assign-to-team`,
@@ -50,16 +54,18 @@ export const API_PATHS = {
 
   MANAGERS: {
     LIST: 'api/user/fleet-manager',
+    DETAIL: (id: string) => `api/user/fleet-manager/${id}`,
     CREATE: 'api/user/fleet-manager',
     DELETE: (id: string) => `api/user/fleet-manager/${id}`,
     ASSIGN: (id: string) => `api/user/fleet-manager/${id}/assign-to-team`,
     DISABLE: (id: string) => `api/user/fleet-manager/${id}/remove-from-team`,
-    CHANGE_STATUS: (id: string) => `api/user/${id}/status`,
+    CHANGE_STATUS: (id: string) => `api/user/fleet-manager/${id}/status`,
     STATS: (id: string) => `api/user/managers/${id}/stats`,
   },
 
   TASKS: {
     LIST: 'api/task',
+    STATS: 'api/task/stats',
     CREATE: 'api/task',
     DETAIL: (id: string) => `api/task/${id}`,
     UPDATE: (id: string) => `api/task/${id}`,
@@ -81,6 +87,7 @@ export const API_PATHS = {
     CREATE: 'api/fuel',
     STATS: 'api/fuel/stats',
     VERIFY: (id: string) => `api/fuel/${id}/verify`,
+    VOID: (id: string) => `api/fuel/${id}/void`,
   },
 
   ALERTS: {

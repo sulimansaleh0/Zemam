@@ -6,6 +6,14 @@ export type {
   CreateVehicleInput,
   AssignDriverInput,
   ChangeVehicleStatusInput,
+  UpdateVehicleInput,
+  VehicleStats,
+  VehicleStatsResponse,
+  DriverSummary,
+  TeamSummary,
+  PaginationInfo,
+  VehicleQueryParams,
+  FleetOverviewStats,
 } from './types/vehicle.types';
 
 // ── Schema ─────────────────────────────────────────────────
@@ -28,23 +36,34 @@ export {
 export {
   VEHICLE_QUERY_KEYS,
   useVehicles,
-  useAvailableDrivers,
+  usePaginatedVehicles,
+  useFleetOverviewStats,
+  useAvailableVehicles,
+  useVehicleDetail,
+  useVehicleStats,
+} from './hooks/useVehicles';
+
+export {
   useCreateVehicle,
+  useUpdateVehicle,
   useChangeVehicleStatus,
   useAssignDriver,
   useUnassignDriver,
   useAssignVehicleToTeam,
   useRemoveVehicleFromTeam,
   useDeleteVehicle,
-  useVehiclesPage,
-  useVehicleDetailPage,
-} from './hooks/useVehicles';
+} from './hooks/useVehicleMutations';
+
+export { useVehiclesPage } from './hooks/useVehiclesPage';
+export { useVehicleDetailPage } from './hooks/useVehicleDetailPage';
 
 // ── Components ─────────────────────────────────────────────
+export { VehiclesView }             from './components/VehiclesView';
+export { VehicleDetailView }         from './components/VehicleDetailView';
 export { VehiclesTable }             from './components/VehiclesTable';
 export { VehicleFormModal }          from './components/VehicleFormModal';
 export { AssignDriverModal }         from './components/AssignDriverModal';
-export { DeleteVehicleModal, DeleteVehicleModal as ChangeVehicleStatusModal } from './components/DeleteVehicleModal';
+export { ToggleVehicleStatusModal }   from './components/ToggleVehicleStatusModal';
 export { AssignVehicleToTeamModal }   from './components/AssignVehicleToTeamModal';
 export { ConfirmDeleteVehicleModal } from './components/ConfirmDeleteVehicleModal';
 export { VehicleStatsCards }         from './components/VehicleStatsCards';

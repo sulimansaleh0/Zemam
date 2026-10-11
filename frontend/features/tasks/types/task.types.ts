@@ -43,6 +43,7 @@ export interface BackendTask {
   expectedEndTime?: string;
   startOdometer?: number;
   endOdometer?: number;
+  fuelConsumedLitres?: number;
   isDelayed?: boolean;
   startedAt?: string;
   finishedAt?: string;
@@ -106,5 +107,22 @@ export interface TaskStats {
   inProgress: number;
   finished: number;
   declined: number;
+  delayed?: number;
   completionRate: number;
+}
+
+export interface TaskQueryParams {
+  vehicleId?: string;
+  driverId?: string;
+  teamId?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  all?: boolean | string;
+}
+
+export interface ListTasksResponse {
+  tasks: BackendTask[];
+  pagination?: import('@/shared/types/api.types').PaginationInfo;
 }

@@ -22,7 +22,11 @@ export function ActionMenu({ items, align = 'left', className = '' }: ActionMenu
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [position, setPosition] = useState<{ top: number; left: number; flipUp: boolean }>({
+    top: 0,
+    left: 0,
+    flipUp: false,
+  });
 
   const updatePosition = useCallback(() => {
     if (!buttonRef.current) return;
@@ -34,6 +38,7 @@ export function ActionMenu({ items, align = 'left', className = '' }: ActionMenu
     setPosition({
       top: flipUp ? rect.top - 8 : rect.bottom + 6,
       left: align === 'left' ? rect.left : rect.right,
+      flipUp,
     });
   }, [align]);
 
@@ -70,11 +75,6 @@ export function ActionMenu({ items, align = 'left', className = '' }: ActionMenu
     primary: 'text-[var(--primary)] hover:bg-[var(--primary-light)]',
   };
 
-  // Determine transform-origin based on flip and alignment
-  const flipUp = buttonRef.current
-    ? window.innerHeight - buttonRef.current.getBoundingClientRect().bottom < 200 && buttonRef.current.getBoundingClientRect().top > 200
-    : false;
-
   return (
     <div className={`relative inline-block text-right ${className}`}>
       <button
@@ -97,8 +97,8 @@ export function ActionMenu({ items, align = 'left', className = '' }: ActionMenu
             ref={menuRef}
             className="fixed z-[9999] w-48 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-1 animate-in fade-in zoom-in-95 duration-150"
             style={{
-              top: flipUp ? undefined : position.top,
-              bottom: flipUp ? window.innerHeight - position.top : undefined,
+              top: position.flipUp ? undefined : position.top,
+              bottom: position.flipUp ? window.innerHeight - position.top : undefined,
               left: align === 'left' ? position.left : undefined,
               right: align === 'right' ? window.innerWidth - position.left : undefined,
             }}

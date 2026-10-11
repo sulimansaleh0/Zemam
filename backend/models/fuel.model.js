@@ -81,6 +81,19 @@ const fuelSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    voidedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        default: null
+    },
+    voidedAt: {
+        type: Date,
+        default: null
+    },
+    voidReason: {
+        type: String,
+        default: null
+    },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "company",
@@ -93,6 +106,13 @@ const fuelSchema = new mongoose.Schema({
     }
 }, { timestamps: true })
 
+// ── فهارس مركبة لتحسين أداء الاستعلامات والفلترة والعزل ──
+fuelSchema.index({ companyId: 1, createdAt: -1 })
+fuelSchema.index({ companyId: 1, status: 1 })
+fuelSchema.index({ companyId: 1, teamId: 1 })
+fuelSchema.index({ companyId: 1, vehicleId: 1, createdAt: -1 })
+fuelSchema.index({ companyId: 1, userId: 1, createdAt: -1 })
+fuelSchema.index({ vehicleId: 1, isFullTank: 1, createdAt: -1 })
 fuelSchema.index({ vehicleId: 1, createdAt: -1 })
 
 const Fuel = mongoose.model("fuel", fuelSchema)

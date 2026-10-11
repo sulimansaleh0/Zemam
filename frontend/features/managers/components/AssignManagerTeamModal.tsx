@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Building2, Users, Loader2 } from 'lucide-react';
-import { useAssignManager } from '../hooks/useManagers';
+import { useAssignManager } from '../hooks/useManagerMutations';
 import type { FleetManager } from '../types/manager.types';
 import type { Team } from '@/features/teams/types/team.types';
 import { Modal } from '@/shared/ui/Modal';
@@ -25,12 +25,11 @@ export function AssignManagerTeamModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const availableTeams = teams.filter((team) => !team.managerId);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedTeamId('');
-      setErrorMsg(null);
-    }
-  }, [isOpen]);
+  const handleClose = () => {
+    setSelectedTeamId('');
+    setErrorMsg(null);
+    onClose();
+  };
 
   if (!manager) return null;
 
@@ -46,16 +45,18 @@ export function AssignManagerTeamModal({
         managerId: manager._id,
         teamId: selectedTeamId,
       });
-      onClose();
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'تعذر تعيين مدير الأسطول للفريق');
+      handleClose();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'تعذر تعيين مدير الأسطول للفريق';
+      setErrorMsg(message);
     }
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="تعيين مدير أسطول لفريق"
       description={<>ربط المدير <strong>{manager.name || manager.email}</strong> بفريق تشغيلي</>}
       icon={Building2}
@@ -91,7 +92,7 @@ export function AssignManagerTeamModal({
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={assignMutation.isPending}
             className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-xl transition-colors cursor-pointer disabled:opacity-50"
           >

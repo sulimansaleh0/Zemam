@@ -4,6 +4,7 @@ import type {
   DriverTask,
   FuelLogPayload,
   MaintenanceReportPayload,
+  DailyInspectionPayload,
 } from '../types/driverPwa.types';
 import {
   cacheTasksLocally,
@@ -231,6 +232,35 @@ export const driverTaskService = {
           odometer: payload.odometer,
           cost: 0,
         },
+        createdAt: Date.now(),
+      });
+      return true;
+    }
+  },
+
+  /**
+   * توثيق فحص ما قبل الانطلاق اليومي (يدعم العمل أونلاين وأوفلاين)
+   */
+  async submitDailyInspection(payload: DailyInspectionPayload): Promise<boolean> {
+    if (navigator.onLine) {
+      const res = await fetch('/api/inspections', {
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.msg || err?.message || 'فشل توثيق فحص ما قبل الانطلاق');
+      }
+      return true;
+    } else {
+      await queueOfflineAction({
+        id: `insp_${Date.now()}`,
+        type: 'SUBMIT_INSPECTION',
+        url: '/api/inspections',
+        method: 'POST',
+        body: payload,
         createdAt: Date.now(),
       });
       return true;

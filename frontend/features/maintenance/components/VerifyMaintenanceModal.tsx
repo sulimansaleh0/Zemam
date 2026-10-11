@@ -1,20 +1,21 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  AlertTriangle,
   CheckCircle2,
   Coins,
-  FileText,
+  Info,
   Loader2,
   ShieldAlert,
   ShieldCheck,
   Truck,
+  User,
   XCircle,
 } from 'lucide-react';
 import { Modal } from '@/shared/ui/Modal';
+import { useDrivers } from '@/features/drivers';
 import {
   verifyMaintenanceSchema,
   type VerifyMaintenanceFormValues,
@@ -39,6 +40,18 @@ export function VerifyMaintenanceModal({
   onConfirm,
   isLoading,
 }: VerifyMaintenanceModalProps) {
+  const [driverValidationError, setDriverValidationError] = useState<string | null>(null);
+
+  const { data: drivers = [] } = useDrivers(undefined, { enabled: isOpen });
+
+  const linkedDriver =
+    typeof record?.driverId === 'object' && record?.driverId ? record.driverId : null;
+  const reporter =
+    typeof record?.reportedBy === 'object' && record?.reportedBy ? record.reportedBy : null;
+  const reporterIsDriver = reporter?.role === 'driver';
+  const existingDriver = linkedDriver || (reporterIsDriver ? reporter : null);
+  const hasExistingDriver = Boolean(existingDriver?._id);
+
   const {
     register,
     handleSubmit,
@@ -52,6 +65,7 @@ export function VerifyMaintenanceModal({
       status: 'approved',
       cost: record?.cost,
       isDriverFault: false,
+      driverId: '',
       declineReason: '',
     },
   });
@@ -62,8 +76,10 @@ export function VerifyMaintenanceModal({
         status: 'approved',
         cost: record.cost,
         isDriverFault: false,
+        driverId: '',
         declineReason: '',
       });
+      setDriverValidationError(null);
     }
   }, [record, reset]);
 
@@ -71,13 +87,28 @@ export function VerifyMaintenanceModal({
 
   const currentStatus = watch('status');
   const isDriverFault = watch('isDriverFault');
+  const selectedDriverId = watch('driverId');
 
   const onFormSubmit = async (values: VerifyMaintenanceFormValues) => {
+    setDriverValidationError(null);
+
+    // التحقق من تعيين سائق في حال اختيار مسؤولية السائق
+    if (values.status === 'approved' && values.isDriverFault) {
+      const effectiveDriverId = hasExistingDriver ? existingDriver?._id : values.driverId;
+      if (!effectiveDriverId) {
+        setDriverValidationError(
+          'يرجى تحديد السائق المسؤول من القائمة أو إلغاء تفعيل خيار مسؤولية السائق للاعتماد كاستهلاك طبيعي'
+        );
+        return;
+      }
+    }
+
     await onConfirm({
       id: record._id,
       status: values.status,
       cost: values.cost,
       isDriverFault: values.isDriverFault,
+      driverId: hasExistingDriver ? undefined : values.driverId || undefined,
       declineReason: values.declineReason,
     });
     onClose();
@@ -103,10 +134,11 @@ export function VerifyMaintenanceModal({
               <button
                 type="button"
                 onClick={() => setValue('status', 'approved')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${currentStatus === 'approved'
+                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${
+                  currentStatus === 'approved'
                     ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-xs'
                     : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:border-[var(--zd-line-hover)]'
-                  }`}
+                }`}
               >
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 <span>اعتماد وقبول الطلب</span>
@@ -115,10 +147,11 @@ export function VerifyMaintenanceModal({
               <button
                 type="button"
                 onClick={() => setValue('status', 'declined')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${currentStatus === 'declined'
+                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition cursor-pointer ${
+                  currentStatus === 'declined'
                     ? 'border-rose-500/40 bg-rose-500/10 text-rose-400 shadow-xs'
                     : 'border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:border-[var(--zd-line-hover)]'
-                  }`}
+                }`}
               >
                 <XCircle className="h-4 w-4 text-rose-500" />
                 <span>رفض الطلب</span>
@@ -154,12 +187,17 @@ export function VerifyMaintenanceModal({
               </div>
 
               {/* مسؤولية السائق (checkbox/toggle) */}
-              <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/40 p-3.5">
+              <div className="rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)]/40 p-3.5 space-y-3">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={Boolean(isDriverFault)}
-                    onChange={(e) => setValue('isDriverFault', e.target.checked)}
+                    onChange={(e) => {
+                      setValue('isDriverFault', e.target.checked);
+                      if (!e.target.checked) {
+                        setDriverValidationError(null);
+                      }
+                    }}
                     className="mt-0.5 h-4 w-4 rounded border-[var(--zd-line)] text-[var(--zd-blue)] focus:ring-0 cursor-pointer"
                   />
                   <div className="text-xs">
@@ -168,10 +206,65 @@ export function VerifyMaintenanceModal({
                       <span>هل العطل ناتج عن إهمال أو سوء استخدام من السائق؟</span>
                     </p>
                     <p className="mt-0.5 text-[11px] text-[var(--zd-muted)]">
-                      في حال التحديد، سيتم تصنيف التكلفة كـ (مسؤولية سائق) في تقارير الأسطول المالية.
+                      في حال التحديد، سيتم خصم نقاط من تقييم السائق وتوثيق المخالفة في سجل أدائه.
                     </p>
                   </div>
                 </label>
+
+                {/* تفاصيل السائق المرتبط أو اختيار سائق بديل */}
+                {isDriverFault ? (
+                  hasExistingDriver ? (
+                    <div className="flex items-center gap-2 rounded-xl bg-[var(--zd-surface)] border border-[var(--zd-line)] p-2.5 text-xs text-[var(--zd-text)] animate-in fade-in duration-150">
+                      <User className="h-4 w-4 text-[var(--zd-blue)] shrink-0" />
+                      <span>
+                        السائق المسند للبلاغ:{' '}
+                        <strong className="font-bold">
+                          {existingDriver?.name || existingDriver?.email}
+                        </strong>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs animate-in fade-in duration-150">
+                      <div className="flex items-start gap-2 text-amber-500">
+                        <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                        <p className="text-[11px] leading-relaxed">
+                          هذا السجل لا يحتوي على سائق مرتبط مسبقاً. يرجى اختيار السائق المسؤول لتحميله
+                          المسؤولية:
+                        </p>
+                      </div>
+
+                      <div>
+                        <select
+                          value={selectedDriverId || ''}
+                          onChange={(e) => {
+                            setValue('driverId', e.target.value);
+                            if (e.target.value) setDriverValidationError(null);
+                          }}
+                          className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3 py-2 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
+                        >
+                          <option value="">-- اختر السائق من قائمة الأسطول --</option>
+                          {drivers.map((d) => (
+                            <option key={d._id} value={d._id}>
+                              {d.name || d.email}
+                            </option>
+                          ))}
+                        </select>
+
+                        {driverValidationError && (
+                          <p className="mt-1 text-[11px] text-rose-500">{driverValidationError}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-center gap-2 rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-2.5 text-[11px] text-emerald-400">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      سيتم اعتماد الفاتورة كـ (استهلاك طبيعي أو صيانة دورية) دون التأثير على تقييم أي
+                      سائق.
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* ملاحظة تفعيل المركبة تلقائياً */}
@@ -215,10 +308,11 @@ export function VerifyMaintenanceModal({
           <button
             type="submit"
             disabled={isLoading}
-            className={`flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition disabled:opacity-50 cursor-pointer ${currentStatus === 'approved'
+            className={`flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition disabled:opacity-50 cursor-pointer ${
+              currentStatus === 'approved'
                 ? 'bg-emerald-600 hover:bg-emerald-700'
                 : 'bg-rose-600 hover:bg-rose-700'
-              }`}
+            }`}
           >
             {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             <span>{currentStatus === 'approved' ? 'تأكيد الاعتماد' : 'تأكيد الرفض'}</span>

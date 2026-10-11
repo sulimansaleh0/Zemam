@@ -13,3 +13,13 @@ export interface ServiceFailure {
 }
 
 export type ServiceResult<T> = ServiceSuccess<T> | ServiceFailure;
+
+/** Unified Pagination metadata from Zemam Backend paginate.js */
+export interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}

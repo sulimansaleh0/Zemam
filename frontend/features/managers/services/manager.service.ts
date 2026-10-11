@@ -3,23 +3,59 @@ import { API_PATHS } from '@/shared/constants/apiPaths';
 import type {
   FleetManager,
   FleetManagersResponse,
+  PaginatedManagersResponse,
+  ManagersQueryParams,
   CreateManagerInput,
+  ManagerStats,
 } from '../types/manager.types';
 
 export const managerService = {
   /**
-   * Fetch all fleet managers of the company
+   * Fetch fleet managers with server-side filters, search and pagination
    */
-  async getManagers(status?: string, signal?: AbortSignal): Promise<FleetManager[]> {
-    const path = status
-      ? `${API_PATHS.MANAGERS.LIST}?status=${status}`
-      : API_PATHS.MANAGERS.LIST;
-    const result = await sendRequest<FleetManagersResponse>(path, { signal });
+  async getManagers(
+    params?: ManagersQueryParams | string,
+    signal?: AbortSignal
+  ): Promise<PaginatedManagersResponse> {
+    let path: string = API_PATHS.MANAGERS.LIST;
+    const queryObj: ManagersQueryParams =
+      typeof params === 'string'
+        ? { status: params as any }
+        : params || {};
+
+    const searchParams = new URLSearchParams();
+    if (queryObj.page !== undefined) searchParams.set('page', String(queryObj.page));
+    if (queryObj.limit !== undefined) searchParams.set('limit', String(queryObj.limit));
+    if (queryObj.search) searchParams.set('search', queryObj.search);
+    if (queryObj.status && queryObj.status !== 'all') searchParams.set('status', queryObj.status);
+    if (queryObj.withoutTeam !== undefined) searchParams.set('withoutTeam', String(queryObj.withoutTeam));
+    if (queryObj.teamId && queryObj.teamId !== 'all') searchParams.set('teamId', queryObj.teamId);
+
+    const qs = searchParams.toString();
+    if (qs) {
+      path += `?${qs}`;
+    }
+
+    const result = await sendRequest<PaginatedManagersResponse>(path, { signal });
     if (!result.success) {
-      if (result.message === 'Request cancelled') return [];
+      if (result.message === 'Request cancelled') {
+        return { fleetManagers: [] };
+      }
       throw new Error(result.message || 'فشل في جلب قائمة مدراء الأساطيل');
     }
-    return result.data?.fleetManagers ?? [];
+
+    return {
+      fleetManagers: result.data?.fleetManagers ?? [],
+      pagination: result.data?.pagination,
+    };
+  },
+
+  /**
+   * Fetch all fleet managers (unpaginated)
+   */
+  async getAllManagers(signal?: AbortSignal): Promise<FleetManager[]> {
+    const res = await this.getManagers(undefined, signal);
+    return res.fleetManagers;
   },
 
   /**
@@ -36,6 +72,21 @@ export const managerService = {
     }
     const managers = result.data?.fleetManagers ?? [];
     return managers.filter((m) => !m.teamId);
+  },
+
+  /**
+   * Fetch single manager by ID
+   */
+  async getManagerById(id: string, signal?: AbortSignal): Promise<FleetManager | null> {
+    const result = await sendRequest<{ fleetManager: FleetManager }>(
+      API_PATHS.MANAGERS.DETAIL(id),
+      { signal }
+    );
+    if (!result.success) {
+      if (result.message === 'Request cancelled') return null;
+      throw new Error(result.message || 'فشل في جلب بيانات مدير الأسطول');
+    }
+    return result.data?.fleetManager ?? null;
   },
 
   /**
@@ -101,8 +152,8 @@ export const managerService = {
   /**
    * جلب إحصائيات وأداء مدير الأسطول
    */
-  async getManagerStats(managerId: string, signal?: AbortSignal) {
-    const result = await sendRequest<{ stats: import('../types/manager.types').ManagerStats }>(
+  async getManagerStats(managerId: string, signal?: AbortSignal): Promise<ManagerStats | null> {
+    const result = await sendRequest<{ stats: ManagerStats }>(
       API_PATHS.MANAGERS.STATS(managerId),
       { signal }
     );

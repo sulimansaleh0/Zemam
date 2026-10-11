@@ -53,6 +53,8 @@ export function Sidebar({ open, onClose, userName, onLogout }: SidebarProps) {
           { label: 'الفرق', icon: Users, href: '/teams' },
           { label: 'مدراء الأساطيل', icon: UserCheck, href: '/managers' },
         ]
+      : user?.teamId
+      ? [{ label: 'فريقي التشغيلي', icon: Users, href: `/teams/${user.teamId}` }]
       : []),
     { label: 'المركبات', icon: Truck, href: '/vehicles' },
     { label: 'السائقون', icon: UsersRound, href: '/drivers' },

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserCheck, Shield, Loader2, AlertCircle, Plus } from 'lucide-react';
 import { useAvailableManagers, useAssignManager } from '@/features/managers';
 import type { Team } from '../types/team.types';
+import { getTeamManagerName } from '../utils/teamHelpers';
 import { Modal } from '@/shared/ui/Modal';
 
 interface AssignTeamManagerModalProps {
@@ -13,12 +14,15 @@ interface AssignTeamManagerModalProps {
   onAddNewManagerClick?: () => void;
 }
 
-export function AssignTeamManagerModal({
-  isOpen,
-  onClose,
+function AssignTeamManagerForm({
   team,
+  onClose,
   onAddNewManagerClick,
-}: AssignTeamManagerModalProps) {
+}: {
+  team: Team;
+  onClose: () => void;
+  onAddNewManagerClick?: () => void;
+}) {
   const { data: availableManagers = [], isLoading: isLoadingManagers } = useAvailableManagers();
   const assignManagerMutation = useAssignManager();
   const isSubmitting = assignManagerMutation.isPending;
@@ -26,20 +30,8 @@ export function AssignTeamManagerModal({
   const [selectedManagerId, setSelectedManagerId] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedManagerId('');
-      setErrorMsg(null);
-    }
-  }, [isOpen, team]);
-
-  if (!team) return null;
-
   const hasExistingManager = Boolean(team.managerId);
-  const existingManagerName =
-    typeof team.managerId === 'object' && team.managerId !== null
-      ? (team.managerId as any).name || (team.managerId as any).email
-      : null;
+  const existingManagerName = getTeamManagerName(team.managerId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,16 +57,7 @@ export function AssignTeamManagerModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="تعيين مدير أسطول للفريق"
-      description={<>فريق: <strong>{team.name}</strong></>}
-      icon={UserCheck}
-      iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-      maxWidth="md"
-      preventClose={isSubmitting}
-    >
+    <>
       {hasExistingManager && (
         <div className="p-4 mx-6 mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
@@ -179,6 +162,33 @@ export function AssignTeamManagerModal({
           </button>
         </div>
       </form>
+    </>
+  );
+}
+
+export function AssignTeamManagerModal({
+  isOpen,
+  onClose,
+  team,
+  onAddNewManagerClick,
+}: AssignTeamManagerModalProps) {
+  if (!isOpen || !team) return null;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="تعيين مدير أسطول للفريق"
+      description={<>فريق: <strong>{team.name}</strong></>}
+      icon={UserCheck}
+      iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+      maxWidth="md"
+    >
+      <AssignTeamManagerForm
+        team={team}
+        onClose={onClose}
+        onAddNewManagerClick={onAddNewManagerClick}
+      />
     </Modal>
   );
 }

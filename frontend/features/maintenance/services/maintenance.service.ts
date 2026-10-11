@@ -7,10 +7,12 @@ import type {
   VerifyMaintenanceInput,
   MaintenanceStats,
   MaintenanceFilters,
+  PaginationInfo,
 } from '../types/maintenance.types';
 
 export interface ListMaintenanceResponse {
   records: BackendMaintenanceRecord[];
+  pagination?: PaginationInfo;
 }
 
 export interface MaintenanceStatsResponse {
@@ -23,21 +25,34 @@ export interface CreateMaintenanceResponse {
 
 export const maintenanceService = {
   /**
-   * جلب قائمة سجلات الصيانة مع إمكانية الفلترة
+   * جلب قائمة سجلات الصيانة مع إمكانية الفلترة والبحث والترقيم
    */
   getMaintenanceRecords(
     filters?: MaintenanceFilters,
     signal?: AbortSignal
   ): Promise<ServiceResult<ListMaintenanceResponse>> {
     const params = new URLSearchParams();
+
     if (filters?.status && filters.status !== 'all') {
       params.set('status', filters.status);
     }
     if (filters?.category && filters.category !== 'all') {
       params.set('category', filters.category);
     }
-    if (filters?.vehicleId) {
+    if (filters?.vehicleId && filters.vehicleId !== 'all') {
       params.set('vehicleId', filters.vehicleId);
+    }
+    if (filters?.search && filters.search.trim()) {
+      params.set('search', filters.search.trim());
+    }
+    if (filters?.page) {
+      params.set('page', String(filters.page));
+    }
+    if (filters?.limit) {
+      params.set('limit', String(filters.limit));
+    }
+    if (filters?.all !== undefined) {
+      params.set('all', String(filters.all));
     }
 
     const queryString = params.toString();
@@ -56,7 +71,7 @@ export const maintenanceService = {
   },
 
   /**
-   * إنشاء وتوثيق طلب أو بلاغ صيانة جديد (يدعم رفع حتى 4 صور عبر FormData)
+   * إنشاء وتوثيق طلب أو بلاغ صيانة جديد (يدعم رفع حتى 4 صور عبر FormData وقراءة العداد)
    */
   createMaintenanceRecord(
     data: CreateMaintenanceInput
@@ -69,6 +84,10 @@ export const maintenanceService = {
 
     if (data.cost !== undefined && data.cost !== null && !isNaN(data.cost)) {
       formData.append('cost', String(data.cost));
+    }
+
+    if (data.odometer !== undefined && data.odometer !== null && !isNaN(data.odometer)) {
+      formData.append('odometer', String(data.odometer));
     }
 
     if (data.images && data.images.length > 0) {
@@ -84,7 +103,7 @@ export const maintenanceService = {
    * اعتماد أو رفض طلب الصيانة وتحديث التكلفة ومسؤولية السائق
    */
   verifyMaintenanceRecord(data: VerifyMaintenanceInput): Promise<ServiceResult<null>> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       status: data.status,
     };
 
@@ -98,6 +117,10 @@ export const maintenanceService = {
 
     if (data.status === 'approved' && data.isDriverFault !== undefined) {
       payload.isDriverFault = Boolean(data.isDriverFault);
+    }
+
+    if (data.status === 'approved' && data.driverId) {
+      payload.driverId = data.driverId;
     }
 
     return patchRequest<null>(API_PATHS.MAINTENANCE.VERIFY(data.id), payload);

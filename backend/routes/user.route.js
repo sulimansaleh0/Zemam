@@ -4,21 +4,9 @@ const { userRoles } = require("../data/roles")
 const {
     me,
     updateProfile,
-    changeUserStatus,
-    createFleetManager,
-    deleteFleetManager,
-    listFleetManagers,
-    getManagerStats,
-    removeFleetManager,
-    assignManager,
-    createDriver,
-    deleteDriver,
-    listDrivers,
-    assignDriverToVehicle,
-    removeDriverFromVehicle,
-    setDriverToTeam,
-    removeDriverFromTeam
 } = require("../controllers/user.controller")
+const managerController = require("../controllers/manager.controller")
+const driverController = require("../controllers/driver.controller")
 
 const verifyToken = require("../middlewares/verifyToken")
 const allowedTo = require("../middlewares/allowedTo")
@@ -26,7 +14,18 @@ const checkSubscription = require("../middlewares/CheckSubscription")
 const getTeam = require("../middlewares/getTeam")
 const validate = require("../middlewares/validator")
 
-const { updateProfileSchema, createDriverSchema, createFleetManagerSchema, updateUserStatusSchema, assignManagerSchema } = require("../validators/user")
+const { updateProfileSchema } = require("../validators/user")
+const {
+    createFleetManagerSchema,
+    assignManagerSchema,
+    updateManagerStatusSchema
+} = require("../validators/manager")
+const {
+    createDriverSchema,
+    updateDriverStatusSchema,
+    assignDriverToVehicleSchema,
+    assignDriverToTeamSchema
+} = require("../validators/driver")
 
 router.use(verifyToken)
 
@@ -41,18 +40,28 @@ router.post("/fleet-manager",
     createFleetManagerSchema,
     validate,
     getTeam,
-    createFleetManager
+    managerController.createFleetManager
 )
 
 // List Managers
 router.get("/fleet-manager",
     allowedTo(userRoles.ADMIN),
-    listFleetManagers
+    managerController.listFleetManagers
+)
+
+// Get Manager By ID
+router.get("/fleet-manager/:id",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    managerController.getFleetManagerById
 )
 
 router.get("/managers/:id/stats",
     allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
-    getManagerStats
+    managerController.getManagerStats
+)
+router.get("/fleet-manager/:id/stats",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    managerController.getManagerStats
 )
 
 // Assign Manager to a Team
@@ -61,27 +70,37 @@ router.patch("/fleet-manager/:id/assign-to-team",
     assignManagerSchema,
     validate,
     getTeam,
-    assignManager
+    managerController.assignManager
 )
 
 // Delete Manager from a Team
 router.patch("/fleet-manager/:id/remove-from-team",
     allowedTo(userRoles.ADMIN),
-    removeFleetManager
+    managerController.removeFleetManager
+)
+
+// Change Manager Status (Active / Inactive)
+router.patch("/fleet-manager/:id/status",
+    allowedTo(userRoles.ADMIN),
+    updateManagerStatusSchema,
+    validate,
+    managerController.changeManagerStatus
 )
 
 // delete Manager
 router.delete(
     "/fleet-manager/:id",
     allowedTo(userRoles.ADMIN),
-    deleteFleetManager
+    managerController.deleteFleetManager
 )
 
 // Set Driver To Team
 router.patch("/driver/:id/assign-to-team",
     allowedTo(userRoles.ADMIN),
+    assignDriverToTeamSchema,
+    validate,
     getTeam,
-    setDriverToTeam
+    driverController.setDriverToTeam
 )
 
 router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
@@ -91,29 +110,39 @@ router.use(getTeam)
 router.post("/driver",
     createDriverSchema,
     validate,
-    createDriver
+    driverController.createDriver
 )
 
-// Get Drivers
-router.get("/driver", listDrivers)
+// Get Drivers List
+router.get("/driver", driverController.listDrivers)
+
+// Get Single Driver Details
+router.get("/driver/:id", driverController.getDriverById)
+
+// Get Single Driver Operational Stats
+router.get("/driver/:id/stats", driverController.getDriverStats)
 
 // Remove Driver From Team
-router.patch("/driver/:id/remove-from-team", removeDriverFromTeam)
+router.patch("/driver/:id/remove-from-team", driverController.removeDriverFromTeam)
 
 // Assign Driver to a vehicle
-router.patch("/driver/:id/assign-to-vehicle", assignDriverToVehicle)
+router.patch("/driver/:id/assign-to-vehicle",
+    assignDriverToVehicleSchema,
+    validate,
+    driverController.assignDriverToVehicle
+)
 
 // Remove Driver from a vehicle
-router.patch("/driver/:id/remove-from-vehicle", removeDriverFromVehicle)
+router.patch("/driver/:id/remove-from-vehicle", driverController.unassignDriverFromVehicle)
 
 // Delete Driver
-router.delete("/driver/:id", deleteDriver)
+router.delete("/driver/:id", driverController.deleteDriver)
 
-// Update Status
+// Update Status (Drivers & Managers)
 router.patch("/:userId/status",
-    updateUserStatusSchema,
+    updateDriverStatusSchema,
     validate,
-    changeUserStatus
+    driverController.changeDriverStatus
 )
 
 module.exports = router

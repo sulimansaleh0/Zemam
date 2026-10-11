@@ -17,15 +17,24 @@ import {
   Layers,
 } from 'lucide-react';
 import type { Team, TeamFilterStatus, TeamSortOrder } from '../types/team.types';
+import type { PaginationInfo } from '@/shared/types/api.types';
 import {
   getTeamManagerId,
   getTeamManagerName,
   getTeamManagerEmail,
   getTeamCreatedAt,
 } from '../utils/teamHelpers';
+import { TablePagination } from '@/shared/ui';
 
 interface TeamsTableProps {
   teams: Team[];
+  pagination?: PaginationInfo;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  searchQuery?: string;
+  onSearchChange?: (val: string) => void;
+  statusFilter?: TeamFilterStatus;
+  onStatusFilterChange?: (status: TeamFilterStatus) => void;
   isLoading: boolean;
   companyName?: string;
   vehicleCounts?: Record<string, number>;
@@ -48,6 +57,13 @@ const SORT_LABELS: Record<TeamSortOrder, string> = {
 
 export function TeamsTable({
   teams,
+  pagination,
+  currentPage = 1,
+  onPageChange,
+  searchQuery: externalSearchQuery,
+  onSearchChange,
+  statusFilter: externalStatusFilter,
+  onStatusFilterChange,
   isLoading,
   companyName,
   vehicleCounts = {},
@@ -59,21 +75,48 @@ export function TeamsTable({
   onAddResourcesClick,
   onRemoveManagerClick,
 }: TeamsTableProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TeamFilterStatus>('all');
+  // Internal fallback states for uncontrolled usage
+  const [internalSearch, setInternalSearch] = useState('');
+  const [internalStatus, setInternalStatus] = useState<TeamFilterStatus>('all');
   const [sortOrder, setSortOrder] = useState<TeamSortOrder>('newest');
+
+  const activeSearch = externalSearchQuery !== undefined ? externalSearchQuery : internalSearch;
+  const activeStatus = externalStatusFilter !== undefined ? externalStatusFilter : internalStatus;
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) onSearchChange(val);
+    else setInternalSearch(val);
+  };
+
+  const handleStatusChange = (val: TeamFilterStatus) => {
+    if (onStatusFilterChange) onStatusFilterChange(val);
+    else setInternalStatus(val);
+  };
 
   const toggleSort = () => {
     const currentIndex = SORT_CYCLE.indexOf(sortOrder);
     setSortOrder(SORT_CYCLE[(currentIndex + 1) % SORT_CYCLE.length]);
   };
 
-  // Filter & Sort Logic
-  const filteredTeams = useMemo(() => {
+  // If server-side pagination & filter is active, backend already filtered; otherwise do client-side filter
+  const displayedTeams = useMemo(() => {
+    // If externalSearchQuery is active, backend handles filter; just sort if needed
+    if (externalSearchQuery !== undefined || externalStatusFilter !== undefined) {
+      return [...teams].sort((a, b) => {
+        if (sortOrder === 'name') {
+          return a.name.localeCompare(b.name, 'ar');
+        }
+        if (sortOrder === 'oldest') {
+          return (getTeamCreatedAt(a)?.getTime() ?? 0) - (getTeamCreatedAt(b)?.getTime() ?? 0);
+        }
+        return (getTeamCreatedAt(b)?.getTime() ?? 0) - (getTeamCreatedAt(a)?.getTime() ?? 0);
+      });
+    }
+
+    // Client-side fallback
     return teams
       .filter((team) => {
-        // Search
-        const query = searchQuery.trim().toLowerCase();
+        const query = activeSearch.trim().toLowerCase();
         const managerObj = typeof team.managerId === 'object' && team.managerId !== null
           ? team.managerId
           : null;
@@ -82,11 +125,10 @@ export function TeamsTable({
           String(value || '').toLowerCase().includes(query)
         );
 
-        // Status Filter
         let matchesStatus = true;
-        if (statusFilter === 'assigned') {
+        if (activeStatus === 'assigned') {
           matchesStatus = Boolean(team.managerId);
-        } else if (statusFilter === 'unassigned') {
+        } else if (activeStatus === 'unassigned') {
           matchesStatus = !team.managerId;
         }
 
@@ -99,10 +141,9 @@ export function TeamsTable({
         if (sortOrder === 'oldest') {
           return (getTeamCreatedAt(a)?.getTime() ?? 0) - (getTeamCreatedAt(b)?.getTime() ?? 0);
         }
-        // newest
         return (getTeamCreatedAt(b)?.getTime() ?? 0) - (getTeamCreatedAt(a)?.getTime() ?? 0);
       });
-  }, [teams, searchQuery, statusFilter, sortOrder]);
+  }, [teams, externalSearchQuery, externalStatusFilter, activeSearch, activeStatus, sortOrder]);
 
   return (
     <div className="space-y-4">
@@ -113,8 +154,8 @@ export function TeamsTable({
           <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={activeSearch}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="بحث باسم الفريق أو المدير المسند..."
             className="w-full pl-3 pr-10 py-2 text-xs sm:text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors"
           />
@@ -126,18 +167,18 @@ export function TeamsTable({
           <div className="flex items-center gap-1 p-1 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl">
             <button
               type="button"
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'all'
+              onClick={() => handleStatusChange('all')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${activeStatus === 'all'
                 ? 'bg-[var(--primary)] text-white shadow-xs'
                 : 'text-[var(--muted)] hover:text-[var(--text)]'
                 }`}
             >
-              الكل ({teams.length})
+              الكل {pagination ? `(${pagination.total})` : `(${teams.length})`}
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('assigned')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'assigned'
+              onClick={() => handleStatusChange('assigned')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${activeStatus === 'assigned'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-[var(--muted)] hover:text-[var(--text)]'
                 }`}
@@ -146,8 +187,8 @@ export function TeamsTable({
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('unassigned')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${statusFilter === 'unassigned'
+              onClick={() => handleStatusChange('unassigned')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${activeStatus === 'unassigned'
                 ? 'bg-amber-600 text-white shadow-xs'
                 : 'text-[var(--muted)] hover:text-[var(--text)]'
                 }`}
@@ -224,7 +265,7 @@ export function TeamsTable({
                     </td>
                   </tr>
                 ))
-              ) : filteredTeams.length === 0 ? (
+              ) : displayedTeams.length === 0 ? (
                 // Empty State
                 <tr>
                   <td colSpan={6} className="py-12 px-4 text-center">
@@ -237,12 +278,12 @@ export function TeamsTable({
                           لا توجد فرق تشغيلية مطابقة
                         </h3>
                         <p className="text-xs text-[var(--muted)] mt-1">
-                          {searchQuery
+                          {activeSearch
                             ? 'جرب البحث بكلمات أخرى أو تغيير الفلتر'
                             : 'ابدأ بإنشاء أول فريق تشغيلي لشركتك لتنظيم الأسطول'}
                         </p>
                       </div>
-                      {!searchQuery && (
+                      {!activeSearch && (
                         <button
                           type="button"
                           onClick={onAddClick}
@@ -256,7 +297,7 @@ export function TeamsTable({
                   </td>
                 </tr>
               ) : (
-                filteredTeams.map((team) => {
+                displayedTeams.map((team) => {
                   const vehiclesCount = vehicleCounts[team._id] ?? 0;
                   const driversCount = driverCounts[team._id] ?? 0;
                   const manager = team.managerId;
@@ -393,6 +434,19 @@ export function TeamsTable({
             </tbody>
           </table>
         </div>
+
+        {/* Server-Side Table Pagination */}
+        {pagination && pagination.totalPages > 1 && onPageChange && (
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
+            onPageChange={onPageChange}
+            itemLabel="فريق"
+          />
+        )}
       </div>
     </div>
   );

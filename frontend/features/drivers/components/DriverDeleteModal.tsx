@@ -34,7 +34,7 @@ export function DriverDeleteModal({
       <div className="p-6">
         <p className="text-[12px] leading-6 text-[var(--zd-muted)]">
           هل أنت متأكد من رغبتك في حذف سجل السائق{' '}
-          <strong className="font-semibold text-[var(--zd-text)]">"{displayName}"</strong>؟
+          <strong className="font-semibold text-[var(--zd-text)]">&quot;{displayName}&quot;</strong>؟
           <br />
           سيتم تعطيل الحساب وإزالته من لوحة السائقين. لا يمكن التراجع عن هذا الإجراء.
         </p>

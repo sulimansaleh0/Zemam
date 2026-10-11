@@ -139,6 +139,38 @@ export default function DriverMaintenancePage() {
     }
   };
 
+  const handleSubmitInspection = async () => {
+    setErrorMessage(null);
+    setSuccessNotice(null);
+
+    if (!vehicleId) {
+      setErrorMessage('يرجى تحديد المركبة المفحوصة');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const itemsPayload = INSPECTION_ITEMS.map((item) => ({
+        id: item.id,
+        label: item.label,
+        passed: Boolean(checkedItems[item.id]),
+      }));
+
+      await driverTaskService.submitDailyInspection({
+        vehicleId,
+        items: itemsPayload,
+        odometer: odometer ? Number(odometer) : undefined,
+        location: currentCoords.lat && currentCoords.lng ? currentCoords : undefined,
+      });
+
+      setSuccessNotice('✅ تم توثيق فحص ما قبل الانطلاق بنجاح في النظام! رافقتك السلامة.');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'فشل توثيق فحص ما قبل الانطلاق');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 bg-slate-50 text-slate-900">
       <DriverHeader />
@@ -372,6 +404,35 @@ export default function DriverMaintenancePage() {
                 </div>
               </div>
 
+              {/* اختيار المركبة المفحوصة */}
+              <div>
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-2 mb-1.5">
+                  <Truck className="h-4 w-4 text-[#195CF1]" />
+                  <span>المركبة المفحوصة:</span>
+                </label>
+                {availableVehicles.length > 0 ? (
+                  <select
+                    value={vehicleId}
+                    onChange={(e) => setVehicleId(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none"
+                  >
+                    {availableVehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.plate} ({v.model})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={vehicleId}
+                    onChange={(e) => setVehicleId(e.target.value)}
+                    placeholder="معرف المركبة"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#195CF1] focus:outline-none"
+                  />
+                )}
+              </div>
+
               <div className="space-y-2.5">
                 {INSPECTION_ITEMS.map((item) => {
                   const isChecked = !!checkedItems[item.id];
@@ -401,13 +462,12 @@ export default function DriverMaintenancePage() {
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setSuccessNotice('✅ تم توثيق فحص ما قبل الانطلاق بنجاح! رافقتك السلامة.');
-                  }}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#195CF1] hover:bg-blue-700 text-white font-bold py-3.5 text-xs shadow-xs transition-all cursor-pointer"
+                  disabled={isLoading}
+                  onClick={handleSubmitInspection}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#195CF1] hover:bg-blue-700 text-white font-bold py-3.5 text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>تأكيد اكتمال الفحص بنجاح</span>
+                  <span>{isLoading ? 'جاري توثيق الفحص...' : 'تأكيد اكتمال الفحص بنجاح'}</span>
                 </button>
               </div>
             </div>

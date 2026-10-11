@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus, Mail, Users, Key, Loader2, AlertCircle } from 'lucide-react';
@@ -8,7 +8,7 @@ import {
   createManagerSchema,
   CreateManagerFormValues,
 } from '../schemas/manager.schema';
-import { useCreateManager } from '../hooks/useManagers';
+import { useCreateManager } from '../hooks/useManagerMutations';
 import type { Team } from '@/features/teams/types/team.types';
 import { Modal } from '@/shared/ui/Modal';
 
@@ -47,17 +47,11 @@ export function CreateManagerModal({
     },
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      setFormError(null);
-      reset({
-        name: '',
-        phone: '',
-        email: '',
-        teamId: availableInitialTeamId,
-      });
-    }
-  }, [isOpen, availableInitialTeamId, reset]);
+  const handleClose = () => {
+    reset();
+    setFormError(null);
+    onClose();
+  };
 
   const isPending = createManagerMutation.isPending || isSubmitting;
 
@@ -71,16 +65,18 @@ export function CreateManagerModal({
         phone: values.phone?.trim() || undefined,
         teamId: values.teamId,
       });
-      onClose();
-    } catch (err: any) {
-      setFormError(err?.message || 'تعذر إضافة مدير الأسطول، حاول مرة أخرى');
+      handleClose();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'تعذر إضافة مدير الأسطول، حاول مرة أخرى';
+      setFormError(message);
     }
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="إضافة مدير أسطول جديد"
       description="إنشاء حساب مدير أسطول (يمكن تعيينه على فريق لاحقاً)"
       icon={UserPlus}
@@ -88,7 +84,10 @@ export function CreateManagerModal({
       maxWidth="md"
       preventClose={isPending}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-4"
+      >
         {formError && (
           <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
@@ -125,10 +124,11 @@ export function CreateManagerModal({
             disabled={isPending}
             placeholder="fleet.manager@example.com"
             dir="ltr"
-            className={`w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border rounded-xl text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 transition-colors text-right ${errors.email
+            className={`w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border rounded-xl text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 transition-colors text-right ${
+              errors.email
                 ? 'border-rose-500 focus:border-rose-500'
                 : 'border-[var(--border)] focus:border-[var(--primary)] focus:ring-[var(--primary)]'
-              }`}
+            }`}
           />
           {errors.email && (
             <p className="text-xs text-rose-500 mt-1">{errors.email.message}</p>
@@ -159,10 +159,11 @@ export function CreateManagerModal({
           <select
             {...register('teamId')}
             disabled={isPending}
-            className={`w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 transition-colors cursor-pointer ${errors.teamId
+            className={`w-full px-3.5 py-2 text-sm bg-[var(--surface-2)] border rounded-xl text-[var(--text)] focus:outline-none focus:ring-1 transition-colors cursor-pointer ${
+              errors.teamId
                 ? 'border-rose-500 focus:border-rose-500'
                 : 'border-[var(--border)] focus:border-[var(--primary)] focus:ring-[var(--primary)]'
-              }`}
+            }`}
           >
             <option value="">-- بدون فريق حالياً (تعيين لاحقاً) --</option>
             {availableTeams.map((t) => (
@@ -192,7 +193,7 @@ export function CreateManagerModal({
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isPending}
             className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-xl transition-colors cursor-pointer disabled:opacity-50"
           >

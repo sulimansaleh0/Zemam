@@ -5,10 +5,13 @@ export type {
   DriverStatus,
   DriverStatusFilter,
   DriverSortOrder,
+  DriversQueryParams,
+  DriverStats,
   CreateDriverInput,
   ChangeDriverStatusInput,
   AssignVehicleInput,
   ScoreAuditItem,
+  PaginationInfo,
 } from './types/driver.types';
 
 // ── Schema ─────────────────────────────────────────────────
@@ -26,6 +29,10 @@ export {
   formatRelativeDate,
   exportDriversCSV,
 } from './utils/driverHelpers';
+export {
+  VEHICLE_TYPE_LABELS,
+  getLicenseExpiryStatus,
+} from './utils/licenseEligibility';
 
 // ── Service ────────────────────────────────────────────────
 export { driverService } from './services/driverService';
@@ -33,7 +40,15 @@ export { driverService } from './services/driverService';
 // ── Hooks ──────────────────────────────────────────────────
 export {
   DRIVER_KEYS,
+  useDrivers,
   useDriversList,
+  usePaginatedDrivers,
+  useDriver,
+  useDriverStats,
+  useAvailableDrivers,
+} from './hooks/useDrivers';
+
+export {
   useCreateDriver,
   useChangeDriverStatus,
   useDeleteDriver,
@@ -41,27 +56,25 @@ export {
   useUnassignVehicleFromDriver,
   useAssignDriverToTeam,
   useRemoveDriverFromTeam,
-  useDriversPage,
-  useDriverDetailPage,
-} from './hooks/useDrivers';
-export type { ModalState } from './hooks/useDrivers';
+} from './hooks/useDriverMutations';
+
+export { useDriversPage } from './hooks/useDriversPage';
+export type { ModalState } from './hooks/useDriversPage';
+
+export { useDriverDetailPage } from './hooks/useDriverDetailPage';
+
+// ── Views ──────────────────────────────────────────────────
+export { DriversView } from './components/DriversView';
+export { DriverDetailView } from './components/DriverDetailView';
 
 // ── Components ─────────────────────────────────────────────
 export { DriverAvatar } from './components/DriverAvatar';
 export { StatusPill } from './components/StatusPill';
+export { DriverScoreBadge } from './components/DriverScoreBadge';
+export { DriverTableToolbar } from './components/DriverTableToolbar';
 export { DriverMetrics } from './components/DriverMetrics';
-export { DriverRow } from './components/DriverRow';
-export { DriverCard } from './components/DriverCard';
-export { DriversList } from './components/DriversList';
-export { PerformanceChart } from './components/PerformanceChart';
-export { ActivityContent, ACTIVITY_TAB_ITEMS } from './components/ActivityContent';
-export type { ActivityTab, ActivityTabItem } from './components/ActivityContent';
-export { DetailPanel } from './components/DetailPanel';
-export { DriverDetailCards } from './components/DriverDetailCards';
+export { DriversTable } from './components/DriversTable';
 export { DriverModal } from './components/DriverModal';
 export { DriverDeleteModal } from './components/DriverDeleteModal';
 export { AssignVehicleModal } from './components/AssignVehicleModal';
 export { AssignDriverToTeamModal } from './components/AssignDriverToTeamModal';
-export { DriversTable } from './components/DriversTable';
-
-

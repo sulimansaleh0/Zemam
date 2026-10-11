@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useRef, useState, type HTMLAttributes } from 'react';
+import { forwardRef, useEffect, useRef, type HTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 interface GoogleCredentialResponse {
@@ -67,7 +67,6 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
     ref,
   ) => {
     const buttonRef = useRef<HTMLDivElement | null>(null);
-    const [isMounted, setIsMounted] = useState(false);
     const isRenderedRef = useRef(false);
 
     const onSuccessRef = useRef(onSuccess);
@@ -113,7 +112,6 @@ const GoogleButton = forwardRef<HTMLDivElement, GoogleButtonProps>(
           });
 
           isRenderedRef.current = true;
-          setIsMounted(true);
         } catch (error) {
           console.error('Google Sign-In initialization error:', error);
           onErrorRef.current?.(error);

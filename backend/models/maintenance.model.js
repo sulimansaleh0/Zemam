@@ -34,8 +34,9 @@ const maintenanceSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: Object.values(maintenancePriority),
-        default: maintenancePriority.LOW
+        enum: ["high", "low", "High", "Low"],
+        default: maintenancePriority.LOW,
+        set: (v) => (v ? v.toLowerCase() : v)
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -66,5 +67,13 @@ const maintenanceSchema = new mongoose.Schema({
     }
 }, { timestamps: true })
 
+// فهارس مركبة لتحسين أداء الاستعلام والفلترة المتكررة
+maintenanceSchema.index({ companyId: 1, createdAt: -1 })
+maintenanceSchema.index({ companyId: 1, status: 1 })
+maintenanceSchema.index({ companyId: 1, teamId: 1 })
+maintenanceSchema.index({ companyId: 1, vehicleId: 1 })
+maintenanceSchema.index({ companyId: 1, driverId: 1 })
+maintenanceSchema.index({ companyId: 1, category: 1 })
+
 const Maintenance = mongoose.model("maintenance", maintenanceSchema)
-module.exports = Maintenance
+module.exports = Maintenance

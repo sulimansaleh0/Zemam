@@ -274,117 +274,113 @@ export function createUnifiedVehicleMarker({
 
   const vehicleSilhouette = getVehicleSilhouetteSvg(vehicleType, effectiveColor);
 
+  // تمييز حالة التوقف / آخر توقف
+  const isIdle = status === 'idle';
+  const isOffline = status === 'offline';
+  const isAvailable = status === 'available';
+
+  let statusBadgeText = '';
+  if (isMoving && roundedSpeed > 0) {
+    statusBadgeText = `${roundedSpeed} كم/س`;
+  } else if (isIdle) {
+    statusBadgeText = 'متوقفة';
+  } else if (isOffline) {
+    statusBadgeText = 'آخر توقف';
+  } else if (isAvailable) {
+    statusBadgeText = 'متاحة';
+  }
+
   const html = `
-    <div class="zemam-marker-container" style="
+    <div class="zemam-marker-container ${isSelected ? 'is-selected' : ''}" style="
       position: relative;
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       cursor: pointer;
       user-select: none;
     ">
-      <!-- ── الوسم العلوي لمعلومات المركبة يطفو فوقها في المنتصف ── -->
+      <!-- ── شارة المعلومات المدمجة المقتضبة ── -->
       <div style="
         position: absolute;
-        bottom: 50px;
+        bottom: 44px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(15, 23, 42, 0.94);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        background: rgba(15, 23, 42, 0.92);
         color: #ffffff;
-        font-size: 11px;
-        font-weight: 800;
-        padding: 3px 9px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
         border-radius: 9999px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         white-space: nowrap;
         border: 1.5px solid ${effectiveColor};
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         direction: rtl;
         font-family: inherit;
         pointer-events: none;
+        z-index: 10;
       ">
         <span style="
-          width: 7px;
-          height: 7px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: ${effectiveColor};
-          box-shadow: 0 0 8px ${effectiveColor};
           display: inline-block;
           flex-shrink: 0;
         "></span>
-        <span style="letter-spacing: 0.3px;">${plateNumber || label || 'مركبة'}</span>
+        <span style="letter-spacing: 0.2px;">${plateNumber || label || 'مركبة'}</span>
         ${
-          roundedSpeed > 0
+          statusBadgeText
             ? `<span style="
                 background: ${cfg.badgeBg};
                 color: ${cfg.text};
-                font-size: 9.5px;
+                font-size: 9px;
                 font-weight: 800;
-                padding: 1px 6px;
-                border-radius: 6px;
+                padding: 0.5px 5px;
+                border-radius: 4px;
                 border: 1px solid ${cfg.badgeBorder};
-              ">${roundedSpeed} كم/س</span>`
+              ">${statusBadgeText}</span>`
             : ''
         }
       </div>
 
-      <!-- ── موجة الرادار النبضية أثناء الحركة ── -->
+      <!-- ── نبضة الرادار فقط للمركبة المحددة (توفيراً للـ CPU عند 50 مركبة) ── -->
       ${
-        isMoving
+        isSelected
           ? `<div style="
               position: absolute;
               inset: -6px;
               border-radius: 50%;
               border: 2px solid ${effectiveColor};
-              animation: zemam-radar-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+              animation: zemam-radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
               pointer-events: none;
             "></div>`
           : ''
       }
 
-      <!-- ── كبسولة المركبة الدوارة حول مركزها الدقيق (22, 22) ── -->
+      <!-- ── كبسولة المركبة الموجهة ── -->
       <div style="
         position: absolute;
         inset: 0;
-        transform: rotate(${heading}deg);
+        transform: rotate(${isMoving ? heading : 0}deg);
         transform-origin: center center;
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.3s ease-out;
         display: flex;
         align-items: center;
         justify-content: center;
       ">
-        <!-- شعاع كشافات الإضاءة الأمامية -->
-        ${
-          isMoving
-            ? `<div style="
-                position: absolute;
-                top: -26px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 36px;
-                height: 30px;
-                background: radial-gradient(ellipse at bottom, rgba(56, 189, 248, 0.6) 0%, rgba(56, 189, 248, 0.2) 45%, rgba(56, 189, 248, 0) 80%);
-                clip-path: polygon(25% 100%, 75% 100%, 100% 0, 0 0);
-                animation: zemam-beam-sweep 2s ease-in-out infinite;
-                pointer-events: none;
-              "></div>`
-            : ''
-        }
-
         <div style="
-          width: 44px;
-          height: 44px;
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
-          background: radial-gradient(circle at 35% 35%, #1e293b, #0f172a);
-          border: 2.5px solid ${effectiveColor};
-          box-shadow: 0 0 18px ${cfg.glow}, 0 6px 18px rgba(0,0,0,0.65);
+          background: #0f172a;
+          border: 2px solid ${effectiveColor};
+          box-shadow: 0 4px 12px rgba(0,0,0,0.45);
           display: flex;
           align-items: center;
           justify-content: center;
-          ${isMoving ? 'animation: zemam-pulse-glow 2.5s infinite;' : ''}
+          ${isSelected ? 'box-shadow: 0 0 16px ' + cfg.glow + ', 0 4px 14px rgba(0,0,0,0.5);' : ''}
         ">
           ${vehicleSilhouette}
         </div>
@@ -395,9 +391,9 @@ export function createUnifiedVehicleMarker({
   return L.divIcon({
     html,
     className: 'zemam-unified-vehicle-marker',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    popupAnchor: [0, -24],
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -22],
   });
 }
 

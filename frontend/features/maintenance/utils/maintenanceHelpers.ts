@@ -36,9 +36,10 @@ export function getMaintenanceStatusConfig(status: MaintenanceStatus) {
   }
 }
 
-export function getMaintenancePriorityConfig(priority: MaintenancePriority) {
-  switch (priority) {
-    case 'High':
+export function getMaintenancePriorityConfig(priority: MaintenancePriority | string) {
+  const norm = typeof priority === 'string' ? priority.toLowerCase() : priority;
+  switch (norm) {
+    case 'high':
       return {
         label: 'أولوية عالية (توقف)',
         shortLabel: 'عالية',

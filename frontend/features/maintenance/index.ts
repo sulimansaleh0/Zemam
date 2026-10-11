@@ -11,6 +11,8 @@ export type {
   VerifyMaintenanceInput,
   MaintenanceStats,
   MaintenanceFilters,
+  PaginationInfo,
+  PaginatedMaintenanceResult,
 } from './types/maintenance.types';
 
 // ── Schema ─────────────────────────────────────────────────
@@ -41,15 +43,23 @@ export {
 export {
   MAINTENANCE_QUERY_KEYS,
   useMaintenance,
+  usePaginatedMaintenance,
   useMaintenanceStats,
-  useCreateMaintenance,
-  useVerifyMaintenance,
-  useMaintenancePage,
 } from './hooks/useMaintenance';
 
+export {
+  useCreateMaintenance,
+  useVerifyMaintenance,
+  useMaintenanceMutations,
+} from './hooks/useMaintenanceMutations';
+
+export { useMaintenancePage } from './hooks/useMaintenancePage';
+
 // ── Components ─────────────────────────────────────────────
+export { MaintenanceView } from './components/MaintenanceView';
 export { MaintenanceStatsCards } from './components/MaintenanceStatsCards';
 export { MaintenanceTable } from './components/MaintenanceTable';
+export { MaintenanceTableToolbar } from './components/MaintenanceTableToolbar';
 export { MaintenanceFormModal } from './components/MaintenanceFormModal';
 export { MaintenanceDetailModal } from './components/MaintenanceDetailModal';
 export { VerifyMaintenanceModal } from './components/VerifyMaintenanceModal';

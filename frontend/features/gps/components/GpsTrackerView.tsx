@@ -27,7 +27,12 @@ const GpsMapCanvas = dynamic(() => import('./GpsMapCanvas'), {
   ),
 });
 
-export function GpsTrackerView() {
+interface GpsTrackerViewProps {
+  fleetHook?: ReturnType<typeof useFleetGps>;
+}
+
+export function GpsTrackerView({ fleetHook }: GpsTrackerViewProps = {}) {
+  const defaultHook = useFleetGps();
   const {
     vehicles,
     selectedVehicle,
@@ -38,7 +43,7 @@ export function GpsTrackerView() {
     stats,
     isLoading,
     refreshFleet,
-  } = useFleetGps();
+  } = fleetHook || defaultHook;
 
   const [activeTripSummary, setActiveTripSummary] = useState<TripSummary | null>(null);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
@@ -226,6 +231,8 @@ export function GpsTrackerView() {
             selectedVehicleId={selectedVehicleId}
             onSelectVehicle={(id) => setSelectedVehicleId(id)}
             activePolyline={selectedVehiclePath.length > 1 ? selectedVehiclePath : undefined}
+            filters={filters}
+            onFilterChange={setFilters}
           />
 
           {/* بطاقة تفاصيل المركبة تظهر فقط عند النقر على مركبة */}

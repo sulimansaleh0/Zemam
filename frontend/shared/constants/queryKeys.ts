@@ -15,12 +15,17 @@
 
 export const vehicleKeys = {
   all: ['vehicles'] as const,
+  list: (filter?: unknown) => ['vehicles', 'list', filter ?? 'all'] as const,
+  overviewStats: ['vehicles', 'overview-stats'] as const,
   detail: (id: string) => ['vehicles', id] as const,
+  stats: (id: string) => ['vehicles', id, 'stats'] as const,
 };
 
 export const driverKeys = {
   all: ['drivers'] as const,
+  list: (params?: unknown) => ['drivers', 'list', params ?? 'all'] as const,
   detail: (id: string) => ['drivers', id] as const,
+  stats: (id: string) => ['drivers', id, 'stats'] as const,
 };
 
 export const teamKeys = {
@@ -33,6 +38,38 @@ export const teamKeys = {
 
 export const managerKeys = {
   all: ['managers'] as const,
+  list: (params?: unknown) => ['managers', 'list', params ?? 'all'] as const,
   byStatus: (status?: string) => ['managers', { status }] as const,
   available: ['managers', 'available'] as const,
+  detail: (id: string) => ['managers', id] as const,
+  stats: (id: string) => ['managers', id, 'stats'] as const,
 };
+
+export const taskKeys = {
+  all: ['tasks'] as const,
+  list: (params?: unknown) => ['tasks', 'list', params ?? 'all'] as const,
+  detail: (id: string) => ['tasks', id] as const,
+  stats: ['tasks', 'stats'] as const,
+  driverTasks: (params?: unknown) => ['tasks', 'driver', params ?? 'all'] as const,
+};
+
+export const fuelKeys = {
+  all: ['fuel'] as const,
+  list: (params?: unknown) => ['fuel', 'list', params ?? 'all'] as const,
+  stats: (vehicleId?: string) => ['fuel', 'stats', vehicleId ?? 'all'] as const,
+};
+
+export const maintenanceKeys = {
+  all: ['maintenance'] as const,
+  list: (params?: unknown) => ['maintenance', 'list', params ?? 'all'] as const,
+  stats: ['maintenance', 'stats'] as const,
+};
+
+export const inspectionKeys = {
+  all: ['inspections'] as const,
+  list: (params?: unknown) => ['inspections', 'list', params ?? 'all'] as const,
+  byTask: (taskId: string) => ['inspections', 'task', taskId] as const,
+};
+
+
+

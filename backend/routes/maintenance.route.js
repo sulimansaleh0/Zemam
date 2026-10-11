@@ -26,9 +26,21 @@ router.post("/",
     createMaintenanceRecord
 )
 
-router.use(allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER))
-router.get("/", listMaintenanceRecords)
-router.get("/stats", getMaintenanceStats)
-router.patch("/:id/verify", verifyMaintenanceSchema, validator, verifyMaintenanceRecord)
+router.get("/",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER, userRoles.DRIVER),
+    listMaintenanceRecords
+)
 
-module.exports = router
+router.get("/stats",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    getMaintenanceStats
+)
+
+router.patch("/:id/verify",
+    allowedTo(userRoles.ADMIN, userRoles.FLEET_MANAGER),
+    verifyMaintenanceSchema,
+    validator,
+    verifyMaintenanceRecord
+)
+
+module.exports = router

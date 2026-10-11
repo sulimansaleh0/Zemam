@@ -116,59 +116,68 @@ export function VehicleDetailCards({
       </div>
 
       {/* Card 3: Assigned Driver */}
-      <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
-            <User className="w-4 h-4 text-emerald-500" />
-            السائق المسؤول
-          </span>
-          {vehicle.driverId ? (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={onOpenAssignDriver}
-                className="text-[11px] text-[var(--primary)] hover:underline font-semibold cursor-pointer"
-              >
-                تغيير
-              </button>
-              <button
-                type="button"
-                onClick={onUnassignDriver}
-                disabled={isUnassigningDriver}
-                className="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-50"
-                title="فك ارتباط السائق"
-              >
-                <Unlink className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenAssignDriver}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
-            >
-              <UserCheck className="w-3 h-3" />
-              <span>تعيين</span>
-            </button>
-          )}
-        </div>
-        <div className="space-y-1 text-xs">
-          {vehicle.driverName ? (
-            <>
-              <div className="font-bold text-sm text-[var(--text)]">{vehicle.driverName}</div>
-              {vehicle.driverEmail && (
-                <div className="font-mono text-xs text-[var(--muted)]" dir="ltr">
-                  {vehicle.driverEmail}
+      {(() => {
+        const driverObj = typeof vehicle.driverId === 'object' && vehicle.driverId !== null ? vehicle.driverId : null;
+        const driverDisplayName = vehicle.driverName || (driverObj?.name && driverObj.name !== 'Default' ? driverObj.name : driverObj?.email?.split('@')[0]);
+        const driverDisplayEmail = vehicle.driverEmail || driverObj?.email;
+        const hasAssignedDriver = Boolean(vehicle.driverId);
+
+        return (
+          <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--muted)] flex items-center gap-1.5">
+                <User className="w-4 h-4 text-emerald-500" />
+                السائق المسؤول
+              </span>
+              {hasAssignedDriver ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={onOpenAssignDriver}
+                    className="text-[11px] text-[var(--primary)] hover:underline font-semibold cursor-pointer"
+                  >
+                    تغيير
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onUnassignDriver}
+                    disabled={isUnassigningDriver}
+                    className="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                    title="فك ارتباط السائق"
+                  >
+                    <Unlink className="w-3.5 h-3.5" />
+                  </button>
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOpenAssignDriver}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-colors cursor-pointer"
+                >
+                  <UserCheck className="w-3 h-3" />
+                  <span>تعيين</span>
+                </button>
               )}
-            </>
-          ) : (
-            <span className="text-xs text-[var(--muted)] italic block pt-2">
-              لا يوجد سائق معين للمركبة حالياً
-            </span>
-          )}
-        </div>
-      </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              {driverDisplayName ? (
+                <>
+                  <div className="font-bold text-sm text-[var(--text)]">{driverDisplayName}</div>
+                  {driverDisplayEmail && (
+                    <div className="font-mono text-xs text-[var(--muted)]" dir="ltr">
+                      {driverDisplayEmail}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="text-xs text-[var(--muted)] italic block pt-2">
+                  لا يوجد سائق معين للمركبة حالياً
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Card 4: Fuel & Odometer Specs */}
       <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">

@@ -4,8 +4,8 @@
 
 export interface RouteData {
   coordinates: [number, number][]; // [lat, lng] array for Leaflet Polyline
-  distanceKm: number;
-  durationMinutes: number;
+  distanceKm?: number;
+  durationMinutes?: number;
 }
 
 export interface GeocodingResult {
@@ -15,29 +15,7 @@ export interface GeocodingResult {
 }
 
 /**
- * حساب المسافة المستقيمة بدقة (Haversine Formula) بالكيلومتر
- */
-export function calculateHaversineDistanceKm(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371; // نصف قطر الأرض بالكيلومتر
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
-}
-
-/**
- * جلب المسار الفعلي على الطرق والمسافة الحقيقية عبر OSRM Driving Engine
+ * جلب المسار الفعلي على الطرق عبر OSRM Driving Engine
  */
 export async function fetchDrivingRoute(
   start: [number, number], // [lat, lng]
@@ -74,20 +52,12 @@ export async function fetchDrivingRoute(
         durationMinutes,
       };
     }
-  } catch (err) {
-    // If routing fails or network is restricted, fallback to direct line with Haversine distance
+  } catch {
+    // If routing fails or network is offline, gracefully return direct straight line
   }
-
-  const directDist = calculateHaversineDistanceKm(startLat, startLng, endLat, endLng);
-  // Estimate road driving distance as roughly 1.3x straight line
-  const estimatedDrivingKm = Math.round(directDist * 1.3 * 10) / 10;
-  // Estimate driving time at 60 km/h average
-  const estimatedMins = Math.max(1, Math.round((estimatedDrivingKm / 60) * 60));
 
   return {
     coordinates: [start, end],
-    distanceKm: estimatedDrivingKm,
-    durationMinutes: estimatedMins,
   };
 }
 
@@ -113,7 +83,19 @@ export async function searchPlaces(
 
     if (!data.features || !Array.isArray(data.features)) return [];
 
-    return data.features.map((feature: any) => {
+    interface PhotonFeature {
+      geometry: { coordinates: [number, number] };
+      properties: {
+        name?: string;
+        street?: string;
+        city?: string;
+        district?: string;
+        state?: string;
+        country?: string;
+      };
+    }
+
+    return (data.features as PhotonFeature[]).map((feature) => {
       const [lng, lat] = feature.geometry.coordinates;
       const p = feature.properties;
       const parts = [p.name, p.street, p.city || p.district, p.state, p.country].filter(Boolean);
@@ -132,25 +114,65 @@ export async function searchPlaces(
 
 /**
  * تحويل الإحداثيات إلى اسم عنوان مقروء (Reverse Geocoding)
+ * مع استجابة فائقة السرعة، دعم التايم آوت الصارم، ومزودين متعددين لتفادي التعليق أو حظر المتصفح
  */
 export async function reverseGeocodeCoords(
   lat: number,
   lng: number,
   signal?: AbortSignal
 ): Promise<string> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar,en`;
+  const fallback = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
+  // 1. محاولة BigDataCloud أولاً (فائقة السرعة ومصممة لمتصفحات الويب بدون حظر أو تعقيدات)
   try {
-    const res = await fetch(url, {
-      signal,
-      headers: {
-        'User-Agent': 'ZamamFleetManagementApp/1.0',
-      },
-    });
-    if (!res.ok) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    const data = await res.json();
-    return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=ar`;
+    const bdcController = new AbortController();
+    const bdcTimeout = setTimeout(() => bdcController.abort(), 1800);
+
+    const onAbort = () => bdcController.abort();
+    if (signal) signal.addEventListener('abort', onAbort);
+
+    const res = await fetch(bdcUrl, { signal: bdcController.signal });
+    clearTimeout(bdcTimeout);
+    if (signal) signal.removeEventListener('abort', onAbort);
+
+    if (res.ok) {
+      const data = await res.json();
+      const parts = [
+        data.locality || data.district,
+        data.city,
+        data.principalSubdivision,
+      ].filter(Boolean);
+      if (parts.length > 0) {
+        return parts.join('، ');
+      }
+    }
   } catch {
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    // الانتقال للمزود البديل
   }
+
+  // 2. محاولة Nominatim كخيار بديل مع تايم آوت صارم لتفادي تجميد الواجهة
+  try {
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar,en`;
+    const nomController = new AbortController();
+    const nomTimeout = setTimeout(() => nomController.abort(), 2000);
+
+    const onAbort = () => nomController.abort();
+    if (signal) signal.addEventListener('abort', onAbort);
+
+    const res = await fetch(nomUrl, { signal: nomController.signal });
+    clearTimeout(nomTimeout);
+    if (signal) signal.removeEventListener('abort', onAbort);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.display_name) {
+        return data.display_name;
+      }
+    }
+  } catch {
+    // إرجاع الإحداثيات عند أي خطأ
+  }
+
+  return fallback;
 }

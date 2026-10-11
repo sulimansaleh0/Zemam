@@ -22,20 +22,22 @@ export function DeclineTaskModal({
 }: DeclineTaskModalProps) {
   const [reason, setReason] = React.useState('');
 
-  React.useEffect(() => {
-    if (isOpen) setReason('');
-  }, [isOpen]);
-
   if (!task) return null;
 
   const handleConfirm = () => {
     onConfirm(reason.trim() || 'تم الإلغاء بواسطة مدير الأسطول');
+    setReason('');
+  };
+
+  const handleClose = () => {
+    setReason('');
+    onClose();
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="إلغاء / رفض المهمة"
       description="يرجى كتابة سبب الإلغاء وتأكيد رغبتك في إيقاف هذه المهمة"
       icon={AlertTriangle}
@@ -46,7 +48,7 @@ export function DeclineTaskModal({
         <p className="text-xs text-[var(--zd-muted)] leading-relaxed">
           هل أنت متأكد من إلغاء المهمة{' '}
           <span className="font-bold text-[var(--zd-text)]">
-            "{task.description.slice(0, 30) + '...'}"
+            &quot;{task.description.slice(0, 30) + '...'}
           </span>
           ؟ سيتم إيقاف المهمة فوراً وتحرير المركبة لتصبح متاحة.
         </p>
