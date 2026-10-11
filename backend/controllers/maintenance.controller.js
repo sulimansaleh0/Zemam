@@ -1,214 +1,103 @@
-const Maintenance = require("../models/maintenance.model")
-const Vehicle = require("../models/vehicle.model")
-const Task = require("../models/task.model")
-const User = require("../models/user.model")
-const { expenseRecordStatus, taskStatus, mainStatus } = require("../data/status")
-const { success, error, serverError } = require("../utils/responses")
-const { userRoles } = require("../data/roles")
-const { vehicleStatus } = require("../data/status")
-const { maintenancePriority } = require("../data")
+const { success, error, serverError } = require("../utils/responses");
+const { maintenanceService } = require("../services/maintenance.service");
+const { userRoles } = require("../data/roles");
 
 exports.createMaintenanceRecord = async (req, res) => {
-    const user = req.user
-    const { vehicleId, description, cost, images, category, priority } = req.body
-    try {
-        const vehicleFilters = {
-            _id: vehicleId,
-            companyId: user.companyId,
-            status: mainStatus.ACTIVE,
-            isDeleted: false
-        }
+  const user = req.user;
+  const { vehicleId, description, cost, images, category, priority, odometer } = req.body;
 
-        if (user.role === userRoles.FLEET_MANAGER)
-            vehicleFilters.teamId = user.teamId
+  try {
+    const record = await maintenanceService.createMaintenanceRecord({
+      user,
+      vehicleId,
+      description,
+      cost,
+      images,
+      category,
+      priority,
+      odometer,
+    });
 
-        if (user.role === userRoles.DRIVER) {
-            const task = await Task.findOne({
-                driverId: user._id,
-                vehicleId,
-                companyId: user.companyId,
-                status: { $in: [taskStatus.INPROGRESS, taskStatus.PENDING] }
-            })
-            const isAssigned = await Vehicle.findOne({
-                _id: vehicleId,
-                driverId: user._id,
-                companyId: user.companyId
-            })
-            if (!task && !isAssigned)
-                return error(res, 403, "You can only report an issue for an assigned vehicle or active task")
-
-            if (task) {
-                vehicleFilters.teamId = task.teamId
-            }
-        }
-
-        const vehicle = await Vehicle.findOne(vehicleFilters)
-        if (!vehicle) return error(res, 404, "Vehicle Not Found")
-
-        const record = await Maintenance.create({
-            vehicleId,
-            description,
-            cost: cost != null && cost !== "" ? Number(cost) : 0,
-            images,
-            category,
-            odoMeter: vehicle.currentOdometer,
-            companyId: user.companyId,
-            teamId: vehicle.teamId || null,
-            reportedBy: user._id,
-            driverId: user.role === userRoles.DRIVER ? user._id : vehicle.driverId,
-            priority
-        })
-
-        if (priority === maintenancePriority.HIGH) {
-            vehicle.status = vehicleStatus.INMAINTENANCE
-            await vehicle.save()
-        }
-        success(res, 201, { record })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+    success(res, 201, { record });
+  } catch (err) {
+    if (err && err.status) {
+      return error(res, err.status, err.message);
     }
-}
+    console.error("Error creating maintenance record:", err);
+    serverError(res);
+  }
+};
 
 exports.listMaintenanceRecords = async (req, res) => {
-    const user = req.user
-    const { status, category, vehicleId } = req.query
-    try {
-        let filters = { companyId: user.companyId }
-        if (user.role === userRoles.FLEET_MANAGER)
-            filters.teamId = user.teamId
-        else if (req.teamId)
-            filters.teamId = req.teamId
-        if (status)
-            filters.status = status
-        if (category)
-            filters.category = category
-        if (vehicleId)
-            filters.vehicleId = vehicleId
+  const user = req.user;
+  const { status, category, vehicleId, search, page, limit, all } = req.query;
+  const teamId = user.role === userRoles.FLEET_MANAGER ? user.teamId : (req.teamId || req.query.teamId);
 
-        const records = await Maintenance.find(filters)
-            .populate("vehicleId", "model plateNumber")
-            .populate("reportedBy", "name email role")
-            .populate("driverId", "name email role")
-            .sort({ createdAt: -1 })
-        success(res, 200, { records })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+  try {
+    const result = await maintenanceService.listMaintenanceRecords({
+      user,
+      teamId,
+      status,
+      category,
+      vehicleId,
+      search,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      all,
+    });
+
+    success(res, 200, result);
+  } catch (err) {
+    if (err && err.status) {
+      return error(res, err.status, err.message);
     }
-}
+    console.error("Error listing maintenance records:", err);
+    serverError(res);
+  }
+};
 
 exports.verifyMaintenanceRecord = async (req, res) => {
-    const user = req.user
-    const { status, declineReason, isDriverFault, cost } = req.body
-    const recordId = req.params.id
-    if (!recordId) return error(res, 400, "Maintenance Record ID is required")
-    if (status === expenseRecordStatus.APPROVED && (cost === undefined || cost === null || cost === "" || !Number.isFinite(Number(cost)) || Number(cost) < 0)) {
-        return error(res, 400, "A valid cost is required to approve a maintenance record")
+  const user = req.user;
+  const { status, declineReason, isDriverFault, cost, driverId } = req.body;
+  const recordId = req.params.id;
+
+  try {
+    const record = await maintenanceService.verifyMaintenanceRecord({
+      user,
+      recordId,
+      status,
+      declineReason,
+      isDriverFault,
+      cost,
+      driverId,
+    });
+
+    success(res, 200, { record });
+  } catch (err) {
+    if (err && err.status) {
+      return error(res, err.status, err.message);
     }
-    try {
-        const filters = {
-            _id: recordId,
-            companyId: user.companyId,
-            status: expenseRecordStatus.PENDING
-        }
-
-        if (user.role === userRoles.FLEET_MANAGER) {
-            filters.$or = [
-                { teamId: user.teamId },
-                { teamId: null },
-                { teamId: { $exists: false } }
-            ]
-        }
-
-        const pendingRecord = await Maintenance.findOne(filters).select("driverId")
-        if (!pendingRecord) return error(res, 404, "Maintenance Record Not Found")
-        if (status === expenseRecordStatus.APPROVED && Boolean(isDriverFault) && !pendingRecord.driverId) {
-            return error(res, 400, "A driver must be linked before assigning fault")
-        }
-
-        const updateData = {
-            status,
-            isDriverFault: status === expenseRecordStatus.APPROVED ? Boolean(isDriverFault) : false
-        }
-
-        if (cost !== undefined && cost !== null && cost !== "") {
-            updateData.cost = Number(cost)
-        }
-
-        if (status === expenseRecordStatus.DECLINED) {
-            updateData.declineReason = declineReason || "تم الرفض بواسطة الإدارة"
-        }
-
-        const update = { $set: updateData }
-        if (status === expenseRecordStatus.APPROVED) {
-            update.$unset = { declineReason: 1 }
-        }
-
-        const maintenanceRecord = await Maintenance.findOneAndUpdate(filters, update, {
-            new: true,
-            runValidators: true
-        })
-
-        if (!maintenanceRecord) return error(res, 404, "Maintenance Record Not Found")
-
-        const activeMaintenance = await Maintenance.exists({
-            vehicleId: maintenanceRecord.vehicleId,
-            status: expenseRecordStatus.PENDING,
-            _id: { $ne: maintenanceRecord._id }
-        })
-        if (!activeMaintenance) {
-            await Vehicle.findByIdAndUpdate(maintenanceRecord.vehicleId, { status: vehicleStatus.ACTIVE })
-        }
-
-        if (maintenanceRecord.status === expenseRecordStatus.APPROVED && maintenanceRecord.isDriverFault && !maintenanceRecord.driverFaultProcessed && maintenanceRecord.driverId) {
-            const points = maintenanceRecord.priority === maintenancePriority.HIGH ? -15 : -8
-
-            await User.findByIdAndUpdate(maintenanceRecord.driverId, {
-                $inc: { faultIncidentsCount: 1 },
-                $push: { scoreHistory: { pointsChange: points, reason: "Approved maintenance fault attributed to driver", category: "maintenance", relatedId: maintenanceRecord._id } }
-            })
-
-            await User.findOneAndUpdate({ _id: maintenanceRecord.driverId }, [
-                { $set: { driverScore: { $max: [0, { $add: ["$driverScore", points] }] } } }
-            ], { updatePipeline: true })
-
-            await Maintenance.findByIdAndUpdate(maintenanceRecord._id, { driverFaultProcessed: true })
-
-        }
-
-        return success(res, 200, { record: maintenanceRecord })
-    } catch (err) {
-        console.log(err)
-        return serverError(res)
-    }
-}
+    console.error("Error verifying maintenance record:", err);
+    serverError(res);
+  }
+};
 
 exports.getMaintenanceStats = async (req, res) => {
-    const user = req.user
-    try {
-        const match = { companyId: user.companyId }
-        if (user.role === userRoles.FLEET_MANAGER)
-            match.teamId = user.teamId
-        else if (req.teamId)
-            match.teamId = req.teamId
-        const [summary] = await Maintenance.aggregate([
-            { $match: match },
-            {
-                $group: {
-                    _id: null,
-                    totalRecords: { $sum: 1 },
-                    totalCost: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, "$cost", 0] } },
-                    pending: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.PENDING] }, 1, 0] } },
-                    approved: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.APPROVED] }, 1, 0] } },
-                    declined: { $sum: { $cond: [{ $eq: ["$status", expenseRecordStatus.DECLINED] }, 1, 0] } }
-                }
-            },
-            { $project: { _id: 0 } }
-        ])
-        success(res, 200, { stats: summary || { totalRecords: 0, totalCost: 0, pending: 0, approved: 0, declined: 0 } })
-    } catch (err) {
-        console.log(err)
-        serverError(res)
+  const user = req.user;
+  const teamId = user.role === userRoles.FLEET_MANAGER ? user.teamId : (req.teamId || req.query.teamId);
+
+  try {
+    const stats = await maintenanceService.getMaintenanceStats({
+      user,
+      teamId,
+    });
+
+    success(res, 200, { stats });
+  } catch (err) {
+    if (err && err.status) {
+      return error(res, err.status, err.message);
     }
-}
+    console.error("Error getting maintenance stats:", err);
+    serverError(res);
+  }
+};

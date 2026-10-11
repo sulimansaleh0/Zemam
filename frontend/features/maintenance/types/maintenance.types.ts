@@ -2,6 +2,10 @@
 //  Maintenance Module Types — Aligned with Backend Maintenance Model
 // ============================================================
 
+import type { PaginationInfo } from '@/shared/types/api.types';
+
+export type { PaginationInfo };
+
 export type MaintenanceCategory = 'Faults' | 'Periodic Maintenance';
 
 export type MaintenancePriority = 'High' | 'low';
@@ -15,6 +19,7 @@ export interface PopulatedVehicle {
   year?: number;
   type?: string;
   status?: string;
+  currentOdometer?: number;
   odoMeter?: number;
 }
 
@@ -43,6 +48,7 @@ export interface BackendMaintenanceRecord {
   odoMeter?: number;
   declineReason?: string;
   isDriverFault?: boolean;
+  driverFaultProcessed?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +68,7 @@ export interface CreateMaintenanceInput {
   priority: MaintenancePriority;
   category: MaintenanceCategory;
   images?: File[];
+  odometer?: number;
 }
 
 export interface VerifyMaintenanceInput {
@@ -70,6 +77,7 @@ export interface VerifyMaintenanceInput {
   cost?: number;
   declineReason?: string;
   isDriverFault?: boolean;
+  driverId?: string;
 }
 
 export interface MaintenanceStats {
@@ -84,4 +92,13 @@ export interface MaintenanceFilters {
   status?: MaintenanceStatus | 'all';
   category?: MaintenanceCategory | 'all';
   vehicleId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  all?: boolean | string;
+}
+
+export interface PaginatedMaintenanceResult {
+  records: MaintenanceRecordWithRelations[];
+  pagination?: PaginationInfo;
 }

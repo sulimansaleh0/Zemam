@@ -15,6 +15,13 @@ export const createMaintenanceSchema = z.object({
         .min(0, 'التكلفة لا يمكن أن تكون بالسالب')
         .optional()
     ),
+  odometer: z
+    .preprocess(
+      (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+      z.number({ invalid_type_error: 'قراءة العداد يجب أن تكون رقماً' })
+        .min(0, 'قراءة العداد لا يمكن أن تكون بالسالب')
+        .optional()
+    ),
   description: z
     .string()
     .trim()
@@ -35,6 +42,7 @@ export const verifyMaintenanceSchema = z
         z.number({ invalid_type_error: 'التكلفة يجب أن تكون رقماً' }).min(0, 'التكلفة يجب أن تكون 0 فأكثر').optional()
       ),
     isDriverFault: z.boolean().optional(),
+    driverId: z.string().optional(),
     declineReason: z.string().trim().optional(),
   })
   .superRefine((data, context) => {

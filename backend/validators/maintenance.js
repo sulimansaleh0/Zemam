@@ -1,51 +1,60 @@
 const { body, param } = require("express-validator")
 const { expenseRecordStatus } = require("../data/status")
 const { maintenanceCategories, maintenancePriority } = require("../data")
+
 exports.createMaintenanceSchema = [
     body("vehicleId")
         .trim()
         .notEmpty()
-        .withMessage("Vehicle ID is required")
+        .withMessage("معرف المركبة مطلوب")
         .isMongoId()
-        .withMessage("Invalid vehicle ID"),
+        .withMessage("معرف المركبة غير صالح"),
     body("description")
         .trim()
         .notEmpty()
-        .withMessage("Description is required"),
+        .withMessage("وصف العطل أو الصيانة مطلوب"),
     body("cost")
         .if(body("status").equals(expenseRecordStatus.APPROVED))
         .notEmpty()
-        .withMessage("Cost is required when approving a maintenance record")
+        .withMessage("التكلفة مطلوبة عند اعتماد طلب الصيانة")
         .bail()
         .isFloat({ min: 0 })
-        .withMessage("Cost must be a non-negative number"),
+        .withMessage("التكلفة يجب أن تكون رقماً غير سالب"),
     body("category")
         .isIn(Object.values(maintenanceCategories))
-        .withMessage("Invalid maintenance category"),
+        .withMessage("تصنيف الصيانة غير صالح"),
     body("priority")
         .isIn([maintenancePriority.HIGH, maintenancePriority.LOW])
-        .withMessage("Invalid priority")
+        .withMessage("مستوى الأولوية غير صالح"),
+    body("odometer")
+        .optional({ values: "falsy" })
+        .isFloat({ min: 0 })
+        .withMessage("قراءة العداد يجب أن تكون رقماً غير سالب")
 ]
 
 exports.verifyMaintenanceSchema = [
     param("id")
         .isMongoId()
-        .withMessage("Invalid maintenance record ID"),
+        .withMessage("معرف سجل الصيانة غير صالح"),
     body("status")
         .isIn([expenseRecordStatus.APPROVED, expenseRecordStatus.DECLINED])
-        .withMessage("Status must be approved or declined"),
+        .withMessage("حالة الطلب يجب أن تكون معتمدة أو مرفوضة"),
     body("cost")
         .optional({ values: "falsy" })
         .isFloat({ min: 0 })
-        .withMessage("Cost must be a non-negative number"),
+        .withMessage("التكلفة يجب أن تكون رقماً غير سالب"),
     body("declineReason")
         .optional({ values: "falsy" })
         .trim()
         .isString()
-        .withMessage("Decline reason must be a string"),
+        .withMessage("سبب الرفض يجب أن يكون نصياً"),
     body("isDriverFault")
         .optional()
         .isBoolean()
-        .withMessage("isDriverFault must be a boolean")
-        .toBoolean()
-]
+        .withMessage("قيمة مسؤولية السائق يجب أن تكون منطقية")
+        .toBoolean(),
+    body("driverId")
+        .optional({ values: "falsy" })
+        .isMongoId()
+        .withMessage("معرف السائق غير صالح")
+]

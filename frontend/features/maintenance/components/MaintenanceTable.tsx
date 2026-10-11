@@ -4,22 +4,15 @@ import React from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Coins,
   Eye,
-  FileText,
   Gauge,
   Plus,
-  Search,
-  ShieldAlert,
   ShieldCheck,
   Truck,
   User,
   Wrench,
-  XCircle,
 } from 'lucide-react';
+import { TablePagination } from '@/shared/ui/TablePagination';
 import {
   getMaintenanceStatusConfig,
   getMaintenancePriorityConfig,
@@ -30,113 +23,63 @@ import type {
   MaintenanceRecordWithRelations,
   MaintenanceStatus,
   MaintenanceCategory,
+  PaginationInfo,
 } from '../types/maintenance.types';
+import type { BackendVehicle } from '@/features/vehicles';
+import { MaintenanceTableToolbar } from './MaintenanceTableToolbar';
 
 interface MaintenanceTableProps {
   records: MaintenanceRecordWithRelations[];
+  pagination?: PaginationInfo;
   isLoading: boolean;
   activeTab: 'all' | MaintenanceStatus;
   onTabChange: (tab: 'all' | MaintenanceStatus) => void;
   activeCategory: 'all' | MaintenanceCategory;
   onCategoryChange: (cat: 'all' | MaintenanceCategory) => void;
+  selectedVehicleId: string;
+  onVehicleChange: (id: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onPageChange?: (page: number) => void;
   onOpenCreate: () => void;
   onViewDetails: (record: MaintenanceRecordWithRelations) => void;
   onVerifyRecord: (record: MaintenanceRecordWithRelations) => void;
+  vehicles?: BackendVehicle[];
 }
-
-const STATUS_TABS: { id: 'all' | MaintenanceStatus; label: string }[] = [
-  { id: 'all', label: 'جميع السجلات' },
-  { id: 'pending', label: 'قيد المراجعة' },
-  { id: 'approved', label: 'المعتمدة' },
-  { id: 'declined', label: 'المرفوضة' },
-];
-
-const CATEGORY_FILTERS: { id: 'all' | MaintenanceCategory; label: string }[] = [
-  { id: 'all', label: 'كافة التصنيفات' },
-  { id: 'Faults', label: 'أعطال طارئة' },
-  { id: 'Periodic Maintenance', label: 'صيانة دورية' },
-];
 
 export function MaintenanceTable({
   records,
+  pagination,
   isLoading,
   activeTab,
   onTabChange,
   activeCategory,
   onCategoryChange,
+  selectedVehicleId,
+  onVehicleChange,
   searchQuery,
   onSearchChange,
+  onPageChange,
   onOpenCreate,
   onViewDetails,
   onVerifyRecord,
+  vehicles = [],
 }: MaintenanceTableProps) {
   return (
     <div className="space-y-4" dir="rtl">
-      {/* ── شريط التحكم والفلترة ── */}
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-          <div>
-            <p className="mb-1.5 text-[10px] font-bold text-[var(--zd-muted)]">الحالة</p>
-            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${activeTab === tab.id
-                      ? 'bg-[var(--zd-blue)] text-white shadow-sm'
-                      : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-[10px] font-bold text-[var(--zd-muted)]">نوع الصيانة</p>
-            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface)] p-1">
-              {CATEGORY_FILTERS.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => onCategoryChange(cat.id)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${activeCategory === cat.id
-                      ? 'bg-[var(--zd-blue)] text-white shadow-sm'
-                      : 'text-[var(--zd-muted)] hover:bg-[var(--zd-surface-2)] hover:text-[var(--zd-text)]'
-                    }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* حقل البحث وزر الإضافة */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex-1 sm:w-64 xl:w-72">
-            <Search className="absolute right-3 top-2.5 h-4 w-4 text-[var(--zd-muted)]" />
-            <input
-              type="text"
-              aria-label="البحث في سجلات الصيانة"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحث بالمركبة، الوصف، مقدم الطلب..."
-              className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] py-2 pr-9 pl-3 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
-            />
-          </div>
-
-          <button
-            onClick={onOpenCreate}
-            className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-600 shrink-0 cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>تسجيل طلب صيانة</span>
-          </button>
-        </div>
-      </div>
+      {/* ── شريط التحكم والفلترة المستخرج ── */}
+      <MaintenanceTableToolbar
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        activeCategory={activeCategory}
+        onCategoryChange={onCategoryChange}
+        selectedVehicleId={selectedVehicleId}
+        onVehicleChange={onVehicleChange}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        onOpenCreate={onOpenCreate}
+        vehicles={vehicles}
+      />
 
       {/* ── الجدول أو الحالة الفارغة ── */}
       <div className="overflow-hidden rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface)] shadow-sm">
@@ -250,41 +193,33 @@ export function MaintenanceTable({
                             <span>{record.reporterName}</span>
                           )}
                         </div>
-                        <div className="text-[10px] text-[var(--zd-muted)] mt-0.5">
-                          {record.reporterEmail}
-                        </div>
-                        {!reporterIsDriver && linkedDriver && (
-                          <Link href={`/drivers/${linkedDriver._id}`} className="mt-0.5 block text-[10px] text-[var(--zd-blue)] hover:underline">
-                            السائق: {linkedDriver.name || linkedDriver.email}
-                          </Link>
+                        {linkedDriver && (
+                          <div className="text-[10px] text-[var(--zd-muted)] mt-0.5">
+                            السائق: {linkedDriver.name}
+                          </div>
                         )}
                       </td>
 
                       {/* الأولوية */}
                       <td className="px-4 py-3.5 text-center whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${priority.bgClass}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${priority.bgClass}`}
                         >
-                          <span className={`h-1.5 w-1.5 rounded-full ${priority.dotClass}`} />
                           {priority.label}
                         </span>
                       </td>
 
                       {/* العداد */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-1 text-[var(--zd-text)]">
-                          <Gauge className="h-3 w-3 text-[var(--zd-muted)]" />
-                          <span className="font-mono text-[11px]">
-                            {record.odoMeter !== undefined && record.odoMeter !== null
-                              ? `${Number(record.odoMeter).toLocaleString('ar-EG')} كم`
-                              : '—'}
-                          </span>
+                        <div className="flex items-center gap-1 font-mono text-[11px] text-[var(--zd-text)]">
+                          <Gauge className="h-3.5 w-3.5 text-[var(--zd-muted)]" />
+                          <span>{record.odoMeter ? record.odoMeter.toLocaleString('en-US') : '—'}</span>
                         </div>
                       </td>
 
                       {/* التكلفة */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="font-bold text-[var(--zd-text)]">
+                        <span className="font-bold text-[11px] text-[var(--zd-text)]">
                           {formatCostSAR(record.cost)}
                         </span>
                       </td>
@@ -293,8 +228,8 @@ export function MaintenanceTable({
                       <td className="px-4 py-3.5 text-center whitespace-nowrap">
                         {record.status === 'approved' ? (
                           record.isDriverFault ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500 border border-rose-500/20">
-                              <ShieldAlert className="h-3 w-3" />
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/20">
+                              <AlertTriangle className="h-3 w-3" />
                               <span>خطأ سائق</span>
                             </span>
                           ) : (
@@ -347,6 +282,21 @@ export function MaintenanceTable({
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ── ترقيم الصفحات الموحد من السيرفر ── */}
+        {pagination && onPageChange && (
+          <div className="border-t border-[var(--zd-line)] p-3">
+            <TablePagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.total}
+              onPageChange={onPageChange}
+              hasNextPage={pagination.hasNextPage}
+              hasPrevPage={pagination.hasPrevPage}
+              itemLabel="طلب صيانة"
+            />
           </div>
         )}
       </div>

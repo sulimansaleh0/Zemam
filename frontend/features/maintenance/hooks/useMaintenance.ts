@@ -1,10 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/features/auth/context/AuthContext';
-import { useVehicles } from '@/features/vehicles';
-import { useToast } from '@/shared/ui/Toast';
+import { useQuery } from '@tanstack/react-query';
 import { maintenanceService } from '../services/maintenance.service';
 import {
   getMaintenanceVehicleDisplay,
@@ -14,12 +10,8 @@ import {
 import type {
   BackendMaintenanceRecord,
   MaintenanceRecordWithRelations,
-  CreateMaintenanceInput,
-  VerifyMaintenanceInput,
-  MaintenanceStatus,
-  MaintenanceCategory,
   MaintenanceFilters,
-  MaintenanceStats,
+  PaginatedMaintenanceResult,
 } from '../types/maintenance.types';
 
 export const MAINTENANCE_QUERY_KEYS = {
@@ -28,8 +20,23 @@ export const MAINTENANCE_QUERY_KEYS = {
   stats: ['maintenance', 'stats'] as const,
 };
 
+function transformMaintenanceRecord(record: BackendMaintenanceRecord): MaintenanceRecordWithRelations {
+  const veh = getMaintenanceVehicleDisplay(record.vehicleId);
+  const rep = getMaintenanceReporterDisplay(record.reportedBy);
+  const formattedDate = formatMaintenanceDate(record.createdAt);
+
+  return {
+    ...record,
+    vehicleModel: veh.model,
+    vehiclePlate: veh.plate,
+    reporterName: rep.name,
+    reporterEmail: rep.email,
+    formattedDate,
+  };
+}
+
 /**
- * Hook لجلب سجلات الصيانة مع تحويل العلاقات
+ * Hook لجلب سجلات الصيانة العادية (غير المقسمة صفحات) مع تحويل العلاقات
  */
 export function useMaintenance(filters?: MaintenanceFilters) {
   return useQuery({
@@ -43,26 +50,39 @@ export function useMaintenance(filters?: MaintenanceFilters) {
       return result.data?.records ?? [];
     },
     select: (records: BackendMaintenanceRecord[]): MaintenanceRecordWithRelations[] => {
-      return records.map((record) => {
-        const veh = getMaintenanceVehicleDisplay(record.vehicleId);
-        const rep = getMaintenanceReporterDisplay(record.reportedBy);
-        const formattedDate = formatMaintenanceDate(record.createdAt);
-
-        return {
-          ...record,
-          vehicleModel: veh.model,
-          vehiclePlate: veh.plate,
-          reporterName: rep.name,
-          reporterEmail: rep.email,
-          formattedDate,
-        };
-      });
+      return records.map(transformMaintenanceRecord);
     },
   });
 }
 
 /**
- * Hook لجلب إحصائيات الصيانة والتكلفة الإجمالية
+ * Hook لجلب سجلات الصيانة مع دعم الترقيم والبحث من الخادم
+ */
+export function usePaginatedMaintenance(filters?: MaintenanceFilters) {
+  return useQuery({
+    queryKey: MAINTENANCE_QUERY_KEYS.list(filters),
+    queryFn: async ({ signal }): Promise<PaginatedMaintenanceResult> => {
+      const result = await maintenanceService.getMaintenanceRecords(filters, signal);
+      if (!result.success) {
+        if (result.message === 'Request cancelled') {
+          return { records: [], pagination: undefined };
+        }
+        throw new Error(result.message);
+      }
+
+      const rawRecords = result.data?.records ?? [];
+      const records = rawRecords.map(transformMaintenanceRecord);
+
+      return {
+        records,
+        pagination: result.data?.pagination,
+      };
+    },
+  });
+}
+
+/**
+ * Hook لجلب إحصائيات الصيانة والتكلفة الإجمالية من تجميعات الخادم
  */
 export function useMaintenanceStats() {
   return useQuery({
@@ -78,175 +98,4 @@ export function useMaintenanceStats() {
       return result.data?.stats ?? { totalRecords: 0, totalCost: 0, pending: 0, approved: 0, declined: 0 };
     },
   });
-}
-
-/**
- * Hook لتسجيل طلب صيانة جديد
- */
-export function useCreateMaintenance() {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  return useMutation({
-    mutationFn: async (data: CreateMaintenanceInput) => {
-      const res = await maintenanceService.createMaintenanceRecord(data);
-      if (!res.success) {
-        throw new Error(res.message || 'فشل توثيق طلب الصيانة');
-      }
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.addToast({ type: 'success', message: 'تم توثيق طلب الصيانة بنجاح' });
-      queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-    },
-    onError: (err: Error) => {
-      toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
-    },
-  });
-}
-
-/**
- * Hook لاعتماد أو رفض طلب صيانة
- */
-export function useVerifyMaintenance() {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  return useMutation({
-    mutationFn: async (data: VerifyMaintenanceInput) => {
-      const res = await maintenanceService.verifyMaintenanceRecord(data);
-      if (!res.success) {
-        throw new Error(res.message || 'فشل تحديث حالة الصيانة');
-      }
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.addToast({ type: 'success', message: 'تم تحديث حالة طلب الصيانة بنجاح' });
-      queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-    },
-    onError: (err: Error) => {
-      toast.addToast({ type: 'error', message: err.message || 'حدث خطأ أثناء الاتصال بالخادم' });
-    },
-  });
-}
-
-/**
- * Hook متكامل لإدارة واجهة صفحة الصيانة والفلترة
- */
-export function useMaintenancePage() {
-  const { user, logout } = useAuth();
-  const vehiclesQuery = useVehicles();
-
-  const [activeTab, setActiveTab] = useState<'all' | MaintenanceStatus>('all');
-  const [activeCategory, setActiveCategory] = useState<'all' | MaintenanceCategory>('all');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  // Modals state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedRecordForDetails, setSelectedRecordForDetails] = useState<MaintenanceRecordWithRelations | null>(null);
-  const [selectedRecordForVerify, setSelectedRecordForVerify] = useState<MaintenanceRecordWithRelations | null>(null);
-
-  const filters: MaintenanceFilters = useMemo(() => ({
-    status: activeTab,
-    category: activeCategory,
-    vehicleId: selectedVehicleId !== 'all' ? selectedVehicleId : undefined,
-  }), [activeTab, activeCategory, selectedVehicleId]);
-
-  const maintenanceQuery = useMaintenance(filters);
-  const statsQuery = useMaintenanceStats();
-
-  const rawRecords = maintenanceQuery.data ?? [];
-
-  // تصفية إضافية عبر شريط البحث النصي
-  const filteredRecords = useMemo(() => {
-    const query = searchQuery.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-    if (!query) return rawRecords;
-
-    return rawRecords.filter((record) => {
-      const searchableValues = [
-        record.description,
-        record.vehicleModel,
-        record.vehiclePlate,
-        record.reporterName,
-        record.reporterEmail,
-        record.formattedDate,
-        record.category,
-        record.status,
-        record.priority,
-      ];
-      const searchableText = searchableValues
-        .filter(Boolean)
-        .join(' ')
-        .normalize('NFKC')
-        .toLocaleLowerCase();
-
-      return searchableText.includes(query);
-    });
-  }, [rawRecords, searchQuery]);
-
-  // إحصائيات مدمجة
-  const stats: MaintenanceStats = useMemo(() => {
-    if (statsQuery.data && statsQuery.data.totalRecords > 0) {
-      return statsQuery.data;
-    }
-    // Fallback locally from records
-    let totalRecords = rawRecords.length;
-    let totalCost = 0;
-    let pending = 0;
-    let approved = 0;
-    let declined = 0;
-
-    for (const r of rawRecords) {
-      if (r.status === 'pending') pending++;
-      else if (r.status === 'approved') {
-        approved++;
-        totalCost += Number(r.cost) || 0;
-      } else if (r.status === 'declined') declined++;
-    }
-
-    return { totalRecords, totalCost, pending, approved, declined };
-  }, [statsQuery.data, rawRecords]);
-
-  return {
-    records: filteredRecords,
-    allRecordsCount: rawRecords.length,
-    isLoading: maintenanceQuery.isLoading || statsQuery.isLoading,
-    isError: maintenanceQuery.isError || statsQuery.isError,
-    error: maintenanceQuery.error || statsQuery.error,
-    refetch: () => {
-      maintenanceQuery.refetch();
-      statsQuery.refetch();
-    },
-    isRefetching: maintenanceQuery.isRefetching || statsQuery.isRefetching,
-
-    stats,
-
-    activeTab,
-    setActiveTab,
-    activeCategory,
-    setActiveCategory,
-    selectedVehicleId,
-    setSelectedVehicleId,
-    searchQuery,
-    setSearchQuery,
-
-    isCreateModalOpen,
-    setIsCreateModalOpen,
-    selectedRecordForDetails,
-    setSelectedRecordForDetails,
-    selectedRecordForVerify,
-    setSelectedRecordForVerify,
-
-    vehicles: vehiclesQuery.data ?? [],
-    isLoadingVehicles: vehiclesQuery.isLoading,
-
-    userName: user?.name || user?.email || 'المستخدم',
-    menuOpen,
-    setMenuOpen,
-    logout,
-  };
 }

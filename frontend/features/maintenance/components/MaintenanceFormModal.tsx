@@ -8,6 +8,7 @@ import {
   Camera,
   Coins,
   FileText,
+  Gauge,
   Loader2,
   Plus,
   Truck,
@@ -58,6 +59,7 @@ export function MaintenanceFormModal({
       priority: 'low',
       description: '',
       cost: undefined,
+      odometer: undefined,
       vehicleId: '',
     },
   });
@@ -102,6 +104,7 @@ export function MaintenanceFormModal({
         category: values.category,
         priority: values.priority,
         cost: values.cost,
+        odometer: values.odometer,
         images: selectedFiles,
       });
       handleClose();
@@ -203,8 +206,8 @@ export function MaintenanceFormModal({
             </div>
           </div>
 
-          {/* درجة الأولوية والتكلفة */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* درجة الأولوية والتكلفة وقراءة العداد */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* درجة الأولوية */}
             <div>
               <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
@@ -240,6 +243,26 @@ export function MaintenanceFormModal({
               </div>
               {errors.cost && (
                 <p className="mt-1 text-[11px] text-rose-500">{errors.cost.message}</p>
+              )}
+            </div>
+
+            {/* قراءة العداد الحالية */}
+            <div>
+              <label className="block text-xs font-bold text-[var(--zd-text)] mb-1.5">
+                قراءة العداد (كم)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  {...register('odometer')}
+                  placeholder="مثال: 125000"
+                  className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3 py-2.5 pl-8 text-xs text-[var(--zd-text)] placeholder-[var(--zd-muted)] focus:border-[var(--zd-blue)] focus:outline-none"
+                />
+                <Gauge className="absolute left-2.5 top-3 h-3.5 w-3.5 text-[var(--zd-muted)]" />
+              </div>
+              {errors.odometer && (
+                <p className="mt-1 text-[11px] text-rose-500">{errors.odometer.message}</p>
               )}
             </div>
           </div>
