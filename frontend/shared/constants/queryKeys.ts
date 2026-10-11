@@ -59,4 +59,17 @@ export const fuelKeys = {
   stats: (vehicleId?: string) => ['fuel', 'stats', vehicleId ?? 'all'] as const,
 };
 
+export const maintenanceKeys = {
+  all: ['maintenance'] as const,
+  list: (params?: unknown) => ['maintenance', 'list', params ?? 'all'] as const,
+  stats: ['maintenance', 'stats'] as const,
+};
+
+export const inspectionKeys = {
+  all: ['inspections'] as const,
+  list: (params?: unknown) => ['inspections', 'list', params ?? 'all'] as const,
+  byTask: (taskId: string) => ['inspections', 'task', taskId] as const,
+};
+
+
 

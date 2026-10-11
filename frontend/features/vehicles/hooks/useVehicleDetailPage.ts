@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useState, useCallback } from 'react';
 import { useVehicleDetail, useVehicleStats } from './useVehicles';
 import {
   useUpdateVehicle,
@@ -13,9 +12,6 @@ import { getVehicleDriverId } from '../utils/vehicleHelpers';
 import type { UpdateVehicleInput, TeamSummary } from '../types/vehicle.types';
 
 export function useVehicleDetailPage(vehicleId: string) {
-  const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-
   // Queries
   const {
     data: vehicle,
@@ -41,9 +37,6 @@ export function useVehicleDetailPage(vehicleId: string) {
   const [isAssignTeamOpen, setIsAssignTeamOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const userName = useMemo(() => {
-    return user?.name || user?.email?.split('@')[0] || 'المستخدم';
-  }, [user]);
 
   const teamObj: TeamSummary | null =
     vehicle?.teamId && typeof vehicle.teamId === 'object'
@@ -102,9 +95,5 @@ export function useVehicleDetailPage(vehicleId: string) {
     handleUpdateVehicle,
     handleRemoveTeam,
     handleUnassignDriver,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
   };
 }

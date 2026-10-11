@@ -44,6 +44,8 @@ export function TaskRouteMapPicker({
     routeData,
     pickupCoords,
     deliveryCoords,
+    effectivePickup,
+    effectiveDelivery,
     handleMapClick,
     handlePickupDrag,
     handleDeliveryDrag,
@@ -143,8 +145,8 @@ export function TaskRouteMapPicker({
       {/* ── ملخص المسار والعناوين ── */}
       <TaskRouteMetrics
         routeData={routeData}
-        pickupLocation={pickupLocation}
-        deliveryLocation={deliveryLocation}
+        pickupLocation={effectivePickup}
+        deliveryLocation={effectiveDelivery}
       />
     </div>
   );

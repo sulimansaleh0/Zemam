@@ -52,4 +52,14 @@ async function paginate(model, filters = {}, options = {}) {
     };
 }
 
-module.exports = { paginate };
+/**
+ * Escape special regex characters to prevent ReDoS or query injection
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeRegex(text) {
+    if (!text || typeof text !== "string") return "";
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+}
+
+module.exports = { paginate, escapeRegex };

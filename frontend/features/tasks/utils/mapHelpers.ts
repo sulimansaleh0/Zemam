@@ -114,25 +114,65 @@ export async function searchPlaces(
 
 /**
  * تحويل الإحداثيات إلى اسم عنوان مقروء (Reverse Geocoding)
+ * مع استجابة فائقة السرعة، دعم التايم آوت الصارم، ومزودين متعددين لتفادي التعليق أو حظر المتصفح
  */
 export async function reverseGeocodeCoords(
   lat: number,
   lng: number,
   signal?: AbortSignal
 ): Promise<string> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar,en`;
+  const fallback = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
+  // 1. محاولة BigDataCloud أولاً (فائقة السرعة ومصممة لمتصفحات الويب بدون حظر أو تعقيدات)
   try {
-    const res = await fetch(url, {
-      signal,
-      headers: {
-        'User-Agent': 'ZamamFleetManagementApp/1.0',
-      },
-    });
-    if (!res.ok) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    const data = await res.json();
-    return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=ar`;
+    const bdcController = new AbortController();
+    const bdcTimeout = setTimeout(() => bdcController.abort(), 1800);
+
+    const onAbort = () => bdcController.abort();
+    if (signal) signal.addEventListener('abort', onAbort);
+
+    const res = await fetch(bdcUrl, { signal: bdcController.signal });
+    clearTimeout(bdcTimeout);
+    if (signal) signal.removeEventListener('abort', onAbort);
+
+    if (res.ok) {
+      const data = await res.json();
+      const parts = [
+        data.locality || data.district,
+        data.city,
+        data.principalSubdivision,
+      ].filter(Boolean);
+      if (parts.length > 0) {
+        return parts.join('، ');
+      }
+    }
   } catch {
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    // الانتقال للمزود البديل
   }
+
+  // 2. محاولة Nominatim كخيار بديل مع تايم آوت صارم لتفادي تجميد الواجهة
+  try {
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar,en`;
+    const nomController = new AbortController();
+    const nomTimeout = setTimeout(() => nomController.abort(), 2000);
+
+    const onAbort = () => nomController.abort();
+    if (signal) signal.addEventListener('abort', onAbort);
+
+    const res = await fetch(nomUrl, { signal: nomController.signal });
+    clearTimeout(nomTimeout);
+    if (signal) signal.removeEventListener('abort', onAbort);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.display_name) {
+        return data.display_name;
+      }
+    }
+  } catch {
+    // إرجاع الإحداثيات عند أي خطأ
+  }
+
+  return fallback;
 }

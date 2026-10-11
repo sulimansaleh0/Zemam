@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/ui/Toast';
 import { useDebounce } from '@/shared/hooks';
 import { usePaginatedDrivers, useDrivers } from './useDrivers';
@@ -40,11 +39,7 @@ export type ModalState =
 // ============================================================
 
 export function useDriversPage() {
-  const { user, logout } = useAuth();
   const { addToast } = useToast();
-
-  const isFleetManager =
-    user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
 
   // ── UI Filter & Search State ─────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,7 +79,6 @@ export function useDriversPage() {
   }, []);
 
   // ── Shell & Modal State ──────────────────────────────────
-  const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState<ModalState>({ type: 'closed' });
 
   // ── Query Parameters for Server-side Filtering ───────────
@@ -133,9 +127,6 @@ export function useDriversPage() {
     };
   }, [allDrivers, drivers, pagination?.total]);
 
-  const userName = user?.name || user?.email?.split('@')[0] || '';
-
-  // ── Handlers ─────────────────────────────────────────────
   const handleCreate = useCallback(
     async (data: CreateDriverInput) => {
       await createMutation.mutateAsync(data);
@@ -203,12 +194,6 @@ export function useDriversPage() {
   }, [allDrivers, drivers, addToast]);
 
   return {
-    // Auth & Role
-    user,
-    isFleetManager,
-    userName,
-    logout,
-
     // Data
     drivers,
     allDrivers,
@@ -244,8 +229,6 @@ export function useDriversPage() {
     setSortOrder,
 
     // Shell & Modal
-    menuOpen,
-    setMenuOpen,
     modal,
     setModal,
 

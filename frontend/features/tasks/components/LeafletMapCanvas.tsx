@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css';
 import {
   createUnifiedLocationPin,
   createUnifiedVehicleMarker,
+  UNIFIED_MAP_TILE_URL,
+  UNIFIED_MAP_ATTRIBUTION,
 } from '@/features/gps/utils/mapMarkers';
 
 export interface PlaybackVehicleData {
@@ -48,6 +50,7 @@ export default function LeafletMapCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const pickupMarkerRef = useRef<L.Marker | null>(null);
+  const pickupGeofenceRef = useRef<L.Circle | null>(null);
   const deliveryMarkerRef = useRef<L.Marker | null>(null);
   const deliveryGeofenceRef = useRef<L.Circle | null>(null);
   const playbackMarkerRef = useRef<L.Marker | null>(null);
@@ -84,11 +87,19 @@ export default function LeafletMapCanvas({
 
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+    const tileLayer = L.tileLayer(UNIFIED_MAP_TILE_URL, {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      attribution: UNIFIED_MAP_ATTRIBUTION,
       subdomains: 'abcd',
     }).addTo(map);
+
+    let hasFallenBack = false;
+    tileLayer.on('tileerror', () => {
+      if (!hasFallenBack) {
+        hasFallenBack = true;
+        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+      }
+    });
 
     if (!readOnly) {
       map.on('click', (e: L.LeafletMouseEvent) => {
@@ -100,9 +111,9 @@ export default function LeafletMapCanvas({
 
     mapRef.current = map;
 
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    const t1 = setTimeout(() => map.invalidateSize(), 100);
+    const t2 = setTimeout(() => map.invalidateSize(), 300);
+    const t3 = setTimeout(() => map.invalidateSize(), 600);
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
@@ -113,13 +124,17 @@ export default function LeafletMapCanvas({
     }
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       if (resizeObserver) resizeObserver.disconnect();
+      if (pickupGeofenceRef.current) pickupGeofenceRef.current.remove();
       if (deliveryGeofenceRef.current) deliveryGeofenceRef.current.remove();
       if (playbackMarkerRef.current) playbackMarkerRef.current.remove();
       map.remove();
       mapRef.current = null;
       pickupMarkerRef.current = null;
+      pickupGeofenceRef.current = null;
       deliveryMarkerRef.current = null;
       deliveryGeofenceRef.current = null;
       playbackMarkerRef.current = null;
@@ -143,9 +158,9 @@ export default function LeafletMapCanvas({
 
         marker.on('dragend', (e: L.LeafletEvent) => {
           const markerTarget = e.target as L.Marker;
-          const pos = markerTarget.getLatLng();
+          const posLatLng = markerTarget.getLatLng();
           if (onPickupDragRef.current) {
-            onPickupDragRef.current(pos.lat, pos.lng);
+            onPickupDragRef.current(posLatLng.lat, posLatLng.lng);
           }
         });
 
@@ -153,11 +168,39 @@ export default function LeafletMapCanvas({
       } else {
         pickupMarkerRef.current.setLatLng(pickupPosition);
       }
-    } else if (pickupMarkerRef.current) {
-      pickupMarkerRef.current.remove();
-      pickupMarkerRef.current = null;
+
+      if (showGeofence) {
+        if (!pickupGeofenceRef.current) {
+          pickupGeofenceRef.current = L.circle(pickupPosition, {
+            radius: 80,
+            color: '#10b981',
+            weight: 1.5,
+            dashArray: '4, 4',
+            fillColor: '#10b981',
+            fillOpacity: 0.12,
+          }).addTo(map);
+        } else {
+          pickupGeofenceRef.current.setLatLng(pickupPosition);
+        }
+      } else if (pickupGeofenceRef.current) {
+        pickupGeofenceRef.current.remove();
+        pickupGeofenceRef.current = null;
+      }
+
+      if (!deliveryPosition) {
+        map.panTo(pickupPosition, { animate: true });
+      }
+    } else {
+      if (pickupMarkerRef.current) {
+        pickupMarkerRef.current.remove();
+        pickupMarkerRef.current = null;
+      }
+      if (pickupGeofenceRef.current) {
+        pickupGeofenceRef.current.remove();
+        pickupGeofenceRef.current = null;
+      }
     }
-  }, [pickupPosition, readOnly]);
+  }, [pickupPosition, readOnly, showGeofence]);
 
   // 3. تحديث نقطة التسليم (Delivery B)
   useEffect(() => {
@@ -174,9 +217,9 @@ export default function LeafletMapCanvas({
 
         marker.on('dragend', (e: L.LeafletEvent) => {
           const markerTarget = e.target as L.Marker;
-          const pos = markerTarget.getLatLng();
+          const posLatLng = markerTarget.getLatLng();
           if (onDeliveryDragRef.current) {
-            onDeliveryDragRef.current(pos.lat, pos.lng);
+            onDeliveryDragRef.current(posLatLng.lat, posLatLng.lng);
           }
         });
 

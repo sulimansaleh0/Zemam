@@ -14,8 +14,7 @@ import type { VehicleWithRelations } from '@/features/vehicles/types/vehicle.typ
  */
 export function useTeamDetailPage(teamId: string) {
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   const isFleetManager =
     user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
@@ -78,7 +77,7 @@ export function useTeamDetailPage(teamId: string) {
     return allManagers.find((m) => m._id === managerId) || null;
   }, [allManagers, managerId]);
 
-  const userName = user?.name || user?.email?.split('@')[0] || '';
+
 
   const handleRemoveDriver = useCallback(
     async (driverId: string) => {
@@ -115,10 +114,6 @@ export function useTeamDetailPage(teamId: string) {
     // Auth
     user,
     isFleetManager,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
 
     // Data
     team,

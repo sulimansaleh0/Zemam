@@ -43,10 +43,6 @@ export function TeamDetailView({ teamId }: TeamDetailViewProps) {
   const {
     user,
     isFleetManager,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
     team,
     statics,
     isStaticsError,

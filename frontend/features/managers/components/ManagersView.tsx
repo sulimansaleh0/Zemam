@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { UserCheck, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { UserCheck } from 'lucide-react';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import { useManagersPage } from '../hooks/useManagersPage';
 import { ManagerStatsCards } from './ManagerStatsCards';
 import { ManagersTable } from './ManagersTable';
@@ -50,66 +51,26 @@ export function ManagersView() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* ── Page Header Hero ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--primary)] mb-1">
-                  <UserCheck className="w-4 h-4" />
-                  <span>الإدارة والكوادر البشرية</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                  مدراء الأساطيل
-                </h1>
-                <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
-                  إدارة حسابات مدراء الأساطيل وتعيينهم على الفرق التشغيلية ومتابعة صلاحياتهم
-                </p>
-              </div>
+      {/* ── ترويسة الصفحة ── */}
+      <PageHeader
+        title="مدراء الأساطيل"
+        count={pagination?.total ?? effectiveManagersForStats.length}
+        description="إدارة حسابات مدراء الأساطيل وتعيينهم على الفرق التشغيلية ومتابعة صلاحياتهم"
+        icon={UserCheck}
+        onRefresh={() => refetch()}
+        isRefreshing={isRefetching}
+        actionLabel={statusFilter !== 'inactive' ? 'إضافة مدير أسطول' : undefined}
+        onAction={statusFilter !== 'inactive' ? () => handleOpenAdd() : undefined}
+      />
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  disabled={isRefetching}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-                  title="تحديث البيانات"
-                >
-                  <RefreshCw
-                    className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`}
-                  />
-                  <span>تحديث</span>
-                </button>
-
-                {statusFilter !== 'inactive' && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAdd()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>إضافة مدير أسطول</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* ── Error Banner ── */}
-            {isError && (
-              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-between gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <span>
-                    {(error as Error)?.message || 'فشل في تحميل بيانات مدراء الأساطيل.'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors cursor-pointer"
-                >
-                  إعادة المحاولة
-                </button>
-              </div>
-            )}
+      {/* ── حالة الخطأ ── */}
+      {isError && (
+        <ErrorAlert
+          title="فشل في تحميل بيانات مدراء الأساطيل"
+          error={error}
+          onRetry={() => refetch()}
+        />
+      )}
 
             {/* ── Summary Metrics ── */}
             <ManagerStatsCards managers={effectiveManagersForStats} teams={teamsList} />

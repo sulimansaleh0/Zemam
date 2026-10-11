@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { useVehicles } from '@/features/vehicles';
 import { useDebounce } from '@/shared/hooks';
 import { usePaginatedFuel, useFuelStats } from './useFuel';
@@ -15,7 +14,6 @@ import type {
  * Hook لإدارة حالة وتفاعلات صفحة سجلات الوقود
  */
 export function useFuelPage() {
-  const { user, logout } = useAuth();
   const vehiclesQuery = useVehicles();
 
   const [activeTab, setActiveTab] = useState<'all' | FuelStatus>('all');
@@ -111,8 +109,5 @@ export function useFuelPage() {
 
     vehicles: vehiclesQuery.data ?? [],
     isLoadingVehicles: vehiclesQuery.isLoading,
-
-    userName: user?.name || user?.email || 'المستخدم',
-    logout,
   };
 }

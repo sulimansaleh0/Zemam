@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, Fuel, Plus, RefreshCw } from 'lucide-react';
+import { Fuel } from 'lucide-react';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import {
   useFuelPage,
   useCreateFuel,
@@ -64,61 +65,28 @@ export function FuelView() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* ── شريط رأس الصفحة وأزرار الإجراءات ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-[var(--zd-text)] flex items-center gap-2">
-            <Fuel className="h-6 w-6 text-[var(--zd-blue)]" />
-            <span>
-              إدارة واستهلاك الوقود{' '}
-              {pagination?.total !== undefined ? `(${pagination.total})` : ''}
-            </span>
-          </h1>
-          <p className="mt-1 text-xs text-[var(--zd-muted)]">
-            متابعة فواتير الوقود الميدانية، رصد الكفاءة، ورصيد الوقود المتاح للمركبات
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isRefetching}
-            title="تحديث البيانات"
-            className="flex items-center justify-center h-9 w-9 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:text-[var(--zd-text)] hover:border-[var(--zd-line-hover)] transition cursor-pointer"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-600 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>تسجيل إيصال وقود</span>
-          </button>
-        </div>
-      </div>
+      {/* ── شريط رأس الصفحة الموحد ── */}
+      <PageHeader
+        title="إدارة واستهلاك الوقود"
+        count={pagination?.total}
+        description="متابعة فواتير الوقود الميدانية، رصد الكفاءة، ورصيد الوقود المتاح للمركبات"
+        icon={Fuel}
+        onRefresh={() => refetch()}
+        isRefreshing={isRefetching}
+        actionLabel="تسجيل إيصال وقود"
+        onAction={() => setIsCreateModalOpen(true)}
+      />
 
       {/* ── بطاقات المؤشرات (KPIs) من تجميعات الخادم ── */}
       <FuelStatsCards stats={stats} />
 
-      {/* ── تنبيه الأخطاء ── */}
+      {/* ── تنبيه الأخطاء الموحد ── */}
       {isError && (
-        <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-rose-400">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <div className="flex-1">
-            <p className="font-bold">تعذر تحميل بيانات الوقود</p>
-            <p className="mt-0.5 opacity-80">
-              {error instanceof Error ? error.message : 'حدث خطأ في الاتصال بالخادم'}
-            </p>
-          </div>
-          <button
-            onClick={() => refetch()}
-            className="rounded-lg bg-rose-500/20 px-3 py-1.5 font-semibold hover:bg-rose-500/30 cursor-pointer"
-          >
-            إعادة المحاولة
-          </button>
-        </div>
+        <ErrorAlert
+          title="تعذر تحميل بيانات الوقود"
+          error={error}
+          onRetry={() => refetch()}
+        />
       )}
 
       {/* ── جدول الوقود مع البحث والترقيم ── */}

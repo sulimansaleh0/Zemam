@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Users, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Users } from 'lucide-react';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import { useTeamsPage } from '../hooks/useTeamsPage';
 import { TeamsTable } from './TeamsTable';
 import { TeamStatsCards } from './TeamStatsCards';
@@ -18,7 +19,6 @@ import {
 export function TeamsView() {
   const {
     isFleetManager,
-    userName,
     companyName,
     teamsList,
     allTeams,
@@ -67,69 +67,26 @@ export function TeamsView() {
 
   return (
     <div className="space-y-6" dir="rtl">
-            {/* ── Page Header Hero ── */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--primary)] mb-1">
-                  <Users className="w-4 h-4" />
-                  <span>الهيكل الإداري والتشغيلي</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                  إدارة الفرق التشغيلية{' '}
-                  {!isLoading && (
-                    <span className="mr-1 font-manrope text-lg font-semibold text-[var(--primary)]">
-                      {pagination?.total ?? allTeams.length}
-                    </span>
-                  )}
-                </h1>
-                <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
-                  إنشاء وإدارة الفرق التشغيلية وتعيين مدراء الأساطيل وتوزيع المركبات
-                </p>
-              </div>
+      {/* ── ترويسة الصفحة ── */}
+      <PageHeader
+        title="إدارة الفرق التشغيلية"
+        count={pagination?.total ?? allTeams.length}
+        description="إنشاء وإدارة الفرق التشغيلية وتعيين مدراء الأساطيل وتوزيع المركبات"
+        icon={Users}
+        onRefresh={() => refetch()}
+        isRefreshing={isRefetching}
+        actionLabel="إنشاء فريق جديد"
+        onAction={handleOpenAdd}
+      />
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  disabled={isRefetching}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-                  title="تحديث البيانات"
-                >
-                  <RefreshCw
-                    className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`}
-                  />
-                  <span>تحديث</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenAdd}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>إنشاء فريق جديد</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── Error Banner ── */}
-            {isError && (
-              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-between gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <span>
-                    {(error as Error)?.message || 'فشل في تحميل بيانات الفرق.'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors cursor-pointer"
-                >
-                  إعادة المحاولة
-                </button>
-              </div>
-            )}
+      {/* ── حالة الخطأ ── */}
+      {isError && (
+        <ErrorAlert
+          title="فشل في تحميل بيانات الفرق"
+          error={error}
+          onRetry={() => refetch()}
+        />
+      )}
 
             {/* ── Summary Metrics ── */}
             <TeamStatsCards

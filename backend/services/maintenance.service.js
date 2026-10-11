@@ -6,11 +6,7 @@ const User = require("../models/user.model");
 const { userRoles } = require("../data/roles");
 const { expenseRecordStatus, taskStatus, mainStatus, vehicleStatus } = require("../data/status");
 const { maintenancePriority } = require("../data");
-const { paginate } = require("../utils/paginate");
-
-function escapeRegex(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+const { paginate, escapeRegex } = require("../utils/paginate");
 
 class MaintenanceService {
   /**

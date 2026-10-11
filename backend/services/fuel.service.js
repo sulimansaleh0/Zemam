@@ -5,11 +5,7 @@ const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
 const { userRoles } = require("../data/roles");
 const { mainStatus, taskStatus, expenseRecordStatus } = require("../data/status");
-const { paginate } = require("../utils/paginate");
-
-function escapeRegex(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+const { paginate, escapeRegex } = require("../utils/paginate");
 
 const configuredEfficiencyTolerance = Number(process.env.FUEL_EFFICIENCY_TOLERANCE_PERCENT);
 const fuelEfficiencyTolerancePercent =

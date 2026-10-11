@@ -13,3 +13,7 @@ export { ConfirmActionModal } from './ConfirmActionModal';
 export type { ConfirmActionModalProps } from './ConfirmActionModal';
 export { StatusBadge } from './StatusBadge';
 export type { StatusBadgeProps, StatusBadgeVariant } from './StatusBadge';
+export { ErrorAlert } from './ErrorAlert';
+export type { ErrorAlertProps } from './ErrorAlert';
+export { PageHeader } from './PageHeader';
+export type { PageHeaderProps } from './PageHeader';

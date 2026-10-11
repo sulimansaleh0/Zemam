@@ -13,7 +13,7 @@ import {
   Truck,
   User,
 } from 'lucide-react';
-import { TablePagination } from '@/shared/ui/TablePagination';
+import { TablePagination } from '@/shared/ui';
 import {
   getFuelStatusConfig,
   formatCostSAR,

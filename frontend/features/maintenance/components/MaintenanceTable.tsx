@@ -12,7 +12,7 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
-import { TablePagination } from '@/shared/ui/TablePagination';
+import { TablePagination } from '@/shared/ui';
 import {
   getMaintenanceStatusConfig,
   getMaintenancePriorityConfig,

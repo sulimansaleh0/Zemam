@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { useVehicles } from '@/features/vehicles';
 import { useDebounce } from '@/shared/hooks';
 import { usePaginatedMaintenance, useMaintenanceStats } from './useMaintenance';
@@ -16,7 +15,6 @@ import type {
  * Hook لإدارة حالة وتفاعلات صفحة سجلات الصيانة مع ترقيم خادمي وبحث سريع
  */
 export function useMaintenancePage() {
-  const { user, logout } = useAuth();
   const vehiclesQuery = useVehicles();
 
   const [activeTab, setActiveTab] = useState<'all' | MaintenanceStatus>('all');
@@ -116,8 +114,5 @@ export function useMaintenancePage() {
 
     vehicles: vehiclesQuery.data ?? [],
     isLoadingVehicles: vehiclesQuery.isLoading,
-
-    userName: user?.name || user?.email || 'المستخدم',
-    logout,
   };
 }

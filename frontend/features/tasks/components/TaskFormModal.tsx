@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Calendar,
@@ -76,10 +76,90 @@ export function TaskFormModal({
   const [formError, setFormError] = useState<string | null>(null);
   const [manualTeamId, setManualTeamId] = useState<string | null>(null);
 
-  // حساب القيم المبدئية للنموذج عند الفتح أو التعديل دون الحاجة لـ useEffect
-  const formValues = useMemo<CreateTaskFormValues>(() => {
-    if (!initialTask) {
-      return {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateTaskFormValues>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      description: '',
+      vehicleId: '',
+      driverId: '',
+      startTime: '',
+      expectedEndTime: '',
+      pickupLocation: { address: '', lat: '', lng: '' },
+      deliveryLocation: { address: '', lat: '', lng: '' },
+    },
+  });
+
+  // مزامنة حقول النموذج فقط عند فتح النافذة لأول مرة أو تغيير المهمة المحددة للتعديل
+  const prevIsOpenRef = useRef(false);
+  const prevTaskIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const isNowOpen = isOpen;
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    const currentTaskId = initialTask?._id ? String(initialTask._id) : null;
+    const prevTaskId = prevTaskIdRef.current;
+    prevTaskIdRef.current = currentTaskId;
+
+    const justOpened = isNowOpen && !wasOpen;
+    const taskChanged = isNowOpen && currentTaskId !== prevTaskId;
+
+    // عدم تصفير أو تعديل النموذج إذا كانت النافذة مفتوحة بالفعل والمستخدم يتفاعل معها
+    if (!justOpened && !taskChanged) return;
+
+    if (initialTask) {
+      const vId =
+        typeof initialTask.vehicleId === 'object' && initialTask.vehicleId !== null
+          ? initialTask.vehicleId._id
+          : String(initialTask.vehicleId || '');
+
+      const dId =
+        typeof initialTask.driverId === 'object' && initialTask.driverId !== null
+          ? initialTask.driverId._id
+          : String(initialTask.driverId || '');
+
+      let formattedTime = '';
+      if (initialTask.startTime) {
+        try {
+          const d = new Date(initialTask.startTime);
+          const offset = d.getTimezoneOffset() * 60000;
+          formattedTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+        } catch {
+          formattedTime = '';
+        }
+      }
+
+      let formattedEndTime = '';
+      if (initialTask.expectedEndTime) {
+        try {
+          const d = new Date(initialTask.expectedEndTime);
+          const offset = d.getTimezoneOffset() * 60000;
+          formattedEndTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
+        } catch {
+          formattedEndTime = '';
+        }
+      }
+
+      reset({
+        description: initialTask.description || '',
+        vehicleId: vId,
+        driverId: dId,
+        startTime: formattedTime,
+        expectedEndTime: formattedEndTime,
+        pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
+        deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
+      });
+    } else {
+      reset({
         description: '',
         vehicleId: '',
         driverId: '',
@@ -87,78 +167,34 @@ export function TaskFormModal({
         expectedEndTime: '',
         pickupLocation: { address: '', lat: '', lng: '' },
         deliveryLocation: { address: '', lat: '', lng: '' },
-      };
+      });
+      setManualTeamId(null);
+      setFormError(null);
     }
-
-    const vId =
-      typeof initialTask.vehicleId === 'object' && initialTask.vehicleId !== null
-        ? initialTask.vehicleId._id
-        : String(initialTask.vehicleId || '');
-
-    const dId =
-      typeof initialTask.driverId === 'object' && initialTask.driverId !== null
-        ? initialTask.driverId._id
-        : String(initialTask.driverId || '');
-
-    let formattedTime = '';
-    if (initialTask.startTime) {
-      try {
-        const d = new Date(initialTask.startTime);
-        const offset = d.getTimezoneOffset() * 60000;
-        formattedTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
-      } catch {
-        formattedTime = '';
-      }
-    }
-
-    let formattedEndTime = '';
-    if (initialTask.expectedEndTime) {
-      try {
-        const d = new Date(initialTask.expectedEndTime);
-        const offset = d.getTimezoneOffset() * 60000;
-        formattedEndTime = new Date(d.getTime() - offset).toISOString().slice(0, 16);
-      } catch {
-        formattedEndTime = '';
-      }
-    }
-
-    return {
-      description: initialTask.description || '',
-      vehicleId: vId,
-      driverId: dId,
-      startTime: formattedTime,
-      expectedEndTime: formattedEndTime,
-      pickupLocation: initialTask.pickupLocation || { address: '', lat: '', lng: '' },
-      deliveryLocation: initialTask.deliveryLocation || { address: '', lat: '', lng: '' },
-    };
-  }, [initialTask]);
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateTaskFormValues>({
-    resolver: zodResolver(createTaskSchema),
-    values: formValues,
-    resetOptions: {
-      keepDirtyValues: false,
-    },
-  });
+  }, [isOpen, initialTask, reset]);
 
   const descriptionValue = watch('description') || '';
   const selectedVehicleId = watch('vehicleId') || '';
-  const pickupLocation = watch('pickupLocation') || { address: '', lat: '', lng: '' };
-  const deliveryLocation = watch('deliveryLocation') || { address: '', lat: '', lng: '' };
+  const emptyLocation = useMemo<LocationPoint>(() => ({ address: '', lat: '', lng: '' }), []);
+
+  const watchedPickupLocation = useWatch({
+    control,
+    name: 'pickupLocation',
+  });
+  const pickupLocation = watchedPickupLocation || emptyLocation;
+
+  const watchedDeliveryLocation = useWatch({
+    control,
+    name: 'deliveryLocation',
+  });
+  const deliveryLocation = watchedDeliveryLocation || emptyLocation;
 
   const handlePickupChange = (loc: LocationPoint) => {
-    setValue('pickupLocation', loc, { shouldValidate: true });
+    setValue('pickupLocation', loc, { shouldValidate: true, shouldDirty: true });
   };
 
   const handleDeliveryChange = (loc: LocationPoint) => {
-    setValue('deliveryLocation', loc, { shouldValidate: true });
+    setValue('deliveryLocation', loc, { shouldValidate: true, shouldDirty: true });
   };
 
   // المركبة المختارة حالياً

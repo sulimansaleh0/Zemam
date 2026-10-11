@@ -10,11 +10,7 @@ const { getExpectedEndTime } = require("../utils/taskEndTime");
 const { finalizeTripSummary, stopTelemetryTracking } = require("./gpsIngestion.service");
 const { notifyTripCompleted } = require("./socket.service");
 const { calculateTaskFuelConsumption } = require("../utils/fuelConsumption");
-const { paginate } = require("../utils/paginate");
-
-function escapeRegex(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+const { paginate, escapeRegex } = require("../utils/paginate");
 
 class TaskService {
   /**

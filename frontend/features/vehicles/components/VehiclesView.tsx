@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Truck, Plus, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { Truck, Loader2 } from 'lucide-react';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import { useVehiclesPage } from '../hooks/useVehiclesPage';
 import { VehiclesTable } from './VehiclesTable';
 import { VehicleStatsCards } from './VehicleStatsCards';
@@ -47,76 +48,26 @@ export function VehiclesView() {
 
   return (
     <div className="space-y-6" dir="rtl">
-            {/* ── Page Header Hero ── */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--primary)] mb-1">
-                  <Truck className="w-4 h-4" />
-                  <span>إدارة الأسطول والعمليات</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                  سجل المركبات والأسطول{' '}
-                  {!isLoading && (
-                    <span className="mr-1 font-manrope text-lg font-semibold text-[var(--primary)]">
-                      {pagination?.total ?? vehiclesList.length}
-                    </span>
-                  )}
-                </h1>
-                <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
-                  عرض وتتبع كامل لمركبات الأسطول، حالتها التشغيلية، وتعيينات السائقين
-                </p>
-              </div>
+      {/* ── ترويسة الصفحة ── */}
+      <PageHeader
+        title="سجل المركبات والأسطول"
+        count={pagination?.total ?? vehiclesList.length}
+        description="عرض وتتبع كامل لمركبات الأسطول، حالتها التشغيلية، وتعيينات السائقين"
+        icon={Truck}
+        onRefresh={() => refetch()}
+        isRefreshing={isRefetching}
+        actionLabel="إضافة مركبة"
+        onAction={() => setIsAddVehicleModalOpen(true)}
+      />
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  disabled={isRefetching || isLoading}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-                  title="تحديث البيانات"
-                >
-                  <RefreshCw
-                    className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`}
-                  />
-                  <span>تحديث</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAddVehicleModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>إضافة مركبة</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── Error State ── */}
-            {isError && !isLoading && (
-              <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-8 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
-                  <AlertCircle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-[var(--text)]">
-                    تعذّر تحميل بيانات المركبات
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {error instanceof Error
-                      ? error.message
-                      : 'حدث خطأ أثناء الاتصال بالسيرفر'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>إعادة المحاولة</span>
-                </button>
-              </div>
-            )}
+      {/* ── حالة الخطأ ── */}
+      {isError && !isLoading && (
+        <ErrorAlert
+          title="تعذّر تحميل بيانات المركبات"
+          error={error}
+          onRetry={() => refetch()}
+        />
+      )}
 
             {/* ── Loading Skeleton ── */}
             {isLoading && (

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, Plus, RefreshCw, Wrench } from 'lucide-react';
+import { Wrench } from 'lucide-react';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import {
   useMaintenancePage,
   useCreateMaintenance,
@@ -58,61 +59,28 @@ export function MaintenanceView() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* ── شريط رأس الصفحة وأزرار الإجراءات ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-[var(--zd-text)] flex items-center gap-2">
-            <Wrench className="h-6 w-6 text-[var(--zd-blue)]" />
-            <span>
-              إدارة ومتابعة الصيانة{' '}
-              {pagination?.total !== undefined ? `(${pagination.total})` : ''}
-            </span>
-          </h1>
-          <p className="mt-1 text-xs text-[var(--zd-muted)]">
-            متابعة بلاغات الأعطال، توثيق أعمال الصيانة الدورية، واعتماد التكاليف المالية للأسطول
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isRefetching}
-            title="تحديث البيانات"
-            className="flex items-center justify-center h-9 w-9 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] text-[var(--zd-muted)] hover:text-[var(--zd-text)] hover:border-[var(--zd-line-hover)] transition cursor-pointer"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-[var(--zd-blue)] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-600 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>تسجيل طلب صيانة</span>
-          </button>
-        </div>
-      </div>
+      {/* ── شريط رأس الصفحة الموحد ── */}
+      <PageHeader
+        title="إدارة ومتابعة الصيانة"
+        count={pagination?.total}
+        description="متابعة بلاغات الأعطال، توثيق أعمال الصيانة الدورية، واعتماد التكاليف المالية للأسطول"
+        icon={Wrench}
+        onRefresh={() => refetch()}
+        isRefreshing={isRefetching}
+        actionLabel="تسجيل طلب صيانة"
+        onAction={() => setIsCreateModalOpen(true)}
+      />
 
       {/* ── بطاقات المؤشرات (KPIs) من تجميعات الخادم ── */}
       <MaintenanceStatsCards stats={stats} />
 
-      {/* ── رسائل الخطأ ── */}
+      {/* ── تنبيه الأخطاء الموحد ── */}
       {isError && (
-        <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-rose-400">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <div className="flex-1">
-            <p className="font-bold">تعذر تحميل بيانات الصيانة</p>
-            <p className="mt-0.5 opacity-80">
-              {error instanceof Error ? error.message : 'حدث خطأ في الاتصال بالخادم'}
-            </p>
-          </div>
-          <button
-            onClick={() => refetch()}
-            className="rounded-lg bg-rose-500/20 px-3 py-1.5 font-semibold hover:bg-rose-500/30 cursor-pointer"
-          >
-            إعادة المحاولة
-          </button>
-        </div>
+        <ErrorAlert
+          title="تعذر تحميل بيانات الصيانة"
+          error={error}
+          onRetry={() => refetch()}
+        />
       )}
 
       {/* ── جدول الصيانة مع البحث والترقيم ── */}

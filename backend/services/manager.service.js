@@ -7,14 +7,7 @@ const Fuel = require('../models/fuel.model');
 const Maintenance = require('../models/maintenance.model');
 const { userRoles } = require('../data/roles');
 const { mainStatus, taskStatus, expenseRecordStatus } = require('../data/status');
-const { paginate } = require('../utils/paginate');
-
-/**
- * Escapes characters for safe regular expression search (ReDoS protection)
- */
-function escapeRegex(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-}
+const { paginate, escapeRegex } = require('../utils/paginate');
 
 /**
  * Executes a callback within a MongoDB transaction if replica set supports it,

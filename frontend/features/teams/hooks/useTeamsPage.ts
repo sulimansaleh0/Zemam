@@ -16,8 +16,7 @@ import type { Team, TeamFilterStatus } from '../types/team.types';
  */
 export function useTeamsPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   const isFleetManager =
     user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
@@ -101,9 +100,6 @@ export function useTeamsPage() {
     return calculateTeamDriverCounts(driversList);
   }, [driversList]);
 
-  const userName = useMemo(() => {
-    return user?.name || user?.email?.split('@')[0] || '';
-  }, [user]);
 
   const handleOpenAdd = useCallback(() => setIsCreateModalOpen(true), []);
   const handleOpenEdit = useCallback((team: Team) => setSelectedTeamForEdit(team), []);
@@ -130,13 +126,9 @@ export function useTeamsPage() {
   );
 
   return {
-    // Auth
+    // Auth & Organization
     isFleetManager,
-    userName,
     companyName: user?.name || undefined,
-    menuOpen,
-    setMenuOpen,
-    logout,
 
     // Data & Pagination
     teamsList,

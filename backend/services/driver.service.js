@@ -8,11 +8,7 @@ const Fuel = require("../models/fuel.model");
 const { userRoles } = require("../data/roles");
 const { mainStatus, taskStatus, expenseRecordStatus } = require("../data/status");
 const { getDriverVehicleEligibilityError } = require("../utils/driverEligibility");
-const { paginate } = require("../utils/paginate");
-
-function escapeRegex(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+const { paginate, escapeRegex } = require("../utils/paginate");
 
 class DriverService {
   /**

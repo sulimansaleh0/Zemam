@@ -37,7 +37,7 @@ const SORT_CYCLE: ManagerSortOrder[] = ['newest', 'oldest', 'name'];
 
 export function useManagersPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const isFleetManager =
     user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
@@ -47,8 +47,6 @@ export function useManagersPage() {
       router.replace('/dashboard');
     }
   }, [isFleetManager, router]);
-
-  const [menuOpen, setMenuOpen] = useState(false);
 
   // ── Filters & Search ───────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,8 +123,6 @@ export function useManagersPage() {
   const disableTeamMutation = useDisableManager();
   const deleteMutation = useDeleteManager();
 
-  const userName = user?.name || user?.email?.split('@')[0] || '';
-
   // ── Modal Handlers ─────────────────────────────────────────
   const handleOpenAdd = useCallback((teamId?: string) => {
     setModalState({ type: 'create', initialTeamId: teamId });
@@ -168,12 +164,8 @@ export function useManagersPage() {
   );
 
   return {
-    // Auth & Layout
+    // Auth & Access Control
     isFleetManager,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
 
     // Search, Filters & Sorting
     searchQuery,

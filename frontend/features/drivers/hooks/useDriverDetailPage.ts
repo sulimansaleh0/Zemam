@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { useTeams } from '@/features/teams';
 import { useDriver, useDriverStats } from './useDrivers';
 import {
@@ -17,8 +16,6 @@ import type { DriverStatus } from '../types/driver.types';
 
 export function useDriverDetailPage(driverId: string) {
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'tasks' | 'fuel' | 'audit'>('tasks');
 
   // Modals state
@@ -58,7 +55,6 @@ export function useDriverDetailPage(driverId: string) {
 
   const displayName = getDriverDisplayName(driver);
   const isActive = driver?.status === 'active';
-  const userName = user?.name || user?.email?.split('@')[0] || '';
 
   // Action handlers
   const handleToggleStatus = useCallback(async () => {
@@ -136,11 +132,5 @@ export function useDriverDetailPage(driverId: string) {
     isAssigningVehicle: assignVehicleMutation.isPending,
     isUnassigningVehicle: unassignVehicleMutation.isPending,
     isRemovingTeam: removeTeamMutation.isPending,
-
-    // Auth & Navigation
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
   };
 }

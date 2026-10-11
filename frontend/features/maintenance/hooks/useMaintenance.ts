@@ -13,12 +13,9 @@ import type {
   MaintenanceFilters,
   PaginatedMaintenanceResult,
 } from '../types/maintenance.types';
+import { maintenanceKeys } from '@/shared/constants/queryKeys';
 
-export const MAINTENANCE_QUERY_KEYS = {
-  all: ['maintenance'] as const,
-  list: (filters?: MaintenanceFilters) => ['maintenance', 'list', filters] as const,
-  stats: ['maintenance', 'stats'] as const,
-};
+export const MAINTENANCE_QUERY_KEYS = maintenanceKeys;
 
 function transformMaintenanceRecord(record: BackendMaintenanceRecord): MaintenanceRecordWithRelations {
   const veh = getMaintenanceVehicleDisplay(record.vehicleId);

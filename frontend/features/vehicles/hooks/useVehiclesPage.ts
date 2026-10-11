@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useState, useCallback } from 'react';
 import { useDebounce } from '@/shared/hooks';
 import { usePaginatedVehicles } from './useVehicles';
 import {
@@ -13,9 +12,6 @@ import { getVehicleTeamId, getVehicleDriverId } from '../utils/vehicleHelpers';
 import type { VehicleWithRelations, UpdateVehicleInput, VehicleStatus } from '../types/vehicle.types';
 
 export function useVehiclesPage() {
-  const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-
   // Server-side pagination & filter states
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(8);
@@ -74,9 +70,6 @@ export function useVehiclesPage() {
   const [selectedVehicleForDelete, setSelectedVehicleForDelete] = useState<VehicleWithRelations | null>(null);
   const [selectedVehicleForEdit, setSelectedVehicleForEdit] = useState<VehicleWithRelations | null>(null);
 
-  const userName = useMemo(() => {
-    return user?.name || user?.email?.split('@')[0] || 'المستخدم';
-  }, [user]);
 
   const handleRemoveTeam = useCallback(
     async (vehicle: VehicleWithRelations) => {
@@ -138,9 +131,5 @@ export function useVehiclesPage() {
     handleUnassignDriver,
     handleUpdateVehicle,
     isUpdatingVehicle: updateVehicleMutation.isPending,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
   };
 }

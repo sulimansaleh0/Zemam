@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { useDebounce } from '@/shared/hooks';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { useVehicles } from '@/features/vehicles';
 import { useDriversList } from '@/features/drivers';
 import { useTeams } from '@/features/teams';
@@ -31,8 +30,6 @@ const DEFAULT_STATS: TaskStats = {
 };
 
 export function useTasksPage() {
-  const { user } = useAuth();
-
   const [activeTab, setActiveTab] = useState<'all' | TaskStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 350);
@@ -151,7 +148,5 @@ export function useTasksPage() {
     isDeclining: declineTaskMutation.isPending,
     handleFormSubmit,
     handleConfirmDecline,
-
-    userName: user?.name || user?.email || 'المستخدم',
   };
 }

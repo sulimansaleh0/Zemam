@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, FileDown, Loader2, Plus, RefreshCw, UsersRound } from 'lucide-react';
+import { FileDown, Loader2, UsersRound } from 'lucide-react';
+import { PageHeader, ErrorAlert } from '@/shared/ui';
 import { useDriversPage } from '../hooks/useDriversPage';
 import { DriverMetrics } from './DriverMetrics';
 import { DriversTable } from './DriversTable';
@@ -62,82 +63,37 @@ export function DriversView() {
 
   return (
     <div className="space-y-6" dir="rtl">
-            {/* ── Page Hero ── */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--primary)] mb-1">
-                  <UsersRound className="w-4 h-4" />
-                  <span>مساحة التشغيل والكوادر</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                  سجل السائقين والكوادر{' '}
-                  {!isLoading && (
-                    <span className="mr-1 font-manrope text-lg font-semibold text-[var(--primary)]">
-                      {pagination?.total ?? (allDrivers.length > 0 ? allDrivers.length : drivers.length)}
-                    </span>
-                  )}
-                </h1>
-                <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
-                  متابعة أداء السائقين، فئات رخص القيادة والاعتماد، تعيين المركبات والفرق الميدانية
-                </p>
-              </div>
+      {/* ── ترويسة الصفحة ── */}
+      <PageHeader
+        title="سجل السائقين والكوادر"
+        count={pagination?.total ?? (allDrivers.length > 0 ? allDrivers.length : drivers.length)}
+        description="متابعة أداء السائقين، فئات رخص القيادة والاعتماد، تعيين المركبات والفرق الميدانية"
+        icon={UsersRound}
+        onRefresh={() => refetch()}
+        isRefreshing={isRefetching}
+        actionLabel="إضافة سائق"
+        onAction={() => setModal({ type: 'create' })}
+        extraActions={
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            disabled={isLoading || (allDrivers.length === 0 && drivers.length === 0)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            <FileDown className="w-4 h-4" />
+            <span>تصدير (CSV)</span>
+          </button>
+        }
+      />
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  disabled={isRefetching || isLoading}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-                  title="تحديث البيانات"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
-                  <span>تحديث</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportCSV}
-                  disabled={isLoading || (allDrivers.length === 0 && drivers.length === 0)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-                >
-                  <FileDown className="w-4 h-4" />
-                  <span>تصدير (CSV)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModal({ type: 'create' })}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>إضافة سائق</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── Error State ── */}
-            {isError && !isLoading && (
-              <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-8 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
-                  <AlertCircle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-[var(--text)]">
-                    تعذّر تحميل بيانات السائقين
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {error instanceof Error ? error.message : 'خطأ أثناء الاتصال بالخادم'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>إعادة المحاولة</span>
-                </button>
-              </div>
-            )}
+      {/* ── حالة الخطأ ── */}
+      {isError && !isLoading && (
+        <ErrorAlert
+          title="تعذّر تحميل بيانات السائقين"
+          error={error}
+          onRetry={() => refetch()}
+        />
+      )}
 
             {/* ── Loading Skeleton ── */}
             {isLoading && (

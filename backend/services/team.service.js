@@ -6,11 +6,7 @@ const Task = require("../models/task.model");
 const getStatics = require("../utils/getStatics");
 const { userRoles } = require("../data/roles");
 const { mainStatus, taskStatus } = require("../data/status");
-const { paginate } = require("../utils/paginate");
-
-function escapeRegex(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+const { paginate, escapeRegex } = require("../utils/paginate");
 
 class TeamService {
   /**

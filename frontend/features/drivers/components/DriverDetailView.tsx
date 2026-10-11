@@ -55,10 +55,6 @@ export function DriverDetailView({ driverId }: DriverDetailViewProps) {
     isAssigningVehicle,
     isUnassigningVehicle,
     isRemovingTeam,
-    userName,
-    menuOpen,
-    setMenuOpen,
-    logout,
   } = useDriverDetailPage(driverId);
 
   // Server-scoped queries: Fetch only tasks and fuel records for this driver directly from backend
