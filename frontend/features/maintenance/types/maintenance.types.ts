@@ -8,7 +8,7 @@ export type { PaginationInfo };
 
 export type MaintenanceCategory = 'Faults' | 'Periodic Maintenance';
 
-export type MaintenancePriority = 'High' | 'low';
+export type MaintenancePriority = 'high' | 'low';
 
 export type MaintenanceStatus = 'pending' | 'approved' | 'declined';
 

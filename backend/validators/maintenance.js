@@ -24,6 +24,7 @@ exports.createMaintenanceSchema = [
         .isIn(Object.values(maintenanceCategories))
         .withMessage("تصنيف الصيانة غير صالح"),
     body("priority")
+        .customSanitizer((v) => (typeof v === "string" ? v.toLowerCase() : v))
         .isIn([maintenancePriority.HIGH, maintenancePriority.LOW])
         .withMessage("مستوى الأولوية غير صالح"),
     body("odometer")

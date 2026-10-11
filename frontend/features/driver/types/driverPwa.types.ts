@@ -44,7 +44,7 @@ export interface DriverTask {
 
 export interface OfflineAction {
   id: string;
-  type: 'FINISH_TASK' | 'ACCEPT_TASK' | 'SUBMIT_FUEL' | 'SUBMIT_MAINTENANCE';
+  type: 'FINISH_TASK' | 'ACCEPT_TASK' | 'SUBMIT_FUEL' | 'SUBMIT_MAINTENANCE' | 'SUBMIT_INSPECTION';
   url: string;
   method: 'POST' | 'PATCH';
   body: any;
@@ -79,3 +79,17 @@ export interface VehicleInspectionItem {
   label: string;
   passed: boolean;
 }
+
+export interface DailyInspectionPayload {
+  vehicleId: string;
+  taskId?: string;
+  items: VehicleInspectionItem[];
+  odometer?: number;
+  notes?: string;
+  location?: {
+    lat?: number;
+    lng?: number;
+    address?: string;
+  };
+}
+

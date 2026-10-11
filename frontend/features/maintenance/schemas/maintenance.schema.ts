@@ -5,9 +5,13 @@ export const createMaintenanceSchema = z.object({
   category: z.enum(['Faults', 'Periodic Maintenance'], {
     required_error: 'يرجى تحديد تصنيف الصيانة',
   }),
-  priority: z.enum(['High', 'low'], {
-    required_error: 'يرجى تحديد درجة الأولوية',
-  }),
+  priority: z
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toLowerCase() : val),
+      z.enum(['high', 'low'], {
+        required_error: 'يرجى تحديد درجة الأولوية',
+      })
+    ),
   cost: z
     .preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),

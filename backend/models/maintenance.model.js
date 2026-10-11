@@ -34,8 +34,9 @@ const maintenanceSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: Object.values(maintenancePriority),
-        default: maintenancePriority.LOW
+        enum: ["high", "low", "High", "Low"],
+        default: maintenancePriority.LOW,
+        set: (v) => (v ? v.toLowerCase() : v)
     },
     companyId: {
         type: mongoose.Schema.Types.ObjectId,

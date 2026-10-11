@@ -132,7 +132,7 @@ export function MaintenanceFormModal({
         {/* الجسم القابل للتمرير */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           {/* تحذير الأولوية العالية */}
-          {selectedPriority === 'High' && (
+          {selectedPriority?.toLowerCase() === 'high' && (
             <div className="flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-400 animate-in fade-in duration-150">
               <AlertTriangle className="h-5 w-5 shrink-0 text-rose-500 mt-0.5" />
               <div>
@@ -218,7 +218,7 @@ export function MaintenanceFormModal({
                 className="w-full rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] px-3 py-2.5 text-xs text-[var(--zd-text)] focus:border-[var(--zd-blue)] focus:outline-none"
               >
                 <option value="low">عادية (المركبة صالحة للعمل)</option>
-                <option value="High">عالية (توقف فوري للمركبة)</option>
+                <option value="high">عالية (توقف فوري للمركبة)</option>
               </select>
               {errors.priority && (
                 <p className="mt-1 text-[11px] text-rose-500">{errors.priority.message}</p>

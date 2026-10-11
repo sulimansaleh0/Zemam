@@ -103,6 +103,7 @@ class MaintenanceService {
       Number.isFinite(inputOdo) && inputOdo >= 0 ? inputOdo : (vehicle.currentOdometer || 0);
 
     const numericCost = cost != null && cost !== "" ? Number(cost) : 0;
+    const normalizedPriority = (priority || maintenancePriority.LOW).toLowerCase();
     let createdRecord = null;
 
     await this.withTransaction(async (session) => {
@@ -117,7 +118,7 @@ class MaintenanceService {
         teamId: vehicle.teamId || null,
         reportedBy: user._id,
         driverId: user.role === userRoles.DRIVER ? user._id : vehicle.driverId,
-        priority,
+        priority: normalizedPriority,
       };
 
       const [newRecord] = await Maintenance.create([recordData], session ? { session } : {});
@@ -134,7 +135,7 @@ class MaintenanceService {
       }
 
       // تحويل حالة المركبة إلى قيد الصيانة إذا كانت الأولوية عالية
-      if (priority === maintenancePriority.HIGH) {
+      if (normalizedPriority === maintenancePriority.HIGH) {
         const statusUpdate = Vehicle.updateOne(
           { _id: vehicle._id, companyId: user.companyId },
           { $set: { status: vehicleStatus.INMAINTENANCE } }
@@ -315,6 +316,12 @@ class MaintenanceService {
       throw { status: 400, message: "يجب تحديد سائق مرتبط بالسجل قبل تحميل المسؤولية" };
     }
 
+    const willProcessDriverFault =
+      status === expenseRecordStatus.APPROVED &&
+      Boolean(isDriverFault) &&
+      !pendingRecord.driverFaultProcessed &&
+      Boolean(effectiveDriverId);
+
     await this.withTransaction(async (session) => {
       const updateData = {
         status,
@@ -323,6 +330,10 @@ class MaintenanceService {
 
       if (effectiveDriverId && !pendingRecord.driverId) {
         updateData.driverId = effectiveDriverId;
+      }
+
+      if (willProcessDriverFault) {
+        updateData.driverFaultProcessed = true;
       }
 
       if (cost !== undefined && cost !== null && cost !== "") {
@@ -355,24 +366,24 @@ class MaintenanceService {
       if (session) activeMaintenanceQuery.session(session);
       const activeMaintenance = await activeMaintenanceQuery;
 
-      // إذا لم تعد هناك أي بلاغات معلقة، نعيد المركبة للخدمة (ACTIVE)
+      // حماية حالة المركبة: لا نعيدها إلى (نشطة) إلا إذا لم تعد هناك بلاغات معلقة وكانت حالتها الحالية (قيد الصيانة)
       if (!activeMaintenance) {
         const vehicleRevert = Vehicle.updateOne(
-          { _id: pendingRecord.vehicleId, companyId: user.companyId },
+          {
+            _id: pendingRecord.vehicleId,
+            companyId: user.companyId,
+            status: vehicleStatus.INMAINTENANCE,
+          },
           { $set: { status: vehicleStatus.ACTIVE } }
         );
         if (session) vehicleRevert.session(session);
         await vehicleRevert;
       }
 
-      // في حال ثبوت خطأ السائق ولم تتم معالجته مسبقاً، نخصم نقاط من تقييمه ونوثق السبب
-      if (
-        status === expenseRecordStatus.APPROVED &&
-        Boolean(isDriverFault) &&
-        !pendingRecord.driverFaultProcessed &&
-        effectiveDriverId
-      ) {
-        const points = pendingRecord.priority === maintenancePriority.HIGH ? -15 : -8;
+      // في حال ثبوت خطأ السائق، نخصم نقاط من تقييمه ونوثق السبب ذرياً
+      if (willProcessDriverFault) {
+        const normalizedPriority = (pendingRecord.priority || "").toLowerCase();
+        const points = normalizedPriority === maintenancePriority.HIGH ? -15 : -8;
 
         const driverScoreLog = User.updateOne(
           { _id: effectiveDriverId },
@@ -397,13 +408,6 @@ class MaintenanceService {
           { updatePipeline: true, session: session || undefined }
         );
         await driverScoreDec;
-
-        const markProcessed = Maintenance.updateOne(
-          { _id: pendingRecord._id },
-          { $set: { driverFaultProcessed: true } }
-        );
-        if (session) markProcessed.session(session);
-        await markProcessed;
       }
     });
 

@@ -10,6 +10,7 @@ const fuelRoutes = require("./fuel.route");
 const maintenanceRoutes = require("./maintenance.route");
 const alertRoutes = require("./alert.route");
 const gpsRoutes = require("./gps.route");
+const dailyInspectionRoutes = require("./dailyInspection.route");
 
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
@@ -21,5 +22,6 @@ router.use("/fuel", fuelRoutes);
 router.use("/maintenance", maintenanceRoutes);
 router.use("/alert", alertRoutes);
 router.use("/gps", gpsRoutes);
+router.use("/inspections", dailyInspectionRoutes);
 
-module.exports = router;
+module.exports = router;
