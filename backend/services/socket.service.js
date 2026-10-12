@@ -73,7 +73,6 @@ function initSocket(server) {
 
     io.on("connection", (socket) => {
         const user = socket.user;
-        console.log(`🟢 [Socket] Client connected: ${socket.id} (User: ${user ? user.email : "guest"})`);
         // Handle joining scoped fleet tracking room
         socket.on("fleet:join", () => {
             const companyId = user.companyId;
@@ -112,8 +111,8 @@ function initSocket(server) {
                     return;
                 }
 
-                let { vehicleId, taskId, lat, lng, speed, heading, accuracy, timestamp } = payload;
-
+                let { lat, lng, speed, heading, accuracy, timestamp } = payload;
+                
                 // Decode compact binary GPS pulse if present
                 if (payload.bin) {
                     const binData = Buffer.isBuffer(payload.bin)
@@ -128,25 +127,18 @@ function initSocket(server) {
 
                     // ── طباعة النقاط على السيرفر قبل وبعد فك التشفير ──
                     console.log(`\n================== [GPS BINARY PULSE DECODING] ==================`);
-                    console.log(`🔒 قبل فك التشفير (البيانات الثنائية المستلمة من هاتف السائق):`);
-                    console.log(`   - حجم الحزمة: ${binData.length} بايت فقط`);
-                    console.log(`   - تمثيل Hex: ${Buffer.from(binData).toString('hex')}`);
-                    console.log(`   - مصفوفة البايتات (Bytes): [${Array.from(binData).join(', ')}]`);
-                    console.log(`🔓 بعد فك التشفير (الإحداثيات الحقيقية المستخرجة على السيرفر):`);
-                    console.log(`   - خط العرض (Latitude):  ${lat}`);
-                    console.log(`   - خط الطول (Longitude): ${lng}`);
-                    console.log(`   - السرعة (Speed):       ${speed != null ? `${speed} كم/س` : '0 كم/س'}`);
-                    console.log(`   - زاوية الاتجاه:        ${heading != null ? `${heading}°` : '0°'}`);
-                    console.log(`   - المركبة المستهدفة:    ${vehicleId || payload.vehicleId}`);
-                    console.log(`   - المهمة المرتبطة:      ${taskId || payload.taskId || 'بدون مهمة'}`);
+                    console.log(`🔒 Before decryption (binary data received from the driver's phone):`);
+                    console.log(`   - Packet size: ${binData.length} bytes only`);
+                    console.log(`   - Hex representation: ${Buffer.from(binData).toString('hex')}`);
+                    console.log(`   - Byte array (Bytes): [${Array.from(binData).join(', ')}]`);
+                    console.log(`🔓 After decryption (actual coordinates extracted on the server):`);
+                    console.log(`   - Latitude: ${lat}`);
+                    console.log(`   - Longitude: ${lng}`);
+                    console.log(`   - Speed: ${speed != null ? `${speed} km/h` : '0 km/h'}`);
+                    console.log(`   - Heading angle: ${heading != null ? `${heading}°` : '0°'}`);
                     console.log(`=================================================================\n`);
                 } else {
-                    console.log(`\n📡 [GPS JSON TELEMETRY] استلام إحداثيات JSON مباشرة للمركبة ${vehicleId}: Lat=${lat}, Lng=${lng}, Speed=${speed}`);
-                }
-
-                if (!vehicleId) {
-                    respond({ ok: false, message: "A vehicleId is required" });
-                    return;
+                    console.log(`\n[GPS JSON TELEMETRY] Received JSON coordinates: Lat=${lat}, Lng=${lng}, Speed=${speed}`);
                 }
 
                 const companyId = user.companyId;
@@ -154,8 +146,6 @@ function initSocket(server) {
                 const driverId = user._id;
 
                 const result = await processTelemetryUpdate({
-                    vehicleId,
-                    taskId,
                     driverId,
                     companyId,
                     teamId,
@@ -166,6 +156,7 @@ function initSocket(server) {
                     accuracy,
                     timestamp: timestamp || Date.now()
                 });
+                console.log(`[GPS TELEMETRY] Using vehicle ${result.telemetry.vehicleId} and active task ${result.telemetry.activeTaskId}`);
 
                 // Broadcast location update to relevant rooms
                 io.to(`company_${companyId}`).emit("vehicle:location_changed", result.telemetry);

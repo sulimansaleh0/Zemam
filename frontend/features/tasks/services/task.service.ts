@@ -101,10 +101,10 @@ export const taskService = {
   },
 
   /**
-   * إنهاء وتسليم المهمة (بواسطة السائق) مع توثيق قراءة العداد النهائية
+   * إنهاء وتسليم المهمة مع احتساب قراءة العداد من مسافة الرحلة تلقائياً
    */
-  finishTask(id: string, endOdometer?: number): Promise<ServiceResult<null>> {
-    return patchRequest<null>(API_PATHS.TASKS.FINISH(id), endOdometer !== undefined ? { endOdometer } : {});
+  finishTask(id: string): Promise<ServiceResult<null>> {
+    return patchRequest<null>(API_PATHS.TASKS.FINISH(id), {});
   },
 
   /**

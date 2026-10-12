@@ -564,9 +564,9 @@ class TaskService {
   }
 
   /**
-   * Driver or Manager finishes task and records final fuel / distance
+   * Driver or Manager finishes a task and records its GPS-derived distance and fuel use
    */
-  async finishTask(id, user, body = {}) {
+  async finishTask(id, user) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       const err = new Error("معرف المهمة غير صالح");
       err.statusCode = 400;
@@ -606,16 +606,7 @@ class TaskService {
       throw err;
     }
 
-    const rawManualOdo = body?.endOdometer;
-    let manualEndOdometer = null;
-    if (rawManualOdo !== undefined && rawManualOdo !== null && rawManualOdo !== "") {
-      manualEndOdometer = Number(rawManualOdo);
-      if (!Number.isFinite(manualEndOdometer) || manualEndOdometer < (task.startOdometer || 0)) {
-        const err = new Error("قراءة العداد النهائية يجب أن تكون رقماً أكبر من أو يساوي قراءة بداية المهمة");
-        err.statusCode = 400;
-        throw err;
-      }
-    }
+    const recordedEndOdometer = task.endOdometer;
 
     if (!isAlreadyFinished) {
       task.status = taskStatus.FINISHED;
@@ -631,15 +622,21 @@ class TaskService {
       throw new Error("تعذر إغلاق وتلخيص مسار الـ GPS للمهمة");
     }
 
-    if (manualEndOdometer !== null) {
-      task.endOdometer = manualEndOdometer;
-      await task.save();
+    const tripDistanceKm = Number(tripSummary.totalDistanceKm);
+    if (!Number.isFinite(tripDistanceKm) || tripDistanceKm < 0) {
+      throw new Error("المسافة المسجلة للمهمة غير صالحة لحساب عداد المركبة");
     }
 
-    const endOdometer = task.endOdometer;
+    const endOdometer =
+      isAlreadyFinished && Number.isFinite(recordedEndOdometer)
+        ? recordedEndOdometer
+        : (Number(vehicle.currentOdometer) || 0) + tripDistanceKm;
     if (!Number.isFinite(endOdometer)) {
       throw new Error("قراءة العداد النهائية غير صالحة");
     }
+
+    task.endOdometer = endOdometer;
+    await task.save();
 
     if (!task.fuelConsumptionAppliedAt) {
       const fuelConsumedLitres = calculateTaskFuelConsumption({

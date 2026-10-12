@@ -94,8 +94,8 @@ export function useFinishTask() {
   const toast = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, endOdometer }: { id: string; endOdometer?: number }) => {
-      const res = await taskService.finishTask(id, endOdometer);
+    mutationFn: async ({ id }: { id: string }) => {
+      const res = await taskService.finishTask(id);
       if (!res.success) {
         throw new Error(res.message || 'فشل إنهاء المهمة');
       }

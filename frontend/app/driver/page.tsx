@@ -40,7 +40,6 @@ import {
   removeQueuedTelemetryPoints,
 } from '@/features/driver/services/driverStorage';
 import { DriverHeader } from '@/features/driver/components/DriverHeader';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { driverTaskService } from '@/features/driver/services/driverTaskService';
 import { gpsService } from '@/features/gps/services/gps.service';
 
@@ -59,18 +58,14 @@ const DriverLiveMap = dynamic(
 );
 
 export default function DriverMobileTrackingPage() {
-  const { user } = useAuth();
-
   // بيانات المركبة والمهمة
   const [vehicleId, setVehicleId] = useState('demo-vehicle-1');
   const [plateNumber, setPlateNumber] = useState('أ ب ج 1234');
-  const [taskId, setTaskId] = useState('');
   const [availableVehicles, setAvailableVehicles] = useState<Array<{ id: string; plate: string; model: string }>>([]);
 
   // إدارة المهام
   const [tasks, setTasks] = useState<any[]>([]);
   const [activeTask, setActiveTask] = useState<any | null>(null);
-  const [endOdometerInput, setEndOdometerInput] = useState<string>('');
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [isTaskActionLoading, setIsTaskActionLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -213,7 +208,6 @@ export default function DriverMobileTrackingPage() {
 
         if (chosen) {
           setActiveTask(chosen);
-          setTaskId(chosen._id);
           const vObj = chosen.vehicleId;
           if (vObj) {
             const vId = vObj._id || vObj;
@@ -477,10 +471,10 @@ export default function DriverMobileTrackingPage() {
       const isWorth = worthSending(
         lastEmittedCoordsRef.current
           ? {
-              lat: lastEmittedCoordsRef.current.lat,
-              lon: lastEmittedCoordsRef.current.lng,
-              sentAt: lastEmittedTimeRef.current,
-            }
+            lat: lastEmittedCoordsRef.current.lat,
+            lon: lastEmittedCoordsRef.current.lng,
+            sentAt: lastEmittedTimeRef.current,
+          }
           : null,
         { lat: lat5, lon: lng5 },
         now,
@@ -501,9 +495,6 @@ export default function DriverMobileTrackingPage() {
 
       if (shouldEmit) {
         const payload: DriverTelemetryPayload = {
-          vehicleId,
-          taskId: taskId.trim() || undefined,
-          companyId: user?.companyId,
           lat: lat5,
           lng: lng5,
           speed: speedKmH,
@@ -535,7 +526,7 @@ export default function DriverMobileTrackingPage() {
         lastEmittedHeadingRef.current = headingDeg;
       }
     },
-    [vehicleId, taskId, user?.companyId, socketConnected, offlineQueueCount, flushOfflineQueue, isLowDataMode]
+    [socketConnected, offlineQueueCount, flushOfflineQueue, isLowDataMode]
   );
 
   const handlePositionError = useCallback((error: GeolocationPositionError) => {
@@ -593,9 +584,6 @@ export default function DriverMobileTrackingPage() {
       if (now - lastEmittedTimeRef.current < 28000) return;
 
       const payload: DriverTelemetryPayload = {
-        vehicleId,
-        taskId: taskId.trim() || undefined,
-        companyId: user?.companyId,
         lat: coords.lat,
         lng: coords.lng,
         speed: coords.speed,
@@ -684,8 +672,7 @@ export default function DriverMobileTrackingPage() {
       }
 
       // 2. ثانياً: إنهاء المهمة رسمياً في السيرفر (الآن السيرفر سيجد كافة النقاط جاهزة أمامه)
-      const endOdo = endOdometerInput ? Number(endOdometerInput) : undefined;
-      const result = await driverTaskService.finishTask(activeTask._id, { endOdometer: endOdo });
+      const result = await driverTaskService.finishTask(activeTask._id);
       stopBroadcasting();
       setShowFinishModal(false);
       if (result.offline) {
@@ -770,11 +757,10 @@ export default function DriverMobileTrackingPage() {
           {/* زر توفير البيانات لشبكات 2G/3G */}
           <button
             onClick={toggleLowDataMode}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl border transition-all cursor-pointer select-none active:scale-95 ${
-              isLowDataMode
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl border transition-all cursor-pointer select-none active:scale-95 ${isLowDataMode
                 ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-xs'
                 : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-800'
-            }`}
+              }`}
             title="تفعيل وضع توفير البيانات لشبكات 2G/3G وضعف الواي فاي"
           >
             <Zap className={`h-3 w-3 ${isLowDataMode ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
@@ -784,11 +770,10 @@ export default function DriverMobileTrackingPage() {
           {/* قفل الشاشة */}
           <button
             onClick={wakeLockActive ? releaseWakeLock : requestWakeLock}
-            className={`flex items-center justify-center h-7 w-7 rounded-xl border transition-all cursor-pointer select-none ${
-              wakeLockActive
+            className={`flex items-center justify-center h-7 w-7 rounded-xl border transition-all cursor-pointer select-none ${wakeLockActive
                 ? 'bg-blue-50 text-[#195CF1] border-blue-200 shadow-xs'
                 : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600'
-            }`}
+              }`}
             title={wakeLockActive ? 'قفل الشاشة مفعل (لن تنطفئ)' : 'انقر لإبقاء الشاشة مضاءة'}
           >
             {wakeLockActive ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
@@ -831,19 +816,18 @@ export default function DriverMobileTrackingPage() {
 
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                      activeTask.status === 'inprogress'
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${activeTask.status === 'inprogress'
                         ? 'bg-blue-50 text-[#195CF1] border border-blue-200'
                         : activeTask.status === 'finished'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}
                   >
                     {activeTask.status === 'inprogress'
                       ? 'قيد التنفيذ 🟢'
                       : activeTask.status === 'finished'
-                      ? 'مكتملة 🏁'
-                      : 'في الانتظار ⏳'}
+                        ? 'مكتملة 🏁'
+                        : 'في الانتظار ⏳'}
                   </span>
                 </div>
               </div>
@@ -889,11 +873,10 @@ export default function DriverMobileTrackingPage() {
                   {/* زر الملاحة في خرائط Google */}
                   {activeTask.deliveryLocation && (
                     <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${
-                        activeTask.deliveryLocation.lat || ''
-                      },${activeTask.deliveryLocation.lng || ''}&destination_place_id=${encodeURIComponent(
-                        activeTask.deliveryLocation.address || ''
-                      )}`}
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${activeTask.deliveryLocation.lat || ''
+                        },${activeTask.deliveryLocation.lng || ''}&destination_place_id=${encodeURIComponent(
+                          activeTask.deliveryLocation.address || ''
+                        )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-50 border border-blue-200/90 hover:bg-blue-100/90 py-3 text-xs font-bold text-[#195CF1] transition-all active:scale-98 no-underline shadow-xs"
@@ -940,13 +923,7 @@ export default function DriverMobileTrackingPage() {
 
                 {activeTask.status === 'inprogress' && (
                   <button
-                    onClick={() => {
-                      const estimatedOdo =
-                        (activeTask.startOdometer || 1000) +
-                        Math.round(tripStats.totalDistanceMeters / 1000);
-                      setEndOdometerInput(String(estimatedOdo));
-                      setShowFinishModal(true);
-                    }}
+                    onClick={() => setShowFinishModal(true)}
                     disabled={isTaskActionLoading}
                     className="w-full h-13 flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-600/25 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
                   >
@@ -1025,32 +1002,11 @@ export default function DriverMobileTrackingPage() {
             {/* بطاقة ملخص الرحلة التلقائي */}
             <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200/80 text-xs space-y-1.5">
               <div className="flex items-center justify-between text-slate-600">
-                <span>المسافة المقطوعة المسجلة:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {(tripStats.totalDistanceMeters / 1000).toFixed(1)} كم
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-600">
                 <span>إجمالي نقاط التتبع المحفوظة:</span>
                 <span className="font-mono font-bold text-[#195CF1]">
                   {tripStats.sentPointsCount} نقطة
                 </span>
               </div>
-            </div>
-
-            {/* حقل قراءة عداد المسافات */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>قراءة عداد المسافات النهائي:</span>
-                <span className="text-[10px] text-slate-400">كم (محسوب تقريبياً)</span>
-              </label>
-              <input
-                type="number"
-                value={endOdometerInput}
-                onChange={(e) => setEndOdometerInput(e.target.value)}
-                placeholder="مثلاً: 12540"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 font-mono font-bold focus:border-[#195CF1] focus:outline-none shadow-xs"
-              />
             </div>
 
             {/* أزرار الإجراء */}

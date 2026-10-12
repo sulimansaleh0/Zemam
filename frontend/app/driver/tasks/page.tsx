@@ -31,7 +31,6 @@ export default function DriverTasksPage() {
 
   // حالة مودال إنهاء المهمة
   const [selectedTaskForFinish, setSelectedTaskForFinish] = useState<DriverTask | null>(null);
-  const [endOdometer, setEndOdometer] = useState<string>('');
 
   const loadTasks = useCallback(async () => {
     setIsLoading(true);
@@ -78,14 +77,10 @@ export default function DriverTasksPage() {
     setActionLoading(true);
     setErrorMessage(null);
     try {
-      const odoNumber = endOdometer ? Number(endOdometer) : undefined;
-      await driverTaskService.finishTask(selectedTaskForFinish._id, {
-        endOdometer: odoNumber,
-      });
+      await driverTaskService.finishTask(selectedTaskForFinish._id);
 
       setSuccessNotice('🎉 تم تسليم وإنهاء المهمة بنجاح واعتماد مسار الـ GPS!');
       setSelectedTaskForFinish(null);
-      setEndOdometer('');
       await loadTasks();
     } catch (err: any) {
       setErrorMessage(err.message || 'فشل إنهاء المهمة');
@@ -287,10 +282,7 @@ export default function DriverTasksPage() {
 
                   {task.status === 'inprogress' && (
                     <button
-                      onClick={() => {
-                        setSelectedTaskForFinish(task);
-                        setEndOdometer(task.startOdometer ? String(task.startOdometer + 15) : '');
-                      }}
+                      onClick={() => setSelectedTaskForFinish(task)}
                       className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-xs shadow-xs transition-all cursor-pointer"
                     >
                       <FileCheck className="h-4 w-4" />
@@ -335,21 +327,6 @@ export default function DriverTasksPage() {
               <p className="text-[11px] text-[#195CF1] leading-relaxed">
                 يقوم النظام باحتساب مسار الرحلة الحية والمسافة المقطوعة وعداد المركبة النهائي تلقائياً بناءً على بيانات نظام الـ GPS.
               </p>
-            </div>
-
-            {/* قراءة عداد المسافات (اختياري) */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
-                <span>قراءة عداد المسافات الحالي (اختياري):</span>
-                <span className="text-[10px] text-slate-400">كم</span>
-              </label>
-              <input
-                type="number"
-                value={endOdometer}
-                onChange={(e) => setEndOdometer(e.target.value)}
-                placeholder="مثلاً: 45280"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 font-mono focus:border-[#195CF1] focus:outline-none"
-              />
             </div>
 
             {/* أزرار الإجراءات */}

@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const Vehicle = require("../models/vehicle.model");
 const Task = require("../models/task.model");
 const TaskLivePoint = require("../models/taskLivePoint.model");
@@ -6,10 +5,6 @@ const { gpsStatus, taskStatus, vehicleStatus } = require("../data/status");
 
 // In-memory cache of latest vehicle telemetry for rapid jitter filtering
 const latestPositions = new Map();
-
-// In-memory cache for authorized telemetry sources and active task mapping (TTL: 25 seconds)
-const sourceCache = new Map();
-const SOURCE_CACHE_TTL_MS = 25 * 1000;
 
 /**
  * Calculates great-circle distance between two points on Earth using Haversine formula
@@ -69,85 +64,51 @@ function encodePolyline(points) {
 }
 
 /**
- * Confirms that the authenticated driver can report telemetry for this vehicle
- * and resolves the vehicle's current active task from the database.
- * Caches resolution for 25 seconds to eliminate MongoDB connection saturation.
+ * Resolves the authenticated driver's latest in-progress task and its vehicle.
  */
-async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId, teamId }) {
-    if (!mongoose.isValidObjectId(vehicleId)) {
-        throw new Error("Invalid vehicle");
-    }
-
-    const cacheKey = `${vehicleId}_${driverId || ''}_${taskId || ''}`;
-    const cached = sourceCache.get(cacheKey);
-    const now = Date.now();
-
-    if (cached && (now - cached.cachedAt < SOURCE_CACHE_TTL_MS)) {
-        return cached.data;
-    }
-
+async function authorizeTelemetrySource({ driverId, companyId, teamId }) {
     const vehicleQuery = {
-        _id: vehicleId,
+        companyId,
         status: vehicleStatus.ACTIVE,
-        isDeleted: false
+        isDeleted: false,
+        ...(teamId ? { teamId } : {})
     };
-    if (companyId) vehicleQuery.companyId = companyId;
-    if (teamId) vehicleQuery.teamId = teamId;
 
-    const vehicle = await Vehicle.findOne(vehicleQuery)
-        .populate("driverId", "name email phone avatar")
-        .populate("teamId", "name")
+    const activeTask = await Task.findOne({
+        driverId,
+        companyId,
+        ...(teamId ? { teamId } : {}),
+        status: taskStatus.INPROGRESS
+    })
+        .sort({ startedAt: -1, createdAt: -1 })
+        .populate({
+            path: "vehicleId",
+            match: vehicleQuery,
+            populate: [
+                { path: "driverId", select: "name email phone avatar" },
+                { path: "teamId", select: "name" }
+            ]
+        })
         .lean();
 
-    if (!vehicle) {
-        throw new Error("Vehicle is not available");
+    if (!activeTask) {
+        throw new Error("No in-progress task found for this driver");
     }
 
-    let resolvedTaskId = null;
-
-    if (taskId && mongoose.isValidObjectId(taskId)) {
-        const matchingTask = await Task.findOne({
-            _id: taskId,
-            vehicleId: vehicle._id
-        }).select("_id").lean();
-        if (matchingTask) {
-            resolvedTaskId = matchingTask._id;
-        }
+    if (!activeTask.vehicleId) {
+        throw new Error("Vehicle for the driver's in-progress task is not available");
     }
 
-    if (!resolvedTaskId) {
-        const activeTask = await Task.findOne({
-            vehicleId: vehicle._id,
-            ...(driverId ? { driverId } : {}),
-            status: taskStatus.INPROGRESS
-        }).select("_id").lean();
-        if (activeTask) {
-            resolvedTaskId = activeTask._id;
-        }
-    }
-
-    const result = {
-        vehicle,
-        taskId: resolvedTaskId
+    return {
+        vehicle: activeTask.vehicleId,
+        taskId: activeTask._id
     };
-
-    sourceCache.set(cacheKey, { data: result, cachedAt: now });
-
-    if (sourceCache.size > 500) {
-        for (const [k, v] of sourceCache.entries()) {
-            if (now - v.cachedAt > SOURCE_CACHE_TTL_MS) sourceCache.delete(k);
-        }
-    }
-
-    return result;
 }
 
 /**
  * Ingest incoming telemetry point from driver PWA or future hardware tracker
  */
 async function processTelemetryUpdate({
-    vehicleId,
-    taskId,
     driverId,
     companyId,
     teamId,
@@ -173,8 +134,6 @@ async function processTelemetryUpdate({
     }
 
     const authorizedSource = await authorizeTelemetrySource({
-        vehicleId,
-        taskId,
         driverId,
         companyId,
         teamId
@@ -292,9 +251,6 @@ function stopTelemetryTracking(vehicleId) {
     if (vehicleId) {
         const idStr = vehicleId.toString();
         latestPositions.delete(idStr);
-        for (const k of sourceCache.keys()) {
-            if (k.startsWith(idStr)) sourceCache.delete(k);
-        }
     }
 }
 
@@ -391,7 +347,6 @@ async function finalizeTripSummary(task) {
 
     // Save summary permanently to Task
     task.tripSummary = tripSummary;
-    task.endOdometer = (task.startOdometer || 0) + tripSummary.totalDistanceKm;
     await task.save();
 
     return tripSummary;
@@ -417,13 +372,7 @@ async function ingestBatchTelemetry({
         return tA - tB;
     });
 
-    const firstPoint = sorted[0];
-    const vehicleId = firstPoint.vehicleId;
-    const taskId = firstPoint.taskId;
-
     const authorizedSource = await authorizeTelemetrySource({
-        vehicleId,
-        taskId,
         driverId,
         companyId,
         teamId

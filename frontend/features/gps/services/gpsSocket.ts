@@ -82,11 +82,7 @@ export function joinFleetTracking(role: string, companyId?: string, teamId?: str
 
   const socket = getGpsSocket();
   const emitJoin = () => {
-    socket.emit('fleet:join', {
-      role,
-      companyId,
-      teamId,
-    });
+    socket.emit('fleet:join');
   };
 
   if (!socket.connected) {
@@ -117,7 +113,14 @@ export function emitDriverLocation(payload: DriverTelemetryPayload) {
   }
 
   // إرسال نبضة واحدة فقط لتجنب المعالجة المزدوجة في الباك إند
-  socket.emit('driver:location_update', payload);
+  socket.emit('driver:location_update', {
+    lat: payload.lat,
+    lng: payload.lng,
+    speed: payload.speed,
+    heading: payload.heading,
+    accuracy: payload.accuracy,
+    timestamp: payload.timestamp,
+  });
 }
 
 /**
@@ -148,14 +151,10 @@ export function emitDriverLocationBin(payload: DriverTelemetryPayload) {
       '2. بعد التشفير (Binary)': `${binaryPulse.length} بايت (${Array.from(binaryPulse).map((b) => b.toString(16).padStart(2, '0')).join(' ')})`,
     });
 
-    socket.emit('driver:location_bin', {
-      vehicleId: payload.vehicleId,
-      taskId: payload.taskId,
-      bin: binaryPulse,
-    });
+    socket.emit('driver:location_bin', { bin: binaryPulse });
   } catch {
     // عودة تلقائية إلى JSON في حالة حدوث أي تعذر في التشفير
-    socket.emit('driver:location_update', payload);
+    emitDriverLocation(payload);
   }
 }
 

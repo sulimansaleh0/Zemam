@@ -93,19 +93,14 @@ export const driverTaskService = {
   /**
    * إنهاء وتسليم المهمة واعتماد مسار الـ GPS تلقائياً
    */
-  async finishTask(
-    taskId: string,
-    payload?: { endOdometer?: number }
-  ): Promise<{ success: boolean; offline?: boolean; message?: string }> {
-    const bodyPayload = payload?.endOdometer !== undefined ? { endOdometer: payload.endOdometer } : {};
-
+  async finishTask(taskId: string): Promise<{ success: boolean; offline?: boolean; message?: string }> {
     if (navigator.onLine) {
       try {
         const res = await fetch(`/api/task/${taskId}/finish`, {
           method: 'PATCH',
           credentials: 'include',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify(bodyPayload),
+          body: JSON.stringify({}),
         });
         if (res.ok) {
           return { success: true, offline: false };
@@ -126,7 +121,7 @@ export const driverTaskService = {
       type: 'FINISH_TASK',
       url: `/api/task/${taskId}/finish`,
       method: 'PATCH',
-      body: bodyPayload,
+      body: {},
       createdAt: Date.now(),
     });
     return { success: true, offline: true, message: 'تم حفظ إنهاء المهمة محلياً وسيتم إغلاقها على السيرفر فور توفر الإنترنت' };

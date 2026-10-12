@@ -199,11 +199,20 @@ export const gpsService = {
     points: DriverTelemetryPayload[],
     signal?: AbortSignal
   ): Promise<ServiceResult<{ message: string; processedCount: number; droppedCount: number }>> {
+    const telemetryPoints = points.map(({ lat, lng, speed, heading, accuracy, timestamp }) => ({
+      lat,
+      lng,
+      speed,
+      heading,
+      accuracy,
+      timestamp,
+    }));
+
     return sendRequest<{ message: string; processedCount: number; droppedCount: number }>(
       API_PATHS.GPS.BATCH_TELEMETRY,
       {
         method: 'POST',
-        body: JSON.stringify({ points }),
+        body: JSON.stringify({ points: telemetryPoints }),
         signal,
       }
     );
