@@ -138,6 +138,16 @@ export function emitDriverLocationBin(payload: DriverTelemetryPayload) {
       ageSec: payload.timestamp ? Math.max(0, Math.round((Date.now() - payload.timestamp) / 1000)) : 0,
     });
 
+    console.log(`\n📡 [DRIVER GPS] نبضة تتبع:`, {
+      '1. قبل التشفير (Raw Point)': {
+        lat: payload.lat,
+        lng: payload.lng,
+        speed: payload.speed,
+        heading: payload.heading,
+      },
+      '2. بعد التشفير (Binary)': `${binaryPulse.length} بايت (${Array.from(binaryPulse).map((b) => b.toString(16).padStart(2, '0')).join(' ')})`,
+    });
+
     socket.emit('driver:location_bin', {
       vehicleId: payload.vehicleId,
       taskId: payload.taskId,

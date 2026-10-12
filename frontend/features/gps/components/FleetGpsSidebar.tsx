@@ -2,10 +2,8 @@
 
 import React from 'react';
 import {
-  Car,
   Clock,
   Compass,
-  Filter,
   Navigation,
   Radio,
   Search,

@@ -13,8 +13,8 @@ import { VehicleTelemetryDrawer } from './VehicleTelemetryDrawer';
 import { TripSummaryModal } from './TripSummaryModal';
 import { gpsService } from '../services/gps.service';
 import { getGpsSocket } from '../services/gpsSocket';
-import { calculateHaversineDistance } from '../utils/gpsHelpers';
-import type { TripSummary } from '../types/gps.types';
+import { fetchDrivingRoute } from '@/features/tasks/utils/mapHelpers';
+import type { TripSummary, PlannedLocationPoint } from '../types/gps.types';
 
 // استيراد خريطة Leaflet ديناميكياً مع تعطيل SSR
 const GpsMapCanvas = dynamic(() => import('./GpsMapCanvas'), {
@@ -48,40 +48,84 @@ export function GpsTrackerView({ fleetHook }: GpsTrackerViewProps = {}) {
   const [activeTripSummary, setActiveTripSummary] = useState<TripSummary | null>(null);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // مسار القيادة الفعلي المقطوع بنبضات الـ GPS الحية
   const [selectedVehiclePath, setSelectedVehiclePath] = useState<
     Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: string | number }>
   >([]);
 
-  // استرجاع النقاط المقطوعة الحية للمهمة
+  // المسار المحدد المخطط للمهمة بين موقع الاستلام وموقع التسليم (OSRM Routing)
+  const [plannedRoute, setPlannedRoute] = useState<Array<[number, number]>>([]);
+  const [pickupLocation, setPickupLocation] = useState<PlannedLocationPoint | null>(null);
+  const [deliveryLocation, setDeliveryLocation] = useState<PlannedLocationPoint | null>(null);
+
+  // استرجاع النقاط المقطوعة الحية والمسار المخطط للمهمة
   const fetchLivePath = useCallback(async (taskId: string) => {
     try {
       const res = await gpsService.getLiveTripPath(taskId);
       if (res.success && res.data) {
+        // 1. معالجة النقاط الحية المقطوعة
         const pts = res.data.path?.points || (res.data as any)?.points;
         if (pts && pts.length > 0) {
           const trajectoryPoints = pts.map((p: any) => ({
-            lat: p.lat,
-            lng: p.lng,
-            speed: p.speed,
-            heading: p.heading,
+            lat: Number(p.lat),
+            lng: Number(p.lng),
+            speed: p.speed !== undefined ? Number(p.speed) : undefined,
+            heading: p.heading !== undefined ? Number(p.heading) : undefined,
             timestamp: p.timestamp,
           }));
           setSelectedVehiclePath(trajectoryPoints);
-          return;
+        }
+
+        // 2. معالجة مواقع الاستلام والتسليم لحساب مسار الطرق المخطط للمهمة
+        const rawPickup = res.data.pickupLocation || res.data.path?.pickupLocation;
+        const rawDelivery = res.data.deliveryLocation || res.data.path?.deliveryLocation;
+
+        if (rawPickup?.lat && rawPickup?.lng && rawDelivery?.lat && rawDelivery?.lng) {
+          const pLat = Number(rawPickup.lat);
+          const pLng = Number(rawPickup.lng);
+          const dLat = Number(rawDelivery.lat);
+          const dLng = Number(rawDelivery.lng);
+
+          if (!isNaN(pLat) && !isNaN(pLng) && !isNaN(dLat) && !isNaN(dLng)) {
+            setPickupLocation({ lat: pLat, lng: pLng, address: rawPickup.address });
+            setDeliveryLocation({ lat: dLat, lng: dLng, address: rawDelivery.address });
+
+            // استدعاء محرك مسارات الطرق لحساب التفاف الشوارع بدقة
+            try {
+              const routeData = await fetchDrivingRoute([pLat, pLng], [dLat, dLng]);
+              if (routeData.coordinates && routeData.coordinates.length > 0) {
+                setPlannedRoute(routeData.coordinates);
+              }
+            } catch {
+              setPlannedRoute([[pLat, pLng], [dLat, dLng]]);
+            }
+          }
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn('⚠️ Could not fetch live trip path:', err);
+    }
   }, []);
 
-  // استرجاع المسار الأولي عند اختيار المركبة أو تغير المهمة
+  // إدارة تفعيل أو تفريغ المسارات عند تغيير اختيار المركبة
+  // قاعدة جوهرية: إذا لم تكن هناك مركبة مختارة، أو المركبة ليست في مهمة، تفرغ جميع المسارات لتبقى الخريطة نظيفة
   useEffect(() => {
     if (!selectedVehicle?.isInTask || !selectedVehicle?.activeTaskId) {
       setSelectedVehiclePath([]);
+      setPlannedRoute([]);
+      setPickupLocation(null);
+      setDeliveryLocation(null);
       return;
     }
 
     fetchLivePath(selectedVehicle.activeTaskId);
-  }, [selectedVehicle?.vehicleId, selectedVehicle?.activeTaskId, fetchLivePath]);
+  }, [
+    selectedVehicle?.vehicleId,
+    selectedVehicle?.isInTask,
+    selectedVehicle?.activeTaskId,
+    fetchLivePath,
+  ]);
 
   // الاستماع لحدث مزامنة مسار المهمة بعد عودة السائق من وضع عدم الاتصال (Offline Sync Event)
   useEffect(() => {
@@ -100,7 +144,11 @@ export function GpsTrackerView({ fleetHook }: GpsTrackerViewProps = {}) {
 
   // تحديث مسار المركبة المباشر عند تحركها، وتفادي رسم خطوط مستقيمة عند القفزات المتباعدة
   useEffect(() => {
-    if (!selectedVehicle?.isInTask || !selectedVehicle?.currentLocation?.lat || !selectedVehicle?.currentLocation?.lng) {
+    if (
+      !selectedVehicle?.isInTask ||
+      !selectedVehicle?.currentLocation?.lat ||
+      !selectedVehicle?.currentLocation?.lng
+    ) {
       return;
     }
     const curLat = selectedVehicle.currentLocation.lat;
@@ -121,8 +169,8 @@ export function GpsTrackerView({ fleetHook }: GpsTrackerViewProps = {}) {
 
       // إذا كانت المسافة بين آخر نقطة مرسومة والموقع الجديد أكثر من 100 متر (دلالة على فجوة انقطاع نت)
       // نقوم بإعادة جلب المسار الكامل من الخادم فوراً لملء المنحنيات بالنقاط الحقيقية بدلاً من رسم خط مستقيم
-      const distKm = calculateHaversineDistance(last.lat, last.lng, curLat, curLng);
-      if (distKm > 0.1 && selectedVehicle.activeTaskId) {
+      const isSignificantGap = Math.hypot(curLat - last.lat, curLng - last.lng) > 0.001;
+      if (isSignificantGap && selectedVehicle.activeTaskId) {
         fetchLivePath(selectedVehicle.activeTaskId);
         return prev;
       }
@@ -230,9 +278,10 @@ export function GpsTrackerView({ fleetHook }: GpsTrackerViewProps = {}) {
             vehicles={vehicles}
             selectedVehicleId={selectedVehicleId}
             onSelectVehicle={(id) => setSelectedVehicleId(id)}
-            activePolyline={selectedVehiclePath.length > 1 ? selectedVehiclePath : undefined}
-            filters={filters}
-            onFilterChange={setFilters}
+            actualPolyline={selectedVehiclePath.length > 1 ? selectedVehiclePath : undefined}
+            plannedPolyline={plannedRoute.length > 1 ? plannedRoute : undefined}
+            pickupLocation={pickupLocation}
+            deliveryLocation={deliveryLocation}
           />
 
           {/* بطاقة تفاصيل المركبة تظهر فقط عند النقر على مركبة */}

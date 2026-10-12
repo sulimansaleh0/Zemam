@@ -26,10 +26,15 @@ exports.getLiveFleet = async (req, res) => {
     try {
         const filters = {
             companyId: user.companyId,
-            teamId,
+            ...(teamId ? { teamId } : {}),
             status: mainStatus.ACTIVE,
             isDeleted: false
         };
+
+        // إذا كان المستخدم سائقاً، يتم حصر القائمة بالمركبة المسندة إليه فقط
+        if (user.role === userRoles.DRIVER) {
+            filters.driverId = user._id;
+        }
 
         const [vehicles, activeTasks] = await Promise.all([
             Vehicle.find(filters)
@@ -54,10 +59,14 @@ exports.getLiveFleet = async (req, res) => {
         const formattedVehicles = vehicles.map((v, index) => {
             const activeTask = activeTasksByVehicle.get(v._id.toString());
             
-            // Extract coordinates handling both lean arrays [lng, lat] and virtual lat/lng
             const lat = v.currentLocation?.lat ?? v.currentLocation?.coordinates?.[1];
             const lng = v.currentLocation?.lng ?? v.currentLocation?.coordinates?.[0];
-            const hasLocation = lat != null && lng != null && !isNaN(lat) && !isNaN(lng);
+            const hasLocation =
+                lat != null &&
+                lng != null &&
+                !isNaN(lat) &&
+                !isNaN(lng) &&
+                !(lat === 0 && lng === 0);
 
             const speed = v.currentLocation?.speed || 0;
             const heading = v.currentLocation?.heading || 0;
@@ -106,6 +115,50 @@ exports.getLiveFleet = async (req, res) => {
             };
         });
 
+        // 1. حساب إحصائيات الأسطول بالكامل على السيرفر (Server-side Fleet Stats)
+        const stats = {
+            total: formattedVehicles.length,
+            moving: formattedVehicles.filter((v) => v.gpsStatus === gpsStatus.MOVING).length,
+            idle: formattedVehicles.filter((v) => v.gpsStatus === gpsStatus.IDLE).length,
+            available: formattedVehicles.filter((v) => v.gpsStatus === gpsStatus.AVAILABLE).length,
+            offline: formattedVehicles.filter((v) => v.gpsStatus === gpsStatus.OFFLINE).length
+        };
+
+        // 2. تطبيق الفلترة والبحث على السيرفر (Server-side Status Filter & Search)
+        const { status, search, page, limit } = req.query;
+        let filteredVehicles = formattedVehicles;
+
+        if (status && status !== "all") {
+            filteredVehicles = filteredVehicles.filter((v) => v.gpsStatus === status);
+        }
+
+        if (search && search.trim()) {
+            const q = search.trim().toLowerCase();
+            filteredVehicles = filteredVehicles.filter((v) =>
+                v.plateNumber?.toLowerCase().includes(q) ||
+                v.model?.toLowerCase().includes(q) ||
+                v.driverName?.toLowerCase().includes(q)
+            );
+        }
+
+        // 3. دعم الترقيم على السيرفر (Server-side Pagination)
+        let pagination = null;
+        if (page) {
+            const pageNum = Math.max(1, parseInt(page, 10) || 1);
+            const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+            const totalItems = filteredVehicles.length;
+            const totalPages = Math.ceil(totalItems / limitNum) || 1;
+            const startIndex = (pageNum - 1) * limitNum;
+            const paginatedDocs = filteredVehicles.slice(startIndex, startIndex + limitNum);
+            pagination = {
+                total: totalItems,
+                page: pageNum,
+                limit: limitNum,
+                totalPages
+            };
+            filteredVehicles = paginatedDocs;
+        }
+
         // Binary Content Negotiation for ultra-low bandwidth / 2G networks
         if (wantsBinary(req.headers["accept"])) {
             const table = new IndexTable(
@@ -131,14 +184,19 @@ exports.getLiveFleet = async (req, res) => {
                 positions: livePositions,
                 table,
                 index: table.entries(),
-                extra: { vehicles: formattedVehicles }
+                extra: { vehicles: filteredVehicles, allVehicles: formattedVehicles, stats, pagination }
             });
 
             return sendReply(res, reply);
         }
 
-        // Standard JSON fallback
-        return success(res, 200, { vehicles: formattedVehicles });
+        // Standard JSON response
+        return success(res, 200, {
+            vehicles: filteredVehicles,
+            allVehicles: formattedVehicles,
+            stats,
+            ...(pagination ? { pagination } : {})
+        });
     } catch (err) {
         console.error("❌ [GPS Controller] Error fetching live fleet:", err);
         return serverError(res);
@@ -276,6 +334,10 @@ exports.getLiveTripPath = async (req, res) => {
                 timestamp: p.timestamp ? p.timestamp.getTime() : Date.now()
             }));
             encodedPath = encodePolyline(points.map((p) => [p.lat, p.lng]));
+            console.log(`\n================== [SERVER: TRIP PATH ENCODING] ==================`);
+            console.log(`📍 قبل التشفير (إحداثيات المسار الخام): ${points.length} نقطة (أول نقطة: Lat=${points[0]?.lat}, Lng=${points[0]?.lng})`);
+            console.log(`🔒 بعد التشفير (سلسلة Polyline المضغوطة): ${encodedPath.slice(0, 60)}${encodedPath.length > 60 ? '...' : ''} (${encodedPath.length} حرف)`);
+            console.log(`==================================================================\n`);
         } else if (task.tripSummary?.encodedPath) {
             encodedPath = task.tripSummary.encodedPath;
             const decoded = decodePolylinePoints(encodedPath);
@@ -285,6 +347,10 @@ exports.getLiveTripPath = async (req, res) => {
                 speed: task.tripSummary.averageSpeed || 0,
                 timestamp: task.startedAt ? new Date(task.startedAt).getTime() : Date.now()
             }));
+            console.log(`\n================== [SERVER: TRIP PATH DECODING] ==================`);
+            console.log(`🔒 قبل فك التشفير (سلسلة Polyline المضغوطة): ${encodedPath.slice(0, 60)}${encodedPath.length > 60 ? '...' : ''} (${encodedPath.length} حرف)`);
+            console.log(`🔓 بعد فك التشفير (الإحداثيات المفكوكة): ${points.length} نقطة (أول نقطة: Lat=${points[0]?.lat}, Lng=${points[0]?.lng})`);
+            console.log(`==================================================================\n`);
         }
 
         return success(res, 200, {
@@ -292,8 +358,16 @@ exports.getLiveTripPath = async (req, res) => {
                 taskId: task._id.toString(),
                 vehicleId: task.vehicleId ? task.vehicleId.toString() : "",
                 encodedPath,
-                points
-            }
+                points,
+                pickupLocation: task.pickupLocation,
+                deliveryLocation: task.deliveryLocation,
+                taskStatus: task.status,
+                taskTitle: task.description
+            },
+            pickupLocation: task.pickupLocation,
+            deliveryLocation: task.deliveryLocation,
+            taskStatus: task.status,
+            taskTitle: task.description
         });
     } catch (err) {
         console.error("❌ [GPS Controller] Error fetching live trip path:", err);
@@ -361,6 +435,7 @@ exports.getTripSummary = async (req, res) => {
                     address: task.deliveryLocation?.address || ""
                 },
                 encodedPath: summary.encodedPath || "",
+                coordinates: decodePolylinePoints(summary.encodedPath || ""),
                 startedAt: summary.startedAt || task.startedAt,
                 finishedAt: summary.finishedAt || task.finishedAt
             }
@@ -419,6 +494,7 @@ exports.getVehicleHistory = async (req, res) => {
                     address: t.deliveryLocation?.address || ""
                 },
                 encodedPath: s.encodedPath || "",
+                coordinates: decodePolylinePoints(s.encodedPath || ""),
                 startedAt: s.startedAt || t.startedAt,
                 finishedAt: s.finishedAt || t.finishedAt
             };

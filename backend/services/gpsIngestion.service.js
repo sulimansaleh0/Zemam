@@ -7,6 +7,10 @@ const { gpsStatus, taskStatus, vehicleStatus } = require("../data/status");
 // In-memory cache of latest vehicle telemetry for rapid jitter filtering
 const latestPositions = new Map();
 
+// In-memory cache for authorized telemetry sources and active task mapping (TTL: 25 seconds)
+const sourceCache = new Map();
+const SOURCE_CACHE_TTL_MS = 25 * 1000;
+
 /**
  * Calculates great-circle distance between two points on Earth using Haversine formula
  * @returns distance in kilometers
@@ -67,10 +71,19 @@ function encodePolyline(points) {
 /**
  * Confirms that the authenticated driver can report telemetry for this vehicle
  * and resolves the vehicle's current active task from the database.
+ * Caches resolution for 25 seconds to eliminate MongoDB connection saturation.
  */
 async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId, teamId }) {
     if (!mongoose.isValidObjectId(vehicleId)) {
         throw new Error("Invalid vehicle");
+    }
+
+    const cacheKey = `${vehicleId}_${driverId || ''}_${taskId || ''}`;
+    const cached = sourceCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && (now - cached.cachedAt < SOURCE_CACHE_TTL_MS)) {
+        return cached.data;
     }
 
     const vehicleQuery = {
@@ -81,7 +94,10 @@ async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId
     if (companyId) vehicleQuery.companyId = companyId;
     if (teamId) vehicleQuery.teamId = teamId;
 
-    const vehicle = await Vehicle.findOne(vehicleQuery);
+    const vehicle = await Vehicle.findOne(vehicleQuery)
+        .populate("driverId", "name email phone avatar")
+        .populate("teamId", "name")
+        .lean();
 
     if (!vehicle) {
         throw new Error("Vehicle is not available");
@@ -93,7 +109,7 @@ async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId
         const matchingTask = await Task.findOne({
             _id: taskId,
             vehicleId: vehicle._id
-        });
+        }).select("_id").lean();
         if (matchingTask) {
             resolvedTaskId = matchingTask._id;
         }
@@ -104,16 +120,26 @@ async function authorizeTelemetrySource({ vehicleId, taskId, driverId, companyId
             vehicleId: vehicle._id,
             ...(driverId ? { driverId } : {}),
             status: taskStatus.INPROGRESS
-        });
+        }).select("_id").lean();
         if (activeTask) {
             resolvedTaskId = activeTask._id;
         }
     }
 
-    return {
+    const result = {
         vehicle,
         taskId: resolvedTaskId
     };
+
+    sourceCache.set(cacheKey, { data: result, cachedAt: now });
+
+    if (sourceCache.size > 500) {
+        for (const [k, v] of sourceCache.entries()) {
+            if (now - v.cachedAt > SOURCE_CACHE_TTL_MS) sourceCache.delete(k);
+        }
+    }
+
+    return result;
 }
 
 /**
@@ -202,25 +228,18 @@ async function processTelemetryUpdate({
         gpsStatus: computedStatus
     };
 
-    const updatedVehicle = await Vehicle.findOneAndUpdate(
+    await Vehicle.updateOne(
         {
             _id: authorizedSource.vehicle._id,
             companyId,
-            teamId,
+            ...(teamId ? { teamId } : {}),
             status: vehicleStatus.ACTIVE,
             isDeleted: false
         },
-        { $set: vehicleUpdate },
-        { returnDocument: 'after' }
-    )
-        .populate("driverId", "name email phone avatar")
-        .populate("teamId", "name");
+        { $set: vehicleUpdate }
+    );
 
-    if (!updatedVehicle) {
-        throw new Error("Vehicle is no longer available for telemetry");
-    }
-
-    // If active task, record in temporary high-resolution log (24h TTL)
+    // If active task, record in temporary high-resolution log (7d TTL)
     if (resolvedTaskId) {
         await TaskLivePoint.create({
             taskId: resolvedTaskId,
@@ -237,20 +256,21 @@ async function processTelemetryUpdate({
         });
     }
 
+    const veh = authorizedSource.vehicle;
     return {
-        vehicle: updatedVehicle,
+        vehicle: veh,
         telemetry: {
-            vehicleId: updatedVehicle._id.toString(),
-            plateNumber: updatedVehicle.plateNumber,
-            model: updatedVehicle.model,
-            year: updatedVehicle.year,
-            vehicleType: updatedVehicle.vehicleType,
-            teamId: updatedVehicle.teamId?._id ? updatedVehicle.teamId._id.toString() : updatedVehicle.teamId?.toString(),
-            teamName: updatedVehicle.teamId?.name,
-            driverId: updatedVehicle.driverId?._id ? updatedVehicle.driverId._id.toString() : updatedVehicle.driverId?.toString(),
-            driverName: updatedVehicle.driverId?.name,
-            driverPhone: updatedVehicle.driverId?.phone,
-            driverAvatar: updatedVehicle.driverId?.avatar,
+            vehicleId: veh._id.toString(),
+            plateNumber: veh.plateNumber,
+            model: veh.model,
+            year: veh.year,
+            vehicleType: veh.vehicleType,
+            teamId: veh.teamId?._id ? veh.teamId._id.toString() : (veh.teamId ? veh.teamId.toString() : undefined),
+            teamName: veh.teamId?.name,
+            driverId: veh.driverId?._id ? veh.driverId._id.toString() : (veh.driverId ? veh.driverId.toString() : undefined),
+            driverName: veh.driverId?.name,
+            driverPhone: veh.driverId?.phone,
+            driverAvatar: veh.driverId?.avatar,
             currentLocation: {
                 lat: numLat,
                 lng: numLng,
@@ -270,7 +290,11 @@ async function processTelemetryUpdate({
  */
 function stopTelemetryTracking(vehicleId) {
     if (vehicleId) {
-        latestPositions.delete(vehicleId.toString());
+        const idStr = vehicleId.toString();
+        latestPositions.delete(idStr);
+        for (const k of sourceCache.keys()) {
+            if (k.startsWith(idStr)) sourceCache.delete(k);
+        }
     }
 }
 
