@@ -1,11 +1,32 @@
 import { sendRequest } from '@/shared/lib/coreApi';
 import { API_PATHS } from '@/shared/constants/apiPaths';
 import type { ServiceResult } from '@/shared/types/api.types';
-import type { VehicleLiveTelemetry, TripSummary, DriverTelemetryPayload } from '../types/gps.types';
+import type {
+  VehicleLiveTelemetry,
+  TripSummary,
+  DriverTelemetryPayload,
+  FleetStats,
+} from '../types/gps.types';
 import { fetchPositions, zemamGeoCodec, IndexTable } from '@/shared/lib/geoSync';
+
+export interface LiveFleetQuery {
+  status?: string;
+  search?: string;
+  teamId?: string;
+  page?: number;
+  limit?: number;
+}
 
 export interface LiveFleetResponse {
   vehicles: VehicleLiveTelemetry[];
+  allVehicles?: VehicleLiveTelemetry[];
+  stats?: FleetStats;
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface TripSummaryResponse {
@@ -31,7 +52,15 @@ export interface LiveTripPathResponse {
     vehicleId: string;
     encodedPath: string;
     points: TaskLivePointData[];
+    pickupLocation?: { lat: number | string; lng: number | string; address?: string };
+    deliveryLocation?: { lat: number | string; lng: number | string; address?: string };
+    taskStatus?: string;
+    taskTitle?: string;
   };
+  pickupLocation?: { lat: number | string; lng: number | string; address?: string };
+  deliveryLocation?: { lat: number | string; lng: number | string; address?: string };
+  taskStatus?: string;
+  taskTitle?: string;
 }
 
 export interface TaskLivePointsResponse {
@@ -55,9 +84,24 @@ export const gpsService = {
    * جلب أحدث المواقع اللحظية لأسطول المركبات مع دعم البروتوكول الباينري المضغوط
    * والتراجع التلقائي إلى JSON القياسي عند عدم توفر الباينري
    */
-  async getLiveFleet(signal?: AbortSignal): Promise<ServiceResult<LiveFleetResponse>> {
+  async getLiveFleet(
+    query?: LiveFleetQuery,
+    signal?: AbortSignal
+  ): Promise<ServiceResult<LiveFleetResponse>> {
+    const queryParams = new URLSearchParams();
+    if (query?.status && query.status !== 'all') queryParams.set('status', query.status);
+    if (query?.search?.trim()) queryParams.set('search', query.search.trim());
+    if (query?.teamId) queryParams.set('teamId', query.teamId);
+    if (query?.page) queryParams.set('page', String(query.page));
+    if (query?.limit) queryParams.set('limit', String(query.limit));
+    const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
     try {
-      const url = typeof window !== 'undefined' ? `/${API_PATHS.GPS.LIVE}` : `${process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || ''}/${API_PATHS.GPS.LIVE}`;
+      const url =
+        typeof window !== 'undefined'
+          ? `/${API_PATHS.GPS.LIVE}${qs}`
+          : `${process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || ''}/${API_PATHS.GPS.LIVE}${qs}`;
+
       const result = await fetchPositions(url, {
         codec: zemamGeoCodec,
         idOf: (n) => fleetIndexTable.idOf(n),
@@ -74,12 +118,17 @@ export const gpsService = {
         }
       }
 
-      // في حال تم إرجاع مصفوفة المركبات الكاملة عبر خاصية extra
-      if (Array.isArray(result.payload.vehicles)) {
+      const payloadAny = result.payload as any;
+      if (Array.isArray(payloadAny.vehicles)) {
         return {
           success: true,
           message: 'Fleet retrieved successfully',
-          data: { vehicles: result.payload.vehicles as VehicleLiveTelemetry[] },
+          data: {
+            vehicles: payloadAny.vehicles as VehicleLiveTelemetry[],
+            allVehicles: payloadAny.allVehicles,
+            stats: payloadAny.stats,
+            pagination: payloadAny.pagination,
+          },
         };
       }
 
@@ -88,21 +137,31 @@ export const gpsService = {
         return {
           success: true,
           message: 'Fleet retrieved successfully',
-          data: { vehicles: rawData.data.vehicles },
+          data: {
+            vehicles: rawData.data.vehicles,
+            allVehicles: rawData.data.allVehicles,
+            stats: rawData.data.stats,
+            pagination: rawData.data.pagination,
+          },
         };
       }
       if (rawData?.vehicles) {
         return {
           success: true,
           message: 'Fleet retrieved successfully',
-          data: { vehicles: rawData.vehicles },
+          data: {
+            vehicles: rawData.vehicles,
+            allVehicles: rawData.allVehicles,
+            stats: rawData.stats,
+            pagination: rawData.pagination,
+          },
         };
       }
     } catch {
       // التراجع التلقائي لـ sendRequest العادي
     }
 
-    return sendRequest<LiveFleetResponse>(API_PATHS.GPS.LIVE, { signal });
+    return sendRequest<LiveFleetResponse>(`${API_PATHS.GPS.LIVE}${qs}`, { signal });
   },
 
   /**

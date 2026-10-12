@@ -1,7 +1,8 @@
 import type { VehicleGpsStatus } from '../types/gps.types';
 
 /**
- * حساب المسافة بين نقطتين كرويتين على الأرض بمعادلة هافرسين (Haversine Formula) بالكيلومترات
+ * حساب المسافة بين نقطتين كرويتين على الأرض بالكيلومترات (Haversine Formula)
+ * تستخدم في هاتف السائق لقياس الإزاحة المكانية قبل إرسال النبضة لتوفير باقة البيانات
  */
 export function calculateHaversineDistance(
   lat1: number,
@@ -19,11 +20,11 @@ export function calculateHaversineDistance(
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Number((R * c).toFixed(2));
+  return Number((R * c).toFixed(4));
 }
 
 /**
- * حساب زاوية الاتجاه (Bearing / Heading 0-360) بين نقطتين
+ * حساب زاوية الاتجاه (Bearing / Heading 0-360) بين نقطتين لتوجيه بوصلة ومجسم المركبة
  */
 export function calculateBearing(
   lat1: number,
@@ -49,6 +50,7 @@ export function calculateBearing(
 
 /**
  * فك تشفير مسار Google Polyline المضغوط إلى مصفوفة إحداثيات [lat, lng]
+ * يستخدم كاحتياط عند عدم إرسال مصفوفة الإحداثيات الصريحة من الخادم
  */
 export function decodePolyline(encoded: string): [number, number][] {
   if (!encoded) return [];
@@ -84,40 +86,6 @@ export function decodePolyline(encoded: string): [number, number][] {
   }
 
   return points;
-}
-
-/**
- * تشفير مصفوفة نقاط [lat, lng] إلى نص Polyline مضغوط لتوفير قاعدة البيانات
- */
-export function encodePolyline(points: [number, number][]): string {
-  if (!points || points.length === 0) return '';
-  let output = '';
-  let prevLat = 0;
-  let prevLng = 0;
-
-  for (const [rawLat, rawLng] of points) {
-    const lat = Math.round(rawLat * 1e5);
-    const lng = Math.round(rawLng * 1e5);
-
-    output += encodeSignedNumber(lat - prevLat);
-    output += encodeSignedNumber(lng - prevLng);
-
-    prevLat = lat;
-    prevLng = lng;
-  }
-
-  return output;
-}
-
-function encodeSignedNumber(num: number): string {
-  let sgn_num = num < 0 ? ~(num << 1) : num << 1;
-  let encodeString = '';
-  while (sgn_num >= 0x20) {
-    encodeString += String.fromCharCode((0x20 | (sgn_num & 0x1f)) + 63);
-    sgn_num >>= 5;
-  }
-  encodeString += String.fromCharCode(sgn_num + 63);
-  return encodeString;
 }
 
 /**

@@ -51,8 +51,17 @@ export interface TripSummary {
     address?: string;
   };
   encodedPath?: string; // Google Polyline encoded string or coordinate array
+  coordinates?: [number, number][]; // Decoded directly by backend
   startedAt: string;
   finishedAt: string;
+}
+
+export interface FleetStats {
+  total: number;
+  moving: number;
+  idle: number;
+  available: number;
+  offline: number;
 }
 
 export interface DriverTelemetryPayload {
@@ -67,6 +76,20 @@ export interface DriverTelemetryPayload {
   heading: number;
   accuracy?: number;
   timestamp: number;
+}
+
+export interface PlannedLocationPoint {
+  lat: number;
+  lng: number;
+  address?: string;
+}
+
+export interface PlannedRouteData {
+  coordinates: [number, number][];
+  distanceKm?: number;
+  durationMinutes?: number;
+  pickupLocation?: PlannedLocationPoint;
+  deliveryLocation?: PlannedLocationPoint;
 }
 
 export interface GpsFilterOptions {

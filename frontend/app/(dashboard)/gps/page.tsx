@@ -8,15 +8,11 @@ import {
   Truck,
   Zap,
 } from 'lucide-react';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { PageHeader, ErrorAlert } from '@/shared/ui';
 import { GpsTrackerView } from '@/features/gps/components/GpsTrackerView';
 import { useFleetGps } from '@/features/gps/hooks/useFleetGps';
 
 export default function GpsPage() {
-  const { user } = useAuth();
-  const isFleetManager = user?.role === 'fleet_manager' || user?.role === 'fleet-manager';
-
   const fleetHook = useFleetGps();
   const { stats, refreshFleet, isLoading, error } = fleetHook;
 

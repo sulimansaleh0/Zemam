@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
-  getGpsSocket,
   joinFleetTracking,
   leaveFleetTracking,
   onVehicleLocationChanged,
@@ -12,8 +11,8 @@ import {
 import { gpsService } from '../services/gps.service';
 import type {
   VehicleLiveTelemetry,
-  VehicleGpsStatus,
   GpsFilterOptions,
+  FleetStats,
 } from '../types/gps.types';
 
 export function useFleetGps() {
@@ -26,24 +25,35 @@ export function useFleetGps() {
     status: 'all',
     searchQuery: '',
   });
+  const [stats, setStats] = useState<FleetStats>({
+    total: 0,
+    moving: 0,
+    idle: 0,
+    available: 0,
+    offline: 0,
+  });
 
   const vehiclesMapRef = useRef<Map<string, VehicleLiveTelemetry>>(new Map());
 
-  // 1. جلب القائمة الأولية للمركبات من الـ REST API
+  // 1. جلب القائمة الأولية للمركبات والإحصائيات من الـ REST API (محسوبة على السيرفر)
   const fetchInitialFleet = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await gpsService.getLiveFleet();
-      if (res.success && res.data?.vehicles) {
+      if (res.success && res.data) {
+        const fleetList = res.data.vehicles || [];
         const initialMap = new Map<string, VehicleLiveTelemetry>();
-        res.data.vehicles.forEach((v: VehicleLiveTelemetry) => initialMap.set(v.vehicleId, v));
+        fleetList.forEach((v: VehicleLiveTelemetry) => initialMap.set(v.vehicleId, v));
         vehiclesMapRef.current = initialMap;
-        setVehicles(res.data.vehicles);
+        setVehicles(fleetList);
+
+        if (res.data.stats) {
+          setStats(res.data.stats);
+        }
       }
     } catch (err: any) {
       console.warn('⚠️ Could not fetch initial GPS fleet from REST API:', err?.message);
-      // في حالة عدم توفر الـ Backend بعد، نحافظ على القائمة فارغة دون انهيار
     } finally {
       setIsLoading(false);
     }
@@ -129,23 +139,17 @@ export function useFleetGps() {
     });
   }, [vehicles, filters]);
 
-  // إحصائيات الأسطول السريعة
-  const stats = useMemo(() => {
-    const total = vehicles.length;
-    let moving = 0;
-    let idle = 0;
-    let available = 0;
-    let offline = 0;
-
-    vehicles.forEach((v) => {
-      if (v.gpsStatus === 'moving') moving++;
-      else if (v.gpsStatus === 'idle') idle++;
-      else if (v.gpsStatus === 'available') available++;
-      else offline++;
-    });
-
-    return { total, moving, idle, available, offline };
-  }, [vehicles]);
+  // إحصائيات الأسطول المعتمدة من الخادم مباشرة دون تكرار حسابات
+  const effectiveStats = useMemo(() => {
+    if (stats.total > 0 || vehicles.length === 0) return stats;
+    return {
+      total: vehicles.length,
+      moving: vehicles.filter((v) => v.gpsStatus === 'moving').length,
+      idle: vehicles.filter((v) => v.gpsStatus === 'idle').length,
+      available: vehicles.filter((v) => v.gpsStatus === 'available').length,
+      offline: vehicles.filter((v) => v.gpsStatus === 'offline').length,
+    };
+  }, [stats, vehicles]);
 
   const selectedVehicle = useMemo(() => {
     if (!selectedVehicleId) return null;
@@ -160,7 +164,7 @@ export function useFleetGps() {
     setSelectedVehicleId,
     filters,
     setFilters,
-    stats,
+    stats: effectiveStats,
     isLoading,
     error,
     refreshFleet: fetchInitialFleet,

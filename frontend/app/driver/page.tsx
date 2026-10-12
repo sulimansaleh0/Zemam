@@ -630,6 +630,27 @@ export default function DriverMobileTrackingPage() {
     setIsBroadcasting(false);
   };
 
+  // استعادة القفل ومنع نوم الشاشة وتزامن النقاط فور العودة من تطبيقات الملاحة الخارجية (Google Maps / Waze)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        if (isBroadcasting) {
+          requestWakeLock();
+        }
+        const socket = getGpsSocket();
+        if (!socket.connected) {
+          socket.connect();
+        }
+        flushOfflineQueue();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isBroadcasting, flushOfflineQueue]);
+
   // قبول وبدء المهمة (يدعم العمل بدون إنترنت مع حفظ وتأكيد محلي)
   const handleAcceptTask = async () => {
     if (!activeTask?._id) return;

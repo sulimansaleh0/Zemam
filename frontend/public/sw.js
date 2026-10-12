@@ -1,9 +1,10 @@
-const CACHE_NAME = 'zemam-driver-pwa-v2';
+const CACHE_NAME = 'zemam-driver-pwa-v3';
 const STATIC_ASSETS = [
   '/offline.html',
   '/manifest.webmanifest',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
+  '/images/landing/zimam-official-emblem.png',
 ];
 
 // Install: Cache critical assets

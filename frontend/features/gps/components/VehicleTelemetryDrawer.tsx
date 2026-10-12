@@ -4,15 +4,12 @@ import React from 'react';
 import {
   Car,
   Compass,
-  FileText,
   MapPin,
   Navigation,
   Phone,
   Route,
-  ShieldCheck,
   User,
   X,
-  Zap,
 } from 'lucide-react';
 import type { VehicleLiveTelemetry } from '../types/gps.types';
 import { getGpsStatusConfig, formatLastSeen } from '../utils/gpsHelpers';
@@ -33,8 +30,11 @@ export function VehicleTelemetryDrawer({
   const statusConfig = getGpsStatusConfig(vehicle.gpsStatus);
   const speed = Math.round(vehicle.currentLocation?.speed || 0);
   const heading = vehicle.currentLocation?.heading || 0;
-  const lat = vehicle.currentLocation?.lat?.toFixed(5);
-  const lng = vehicle.currentLocation?.lng?.toFixed(5);
+  const rawLat = vehicle.currentLocation?.lat;
+  const rawLng = vehicle.currentLocation?.lng;
+  const hasCoords = typeof rawLat === 'number' && typeof rawLng === 'number' && !(rawLat === 0 && rawLng === 0);
+  const lat = hasCoords ? rawLat.toFixed(5) : null;
+  const lng = hasCoords ? rawLng.toFixed(5) : null;
 
   return (
     <div className="absolute bottom-4 start-4 z-[500] w-88 max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface)]/95 p-4 shadow-2xl backdrop-blur-md text-[var(--zd-text)] transition-all">
@@ -126,7 +126,7 @@ export function VehicleTelemetryDrawer({
 
         <div className="flex items-center gap-1.5 text-[10px] text-[var(--zd-muted)] px-1">
           <MapPin className="h-3 w-3 shrink-0" />
-          <span>الإحداثيات: {lat}, {lng}</span>
+          <span>{hasCoords ? `الإحداثيات: ${lat}, ${lng}` : 'الإحداثيات: في انتظار أول نبضة GPS'}</span>
         </div>
       </div>
 

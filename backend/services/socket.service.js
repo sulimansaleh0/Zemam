@@ -87,12 +87,8 @@ function initSocket(server) {
                     socket.join(room);
                 }
             } else if (role === userRoles.DRIVER || role === "driver") {
-                if (companyId) {
-                    socket.join(`company_${companyId}`);
-                }
-                if (teamId) {
-                    socket.join(`team_${teamId}`);
-                }
+                // عزل أمني وتشغيلي: السائق ينضم حصراً لغرفته الفردية لتجنب استنزاف باقته وبطاريته ببث باقي الأسطول
+                socket.join(`driver_${user._id}`);
             }
         });
 
@@ -129,6 +125,23 @@ function initSocket(server) {
                     if (decoded.speed != null) speed = decoded.speed;
                     if (decoded.heading != null) heading = decoded.heading;
                     timestamp = Date.now() - (decoded.ageSec || 0) * 1000;
+
+                    // ── طباعة النقاط على السيرفر قبل وبعد فك التشفير ──
+                    console.log(`\n================== [GPS BINARY PULSE DECODING] ==================`);
+                    console.log(`🔒 قبل فك التشفير (البيانات الثنائية المستلمة من هاتف السائق):`);
+                    console.log(`   - حجم الحزمة: ${binData.length} بايت فقط`);
+                    console.log(`   - تمثيل Hex: ${Buffer.from(binData).toString('hex')}`);
+                    console.log(`   - مصفوفة البايتات (Bytes): [${Array.from(binData).join(', ')}]`);
+                    console.log(`🔓 بعد فك التشفير (الإحداثيات الحقيقية المستخرجة على السيرفر):`);
+                    console.log(`   - خط العرض (Latitude):  ${lat}`);
+                    console.log(`   - خط الطول (Longitude): ${lng}`);
+                    console.log(`   - السرعة (Speed):       ${speed != null ? `${speed} كم/س` : '0 كم/س'}`);
+                    console.log(`   - زاوية الاتجاه:        ${heading != null ? `${heading}°` : '0°'}`);
+                    console.log(`   - المركبة المستهدفة:    ${vehicleId || payload.vehicleId}`);
+                    console.log(`   - المهمة المرتبطة:      ${taskId || payload.taskId || 'بدون مهمة'}`);
+                    console.log(`=================================================================\n`);
+                } else {
+                    console.log(`\n📡 [GPS JSON TELEMETRY] استلام إحداثيات JSON مباشرة للمركبة ${vehicleId}: Lat=${lat}, Lng=${lng}, Speed=${speed}`);
                 }
 
                 if (!vehicleId) {
