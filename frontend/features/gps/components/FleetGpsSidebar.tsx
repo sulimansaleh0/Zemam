@@ -13,7 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import type { VehicleLiveTelemetry, VehicleGpsStatus, GpsFilterOptions } from '../types/gps.types';
-import { getGpsStatusConfig, formatLastSeen } from '../utils/gpsHelpers';
+import { getGpsStatusConfig, formatLastSeen, formatLastSeenDate } from '../utils/gpsHelpers';
 
 interface FleetGpsSidebarProps {
   vehicles: VehicleLiveTelemetry[];
@@ -137,8 +137,8 @@ export function FleetGpsSidebar({
         ) : vehicles.length === 0 ? (
           <div className="flex h-56 flex-col items-center justify-center gap-2 text-center text-xs text-[var(--zd-muted)] p-4">
             <Truck className="h-10 w-10 stroke-1 text-[var(--zd-muted)] opacity-50" />
-            <p className="font-semibold">لا توجد مركبات مطابقة</p>
-            <p className="text-[10px]">جرّب تغيير فلتر الحالة أو إفراغ خانة البحث</p>
+            <p className="font-semibold">لا توجد مركبات عليها مهام نشطة حالياً</p>
+            <p className="text-[10px]">ستظهر هنا المركبات فور بدء مهمة للسائق</p>
           </div>
         ) : (
           vehicles.map((v) => {
@@ -163,7 +163,9 @@ export function FleetGpsSidebar({
                     <span className="font-bold text-xs tracking-tight text-[var(--zd-text)]">
                       {v.plateNumber}
                     </span>
-                    <span className="text-[10px] text-[var(--zd-muted)]">({v.model})</span>
+                    <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[10px] font-bold text-blue-600">
+                      {v.model}
+                    </span>
                   </div>
 
                   <span
@@ -205,8 +207,13 @@ export function FleetGpsSidebar({
 
                   <div className="flex items-center gap-1 text-[var(--zd-muted)] text-[10px]">
                     <Clock className="h-3 w-3" />
-                    <span>{formatLastSeen(v.currentLocation?.updatedAt)}</span>
+                    <span title={formatLastSeenDate(v.currentLocation?.updatedAt)}>
+                      {formatLastSeen(v.currentLocation?.updatedAt)}
+                    </span>
                   </div>
+                </div>
+                <div className="mt-1 text-right text-[10px] text-[var(--zd-muted)]">
+                  آخر نقطة وصلت: {formatLastSeenDate(v.currentLocation?.updatedAt)}
                 </div>
 
                 {/* المهمة النشطة */}
@@ -215,6 +222,11 @@ export function FleetGpsSidebar({
                     <Navigation className="h-3 w-3 shrink-0" />
                     <span className="truncate">المهمة: {v.activeTaskTitle || 'جاري التوصيل'}</span>
                   </div>
+                )}
+                {v.isInTask && v.activeTaskDescription && (
+                  <p className="mt-1.5 rounded-lg bg-[var(--zd-surface-2)] px-2.5 py-2 text-[10px] leading-relaxed text-[var(--zd-text)]">
+                    {v.activeTaskDescription}
+                  </p>
                 )}
               </div>
             );

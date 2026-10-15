@@ -106,27 +106,30 @@ export function leaveFleetTracking() {
 /**
  * إرسال نبضة GPS حية من طرف السائق (PWA)
  */
-export function emitDriverLocation(payload: DriverTelemetryPayload) {
+export function emitDriverLocation(payload: DriverTelemetryPayload): Promise<boolean> {
   const socket = getGpsSocket();
   if (!socket.connected) {
     socket.connect();
   }
 
-  // إرسال نبضة واحدة فقط لتجنب المعالجة المزدوجة في الباك إند
-  socket.emit('driver:location_update', {
-    lat: payload.lat,
-    lng: payload.lng,
-    speed: payload.speed,
-    heading: payload.heading,
-    accuracy: payload.accuracy,
-    timestamp: payload.timestamp,
+  return new Promise((resolve) => {
+    socket.timeout(10000).emit('driver:location_update', {
+      lat: payload.lat,
+      lng: payload.lng,
+      speed: payload.speed,
+      heading: payload.heading,
+      accuracy: payload.accuracy,
+      timestamp: payload.timestamp,
+    }, (error: Error | null, response?: { ok?: boolean }) => {
+      resolve(!error && response?.ok === true);
+    });
   });
 }
 
 /**
  * إرسال نبضة GPS مشفرة بنظام باينري فائق الخفة (~8 بايت) لتوفير باقة النت والبطارية على شبكات 2G/EDGE
  */
-export function emitDriverLocationBin(payload: DriverTelemetryPayload) {
+export function emitDriverLocationBin(payload: DriverTelemetryPayload): Promise<boolean> {
   const socket = getGpsSocket();
   if (!socket.connected) {
     socket.connect();
@@ -151,10 +154,16 @@ export function emitDriverLocationBin(payload: DriverTelemetryPayload) {
       '2. بعد التشفير (Binary)': `${binaryPulse.length} بايت (${Array.from(binaryPulse).map((b) => b.toString(16).padStart(2, '0')).join(' ')})`,
     });
 
-    socket.emit('driver:location_bin', { bin: binaryPulse });
+    return new Promise((resolve) => {
+      socket.timeout(10000).emit('driver:location_bin', { bin: binaryPulse }, (
+        error: Error | null,
+        response?: { ok?: boolean }
+      ) => {
+        resolve(!error && response?.ok === true);
+      });
+    });
   } catch {
-    // عودة تلقائية إلى JSON في حالة حدوث أي تعذر في التشفير
-    emitDriverLocation(payload);
+    return emitDriverLocation(payload);
   }
 }
 

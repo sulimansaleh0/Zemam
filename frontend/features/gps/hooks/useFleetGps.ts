@@ -15,6 +15,16 @@ import type {
   FleetStats,
 } from '../types/gps.types';
 
+function calculateFleetStats(vehicles: VehicleLiveTelemetry[]): FleetStats {
+  return {
+    total: vehicles.length,
+    moving: vehicles.filter((vehicle) => vehicle.gpsStatus === 'moving').length,
+    idle: vehicles.filter((vehicle) => vehicle.gpsStatus === 'idle').length,
+    available: vehicles.filter((vehicle) => vehicle.gpsStatus === 'available').length,
+    offline: vehicles.filter((vehicle) => vehicle.gpsStatus === 'offline').length,
+  };
+}
+
 export function useFleetGps() {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<VehicleLiveTelemetry[]>([]);
@@ -42,15 +52,15 @@ export function useFleetGps() {
     try {
       const res = await gpsService.getLiveFleet();
       if (res.success && res.data) {
-        const fleetList = res.data.vehicles || [];
+        const fleetList = (res.data.vehicles || []).filter(
+          (vehicle) => vehicle.isInTask && Boolean(vehicle.activeTaskId)
+        );
         const initialMap = new Map<string, VehicleLiveTelemetry>();
         fleetList.forEach((v: VehicleLiveTelemetry) => initialMap.set(v.vehicleId, v));
         vehiclesMapRef.current = initialMap;
         setVehicles(fleetList);
 
-        if (res.data.stats) {
-          setStats(res.data.stats);
-        }
+        setStats(calculateFleetStats(fleetList));
       }
     } catch (err: any) {
       console.warn('⚠️ Could not fetch initial GPS fleet from REST API:', err?.message);
@@ -73,38 +83,36 @@ export function useFleetGps() {
     const unsubscribeLocation = onVehicleLocationChanged((newTelemetry) => {
       if (!newTelemetry || !newTelemetry.vehicleId) return;
 
+      if (!newTelemetry.isInTask || !newTelemetry.activeTaskId) {
+        vehiclesMapRef.current.delete(newTelemetry.vehicleId);
+        const nextVehicles = Array.from(vehiclesMapRef.current.values());
+        setVehicles(nextVehicles);
+        setStats(calculateFleetStats(nextVehicles));
+        return;
+      }
+
       const existing = vehiclesMapRef.current.get(newTelemetry.vehicleId);
       const merged: VehicleLiveTelemetry = {
         ...(existing || {}),
         ...newTelemetry,
-        currentLocation: {
-          ...(existing?.currentLocation || {}),
-          ...newTelemetry.currentLocation,
-        },
+        currentLocation: newTelemetry.currentLocation
+          ? { ...existing?.currentLocation, ...newTelemetry.currentLocation }
+          : existing?.currentLocation ?? null,
       };
 
       vehiclesMapRef.current.set(newTelemetry.vehicleId, merged);
-      setVehicles(Array.from(vehiclesMapRef.current.values()));
+      const nextVehicles = Array.from(vehiclesMapRef.current.values());
+      setVehicles(nextVehicles);
+      setStats(calculateFleetStats(nextVehicles));
     });
 
     const unsubscribeTripCompleted = onTripCompleted((summary) => {
       if (!summary?.vehicleId) return;
 
-      const existing = vehiclesMapRef.current.get(summary.vehicleId);
-      if (!existing) return;
-
-      vehiclesMapRef.current.set(summary.vehicleId, {
-        ...existing,
-        gpsStatus: 'available',
-        isInTask: false,
-        activeTaskId: undefined,
-        activeTaskTitle: undefined,
-        currentLocation: {
-          ...existing.currentLocation,
-          speed: 0,
-        },
-      });
-      setVehicles(Array.from(vehiclesMapRef.current.values()));
+      vehiclesMapRef.current.delete(summary.vehicleId);
+      const nextVehicles = Array.from(vehiclesMapRef.current.values());
+      setVehicles(nextVehicles);
+      setStats(calculateFleetStats(nextVehicles));
     });
 
     return () => {
@@ -123,6 +131,7 @@ export function useFleetGps() {
   // تصفية المركبات وفق البحث والحالة
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
+      if (!v.isInTask || !v.activeTaskId) return false;
       // فلتر الحالة
       if (filters.status !== 'all' && v.gpsStatus !== filters.status) {
         return false;

@@ -261,7 +261,7 @@ export default function GpsMapCanvas({
     vehicles.forEach((v) => {
       const lat = v.currentLocation?.lat;
       const lng = v.currentLocation?.lng;
-      if (isValidCoordinate(lat, lng)) {
+      if (typeof lat === 'number' && typeof lng === 'number' && isValidCoordinate(lat, lng)) {
         validCoords.push([lat, lng]);
       }
     });
@@ -287,7 +287,7 @@ export default function GpsMapCanvas({
     vehicles.forEach((v) => {
       const lat = v.currentLocation?.lat;
       const lng = v.currentLocation?.lng;
-      if (!isValidCoordinate(lat, lng)) {
+      if (typeof lat !== 'number' || typeof lng !== 'number' || !isValidCoordinate(lat, lng)) {
         return;
       }
 
@@ -364,10 +364,16 @@ export default function GpsMapCanvas({
 
     // إضافة موقع المركبة الحالي لحدود الرؤية
     const selectedVeh = vehicles.find((v) => v.vehicleId === selectedVehicleId);
-    if (selectedVeh?.currentLocation?.lat && selectedVeh?.currentLocation?.lng) {
+    const selectedLat = selectedVeh?.currentLocation?.lat;
+    const selectedLng = selectedVeh?.currentLocation?.lng;
+    if (
+      typeof selectedLat === 'number' &&
+      typeof selectedLng === 'number' &&
+      isValidCoordinate(selectedLat, selectedLng)
+    ) {
       allBoundaryCoords.push([
-        selectedVeh.currentLocation.lat,
-        selectedVeh.currentLocation.lng,
+        selectedLat,
+        selectedLng,
       ]);
     }
 

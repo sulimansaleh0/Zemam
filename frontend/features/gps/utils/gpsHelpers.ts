@@ -128,7 +128,7 @@ export function getGpsStatusConfig(status: VehicleGpsStatus) {
 /**
  * تنسيق وقت آخر تحديث
  */
-export function formatLastSeen(dateInput: string | number | Date): string {
+export function formatLastSeen(dateInput: string | number | Date | null | undefined): string {
   if (!dateInput) return 'غير محدد';
   const date = new Date(dateInput);
   if (isNaN(date.getTime())) return 'غير معروف';
@@ -141,4 +141,11 @@ export function formatLastSeen(dateInput: string | number | Date): string {
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) return `منذ ${diffHours} ساعة`;
   return date.toLocaleDateString('ar-SA');
+}
+
+export function formatLastSeenDate(dateInput: string | number | Date | null | undefined): string {
+  if (!dateInput) return 'غير محدد';
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return 'غير معروف';
+  return date.toLocaleString('ar-SA');
 }

@@ -81,6 +81,7 @@ async function authorizeTelemetrySource({ driverId, companyId, teamId }) {
         status: taskStatus.INPROGRESS
     })
         .sort({ startedAt: -1, createdAt: -1 })
+        .populate({ path: "driverId", select: "name email phone avatar" })
         .populate({
             path: "vehicleId",
             match: vehicleQuery,
@@ -101,7 +102,9 @@ async function authorizeTelemetrySource({ driverId, companyId, teamId }) {
 
     return {
         vehicle: activeTask.vehicleId,
-        taskId: activeTask._id
+        taskId: activeTask._id,
+        taskDescription: activeTask.description,
+        driver: activeTask.driverId
     };
 }
 
@@ -226,10 +229,10 @@ async function processTelemetryUpdate({
             vehicleType: veh.vehicleType,
             teamId: veh.teamId?._id ? veh.teamId._id.toString() : (veh.teamId ? veh.teamId.toString() : undefined),
             teamName: veh.teamId?.name,
-            driverId: veh.driverId?._id ? veh.driverId._id.toString() : (veh.driverId ? veh.driverId.toString() : undefined),
-            driverName: veh.driverId?.name,
-            driverPhone: veh.driverId?.phone,
-            driverAvatar: veh.driverId?.avatar,
+            driverId: authorizedSource.driver?._id?.toString(),
+            driverName: authorizedSource.driver?.name,
+            driverPhone: authorizedSource.driver?.phone,
+            driverAvatar: authorizedSource.driver?.avatar,
             currentLocation: {
                 lat: numLat,
                 lng: numLng,
@@ -239,7 +242,9 @@ async function processTelemetryUpdate({
             },
             gpsStatus: computedStatus,
             isInTask: !!resolvedTaskId,
-            activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined
+            activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined,
+            activeTaskTitle: authorizedSource.taskDescription,
+            activeTaskDescription: authorizedSource.taskDescription
         }
     };
 }
@@ -514,10 +519,10 @@ async function ingestBatchTelemetry({
                 vehicleType: updatedVehicle.vehicleType,
                 teamId: updatedVehicle.teamId?._id ? updatedVehicle.teamId._id.toString() : updatedVehicle.teamId?.toString(),
                 teamName: updatedVehicle.teamId?.name,
-                driverId: updatedVehicle.driverId?._id ? updatedVehicle.driverId._id.toString() : updatedVehicle.driverId?.toString(),
-                driverName: updatedVehicle.driverId?.name,
-                driverPhone: updatedVehicle.driverId?.phone,
-                driverAvatar: updatedVehicle.driverId?.avatar,
+                driverId: authorizedSource.driver?._id?.toString(),
+                driverName: authorizedSource.driver?.name,
+                driverPhone: authorizedSource.driver?.phone,
+                driverAvatar: authorizedSource.driver?.avatar,
                 currentLocation: {
                     lat: newestPoint.lat,
                     lng: newestPoint.lng,
@@ -527,7 +532,9 @@ async function ingestBatchTelemetry({
                 },
                 gpsStatus: computedStatus,
                 isInTask: !!resolvedTaskId,
-                activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined
+                activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined,
+                activeTaskTitle: authorizedSource.taskDescription,
+                activeTaskDescription: authorizedSource.taskDescription
             } : null
         };
     }

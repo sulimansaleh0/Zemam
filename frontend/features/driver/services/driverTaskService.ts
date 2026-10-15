@@ -5,6 +5,7 @@ import type {
   FuelLogPayload,
   MaintenanceReportPayload,
   DailyInspectionPayload,
+  OfflineAction,
 } from '../types/driverPwa.types';
 import {
   cacheTasksLocally,
@@ -265,9 +266,11 @@ export const driverTaskService = {
   /**
    * مزامنة وإعادة إرسال العمليات المخزنة محلياً عند عودة الاتصال
    */
-  async flushOfflineActions(): Promise<{ total: number; succeeded: number }> {
+  async flushOfflineActions(
+    types?: OfflineAction['type'][]
+  ): Promise<{ total: number; succeeded: number }> {
     if (!navigator.onLine) return { total: 0, succeeded: 0 };
-    const actions = await getOfflineActions();
+    const actions = (await getOfflineActions()).filter((action) => !types || types.includes(action.type));
     if (!actions || actions.length === 0) return { total: 0, succeeded: 0 };
 
     let succeeded = 0;

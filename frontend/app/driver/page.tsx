@@ -36,6 +36,7 @@ import type { DriverTelemetryPayload } from '@/features/gps/types/gps.types';
 import {
   queueTelemetryPoint,
   getQueuedTelemetry,
+  getOfflineActions,
   clearQueuedTelemetry,
   removeQueuedTelemetryPoints,
 } from '@/features/driver/services/driverStorage';
@@ -99,6 +100,7 @@ export default function DriverMobileTrackingPage() {
   });
 
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const offlineQueueCountRef = useRef(0);
 
   // وضع توفير البيانات الذكي لشبكات الهاتف 2G/3G أو ضعف الواي فاي (Low Data Mode)
   const [isLowDataMode, setIsLowDataMode] = useState<boolean>(() => {
@@ -143,6 +145,8 @@ export default function DriverMobileTrackingPage() {
   // المراجع (Refs)
   const locationWatchCleanupRef = useRef<(() => void) | null>(null);
   const broadcastIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const socketConnectedRef = useRef(false);
+  const lowDataModeRef = useRef(isLowDataMode);
   const latestCoordsRef = useRef<{
     lat: number;
     lng: number;
@@ -155,6 +159,10 @@ export default function DriverMobileTrackingPage() {
   const lastEmittedCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
   const lastEmittedHeadingRef = useRef<number | null>(null);
   const isFlushingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    lowDataModeRef.current = isLowDataMode;
+  }, [isLowDataMode]);
 
   // جلب المهام والمركبات
   const loadInitialData = useCallback(async () => {
@@ -272,17 +280,22 @@ export default function DriverMobileTrackingPage() {
     }
 
     const onConnect = () => {
+      socketConnectedRef.current = true;
       setSocketConnected(true);
       if (typeof window !== 'undefined' && navigator.onLine) {
         window.dispatchEvent(new Event('online'));
       }
     };
-    const onDisconnect = () => setSocketConnected(false);
+    const onDisconnect = () => {
+      socketConnectedRef.current = false;
+      setSocketConnected(false);
+    };
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
 
     setSocketConnected(socket.connected);
+    socketConnectedRef.current = socket.connected;
 
     return () => {
       socket.off('connect', onConnect);
@@ -297,7 +310,13 @@ export default function DriverMobileTrackingPage() {
     isFlushingRef.current = true;
     try {
       // 1. أولاً تفريغ نقاط الـ GPS المخزنة على دفعات صغيرة لتناسب شبكات 2G/3G
+      // قبول المهمة المخزن يجب أن يصل أولاً؛ السيرفر لا يقبل نقاطاً قبل بدء المهمة.
+      await driverTaskService.flushOfflineActions(['ACCEPT_TASK']);
+      const pendingAccepts = (await getOfflineActions()).some((action) => action.type === 'ACCEPT_TASK');
+      if (pendingAccepts) return;
+
       const queued = await getQueuedTelemetry();
+      let telemetrySyncComplete = true;
       if (queued.length > 0) {
         const sorted = [...queued].sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
         const CHUNK_SIZE = 50;
@@ -312,9 +331,11 @@ export default function DriverMobileTrackingPage() {
               await removeQueuedTelemetryPoints(idsToRemove);
             }
             syncedCount += res.data?.processedCount || chunk.length;
-            setOfflineQueueCount((prev) => Math.max(0, prev - chunk.length));
+            offlineQueueCountRef.current = Math.max(0, offlineQueueCountRef.current - chunk.length);
+            setOfflineQueueCount(offlineQueueCountRef.current);
           } else {
             console.warn('[Driver] Batch telemetry sync chunk failed, preserving remaining points');
+            telemetrySyncComplete = false;
             break;
           }
         }
@@ -324,6 +345,8 @@ export default function DriverMobileTrackingPage() {
           setTimeout(() => setSuccessNotice(null), 3500);
         }
       }
+
+      if (!telemetrySyncComplete) return;
 
       // 2. ثانياً مزامنة العمليات الميدانية (بدء المهمة / إنهاء المهمة)
       // عند إرسال إنهاء المهمة الآن، تكون جميع نقاط الـ GPS قد وصلت قاعدة البيانات بالفعل!
@@ -338,6 +361,7 @@ export default function DriverMobileTrackingPage() {
       isFlushingRef.current = false;
       try {
         const remaining = await getQueuedTelemetry();
+        offlineQueueCountRef.current = remaining.length;
         setOfflineQueueCount(remaining.length);
       } catch { }
     }
@@ -359,7 +383,10 @@ export default function DriverMobileTrackingPage() {
       flushOfflineQueue();
     } else {
       getQueuedTelemetry()
-        .then((queued) => setOfflineQueueCount(queued.length))
+        .then((queued) => {
+          offlineQueueCountRef.current = queued.length;
+          setOfflineQueueCount(queued.length);
+        })
         .catch((err) => console.warn('[Driver] readOfflineQueue error:', err));
     }
 
@@ -479,15 +506,15 @@ export default function DriverMobileTrackingPage() {
         { lat: lat5, lon: lng5 },
         now,
         {
-          minMeters: isLowDataMode ? 20 : 15,
-          heartbeatMs: isLowDataMode ? 60000 : 45000,
+          minMeters: lowDataModeRef.current ? 20 : 15,
+          heartbeatMs: lowDataModeRef.current ? 60000 : 45000,
         }
       );
 
       const timeElapsed = now - lastEmittedTimeRef.current;
-      const turnMinInterval = isLowDataMode ? 3000 : 2000;
+      const turnMinInterval = lowDataModeRef.current ? 3000 : 2000;
       const isTurning = headingDelta >= 15 && timeElapsed >= turnMinInterval;
-      const straightInterval = isLowDataMode ? 8000 : 4000;
+      const straightInterval = lowDataModeRef.current ? 8000 : 4000;
       const isThrottleOk = timeElapsed >= straightInterval;
 
       // إرسال النبضة إذا كانت الأولى، أو تحركت المركبة مسافة كافية مع فاصل زمني، أو انعطفت، أو نبضة السكون الدورية
@@ -503,19 +530,28 @@ export default function DriverMobileTrackingPage() {
           timestamp: now,
         };
 
-        const isCurrentlyConnected = typeof navigator !== 'undefined' && navigator.onLine && socketConnected;
+        const isCurrentlyConnected = typeof navigator !== 'undefined' && navigator.onLine && socketConnectedRef.current;
+        let pointRecorded = false;
 
-        if (isCurrentlyConnected && offlineQueueCount === 0 && !isFlushingRef.current) {
-          // بث نبضة باينري فائقة الخفة (~8 بايت)
-          emitDriverLocationBin(payload);
-          setTripStats((prev) => ({
-            ...prev,
-            sentPointsCount: prev.sentPointsCount + 1,
-            startTime: prev.startTime || now,
-          }));
-        } else {
-          await queueTelemetryPoint(payload);
-          setOfflineQueueCount((c) => c + 1);
+        if (isCurrentlyConnected && offlineQueueCountRef.current === 0 && !isFlushingRef.current) {
+          pointRecorded = await emitDriverLocationBin(payload);
+          if (pointRecorded) {
+            setTripStats((prev) => ({
+              ...prev,
+              sentPointsCount: prev.sentPointsCount + 1,
+              startTime: prev.startTime || now,
+            }));
+          }
+        }
+
+        if (!pointRecorded) {
+          const queued = await queueTelemetryPoint(payload);
+          if (!queued) {
+            setErrorMessage('تعذر حفظ نقطة GPS محلياً أو إرسالها. تحقق من مساحة التخزين والاتصال.');
+            return;
+          }
+          offlineQueueCountRef.current += 1;
+          setOfflineQueueCount(offlineQueueCountRef.current);
           if (isCurrentlyConnected && !isFlushingRef.current) {
             flushOfflineQueue();
           }
@@ -526,7 +562,7 @@ export default function DriverMobileTrackingPage() {
         lastEmittedHeadingRef.current = headingDeg;
       }
     },
-    [socketConnected, offlineQueueCount, flushOfflineQueue, isLowDataMode]
+    [flushOfflineQueue]
   );
 
   const handlePositionError = useCallback((error: GeolocationPositionError) => {
@@ -592,13 +628,20 @@ export default function DriverMobileTrackingPage() {
         timestamp: now,
       };
 
-      if (typeof navigator !== 'undefined' && navigator.onLine && socketConnected) {
-        emitDriverLocationBin(payload);
+      if (typeof navigator !== 'undefined' && navigator.onLine && socketConnectedRef.current) {
+        const sent = await emitDriverLocationBin(payload);
+        if (sent) {
+          lastEmittedTimeRef.current = now;
+          return;
+        }
+      }
+      const queued = await queueTelemetryPoint(payload);
+      if (queued) {
+        offlineQueueCountRef.current += 1;
+        setOfflineQueueCount(offlineQueueCountRef.current);
         lastEmittedTimeRef.current = now;
       } else {
-        await queueTelemetryPoint(payload);
-        setOfflineQueueCount((c) => c + 1);
-        lastEmittedTimeRef.current = now;
+        setErrorMessage('تعذر حفظ نبضة GPS الاحتياطية محلياً.');
       }
     }, 30000);
 
@@ -669,6 +712,10 @@ export default function DriverMobileTrackingPage() {
       // 1. أولاً: تفريغ أي نقاط GPS متبقية في طابور الهاتف على دفعات والتأكد من وصولها للسيرفر
       if (typeof navigator !== 'undefined' && navigator.onLine) {
         await flushOfflineQueue();
+        const queued = await getQueuedTelemetry();
+        if (queued.length > 0) {
+          throw new Error('لا يمكن إنهاء المهمة قبل مزامنة نقاط GPS المحفوظة. تحقق من الاتصال ثم أعد المحاولة.');
+        }
       }
 
       // 2. ثانياً: إنهاء المهمة رسمياً في السيرفر (الآن السيرفر سيجد كافة النقاط جاهزة أمامه)

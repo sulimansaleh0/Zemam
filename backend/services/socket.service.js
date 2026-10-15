@@ -121,7 +121,7 @@ function initSocket(server) {
                     const decoded = zemamGeoCodec.decodePoint(binData);
                     lat = decoded.lat;
                     lng = decoded.lon;
-                    if (decoded.speed != null) speed = decoded.speed;
+                    if (decoded.speed != null) speed = decoded.speed * 3.6;
                     if (decoded.heading != null) heading = decoded.heading;
                     timestamp = Date.now() - (decoded.ageSec || 0) * 1000;
 

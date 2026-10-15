@@ -44,7 +44,9 @@ exports.getLiveFleet = async (req, res) => {
             Task.find({
                 companyId: user.companyId,
                 status: taskStatus.INPROGRESS
-            }).lean()
+            })
+                .populate("driverId", "name email phone avatar")
+                .lean()
         ]);
 
         // Map active tasks by vehicleId for quick telemetry lookup
@@ -52,7 +54,11 @@ exports.getLiveFleet = async (req, res) => {
         activeTasks.forEach((t) => {
             activeTasksByVehicle.set(t.vehicleId.toString(), {
                 taskId: t._id.toString(),
-                title: t.title
+                description: t.description,
+                driverId: t.driverId?._id?.toString(),
+                driverName: t.driverId?.name,
+                driverPhone: t.driverId?.phone,
+                driverAvatar: t.driverId?.avatar
             });
         });
 
@@ -72,9 +78,10 @@ exports.getLiveFleet = async (req, res) => {
             const heading = v.currentLocation?.heading || 0;
             const updatedAt = v.currentLocation?.updatedAt
                 ? new Date(v.currentLocation.updatedAt)
-                : new Date();
-            const timeSinceUpdateMs = Date.now() - updatedAt.getTime();
-            const isStale = !hasLocation || (timeSinceUpdateMs > 10 * 60 * 1000); // 10 minutes
+                : null;
+            const hasValidUpdateTime = updatedAt && !Number.isNaN(updatedAt.getTime());
+            const timeSinceUpdateMs = hasValidUpdateTime ? Date.now() - updatedAt.getTime() : Infinity;
+            const isStale = !hasLocation || !hasValidUpdateTime || timeSinceUpdateMs > 10 * 60 * 1000;
 
             // Calculate live status dynamically
             let calculatedGpsStatus = gpsStatus.AVAILABLE;
@@ -97,23 +104,24 @@ exports.getLiveFleet = async (req, res) => {
                 vehicleType: v.vehicleType,
                 teamId: v.teamId?._id ? v.teamId._id.toString() : (v.teamId ? v.teamId.toString() : undefined),
                 teamName: v.teamId?.name,
-                driverId: v.driverId?._id ? v.driverId._id.toString() : (v.driverId ? v.driverId.toString() : undefined),
-                driverName: v.driverId?.name,
-                driverPhone: v.driverId?.phone,
-                driverAvatar: v.driverId?.avatar,
+                driverId: activeTask?.driverId,
+                driverName: activeTask?.driverName,
+                driverPhone: activeTask?.driverPhone,
+                driverAvatar: activeTask?.driverAvatar,
                 currentLocation: hasLocation ? {
                     lat,
                     lng,
                     speed,
                     heading,
-                    updatedAt: updatedAt.toISOString()
+                    updatedAt: hasValidUpdateTime ? updatedAt.toISOString() : null
                 } : null,
                 gpsStatus: calculatedGpsStatus,
-                isInTask: !!activeTask || !!v.isInTask,
+                isInTask: !!activeTask,
                 activeTaskId: activeTask?.taskId,
-                activeTaskTitle: activeTask?.title
+                activeTaskTitle: activeTask?.description,
+                activeTaskDescription: activeTask?.description
             };
-        });
+        }).filter((vehicle) => vehicle.isInTask && vehicle.activeTaskId);
 
         // 1. حساب إحصائيات الأسطول بالكامل على السيرفر (Server-side Fleet Stats)
         const stats = {

@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import type { VehicleLiveTelemetry } from '../types/gps.types';
-import { getGpsStatusConfig, formatLastSeen } from '../utils/gpsHelpers';
+import { getGpsStatusConfig, formatLastSeen, formatLastSeenDate } from '../utils/gpsHelpers';
 
 interface VehicleTelemetryDrawerProps {
   vehicle: VehicleLiveTelemetry | null;
@@ -53,9 +53,10 @@ export function VehicleTelemetryDrawer({
                 {statusConfig.label}
               </span>
             </div>
-            <p className="text-xs text-[var(--zd-muted)]">
-              {vehicle.model} {vehicle.year ? `(${vehicle.year})` : ''} • {vehicle.teamName || 'مستودع عام'}
+            <p className="mt-1 inline-flex rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-600">
+              {vehicle.model} {vehicle.year ? `(${vehicle.year})` : ''}
             </p>
+            <p className="mt-1 text-[10px] text-[var(--zd-muted)]">{vehicle.teamName || 'مستودع عام'}</p>
           </div>
         </div>
 
@@ -96,6 +97,9 @@ export function VehicleTelemetryDrawer({
           <div className="mt-0.5 text-xs font-bold text-[var(--zd-text)] truncate">
             {formatLastSeen(vehicle.currentLocation?.updatedAt)}
           </div>
+          <div className="mt-1 text-[9px] text-[var(--zd-muted)]">
+            {formatLastSeenDate(vehicle.currentLocation?.updatedAt)}
+          </div>
         </div>
       </div>
 
@@ -118,9 +122,14 @@ export function VehicleTelemetryDrawer({
         </div>
 
         {vehicle.isInTask && (
-          <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-blue-500">
-            <Navigation className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">المهمة النشطة: {vehicle.activeTaskTitle || 'مهمة توصيل جارية'}</span>
+          <div className="space-y-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-blue-500">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate font-semibold">المهمة النشطة: {vehicle.activeTaskTitle || 'مهمة توصيل جارية'}</span>
+            </div>
+            {vehicle.activeTaskDescription && (
+              <p className="text-[11px] leading-relaxed text-[var(--zd-text)]">{vehicle.activeTaskDescription}</p>
+            )}
           </div>
         )}
 

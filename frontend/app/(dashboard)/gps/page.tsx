@@ -89,7 +89,7 @@ export default function GpsPage() {
                 <div className="mt-2 text-2xl font-black text-neutral-400">
                   {stats.offline}
                 </div>
-                <p className="mt-1 text-[10px] text-[var(--zd-muted)]">لا توجد نبضات منذ &gt; 3 دقائق</p>
+                <p className="mt-1 text-[10px] text-[var(--zd-muted)]">لا توجد نبضات منذ &gt; 10 دقائق</p>
               </div>
             </div>
 

@@ -22,12 +22,13 @@ export interface VehicleLiveTelemetry {
     lng: number;
     speed: number;       // km/h
     heading: number;     // 0 - 360 degrees
-    updatedAt: string;
-  };
+    updatedAt: string | null;
+  } | null;
   gpsStatus: VehicleGpsStatus;
   isInTask: boolean;
   activeTaskId?: string;
   activeTaskTitle?: string;
+  activeTaskDescription?: string;
 }
 
 export interface TripSummary {
