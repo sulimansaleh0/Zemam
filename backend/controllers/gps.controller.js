@@ -298,7 +298,7 @@ function decodePolylinePoints(encoded) {
         let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
         lng += dlng;
 
-        poly.push({ lat: Math.round((lat / 1e5) * 1e5) / 1e5, lng: Math.round((lng / 1e5) * 1e5) / 1e5 });
+        poly.push([Math.round((lat / 1e5) * 1e5) / 1e5, Math.round((lng / 1e5) * 1e5) / 1e5]);
     }
     return poly;
 }
@@ -349,12 +349,16 @@ exports.getLiveTripPath = async (req, res) => {
         } else if (task.tripSummary?.encodedPath) {
             encodedPath = task.tripSummary.encodedPath;
             const decoded = decodePolylinePoints(encodedPath);
-            points = decoded.map((p) => ({
-                lat: p.lat,
-                lng: p.lng,
-                speed: task.tripSummary.averageSpeed || 0,
-                timestamp: task.startedAt ? new Date(task.startedAt).getTime() : Date.now()
-            }));
+            points = decoded.map((p) => {
+                const ptLat = Array.isArray(p) ? p[0] : p.lat;
+                const ptLng = Array.isArray(p) ? p[1] : p.lng;
+                return {
+                    lat: ptLat,
+                    lng: ptLng,
+                    speed: task.tripSummary.averageSpeed || 0,
+                    timestamp: task.startedAt ? new Date(task.startedAt).getTime() : Date.now()
+                };
+            });
             console.log(`\n================== [SERVER: TRIP PATH DECODING] ==================`);
             console.log(`🔒 قبل فك التشفير (سلسلة Polyline المضغوطة): ${encodedPath.slice(0, 60)}${encodedPath.length > 60 ? '...' : ''} (${encodedPath.length} حرف)`);
             console.log(`🔓 بعد فك التشفير (الإحداثيات المفكوكة): ${points.length} نقطة (أول نقطة: Lat=${points[0]?.lat}, Lng=${points[0]?.lng})`);

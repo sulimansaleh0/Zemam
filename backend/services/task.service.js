@@ -614,10 +614,8 @@ class TaskService {
       await task.save();
     }
 
-    const tripSummary =
-      task.tripSummary?.finishedAt && task.tripSummary?.encodedPath
-        ? task.tripSummary
-        : await finalizeTripSummary(task);
+    // دائماً تلخيص المسار المكتمل من قاعدة البيانات لضمان شمل جميع النقاط المخزنة والمرحلة مؤخراً
+    const tripSummary = await finalizeTripSummary(task);
     if (!tripSummary) {
       throw new Error("تعذر إغلاق وتلخيص مسار الـ GPS للمهمة");
     }
@@ -699,9 +697,7 @@ class TaskService {
       throw new Error("لم يتم العثور على المركبة لتحديث حالتها بعد إنهاء المهمة");
     }
 
-    if (tripSummary?.encodedPath) {
-      await TaskLivePoint.deleteMany({ taskId: task._id });
-    }
+    // يتم الاحتفاظ بنقاط المسار المسجلة للرجوع إليها في تفاصيل المهمة واسترجاع المسار الواقعي
     stopTelemetryTracking(task.vehicleId);
 
     notifyTripCompleted(user.companyId, task.teamId, tripSummary);

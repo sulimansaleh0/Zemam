@@ -22,6 +22,7 @@ import {
 import { Modal } from '@/shared/ui/Modal';
 import type { TripSummary } from '../types/gps.types';
 import { decodePolyline, calculateBearing } from '../utils/gpsHelpers';
+import { gpsService } from '../services/gps.service';
 import type { PlaybackVehicleData } from '@/features/tasks/components/LeafletMapCanvas';
 
 const LeafletMapCanvas = dynamic(
@@ -64,14 +65,57 @@ export function TripSummaryModal({
   onClose,
   summary,
 }: TripSummaryModalProps) {
-  // إحداثيات المسار المسترجعة مباشرة من الخادم مع الاحتياط لفك التشفير
+  // إحداثيات المسار المسترجعة مباشرة من الخادم مع الاحتياط لفك التشفير وتطبيعها بدقة
   const routeCoordinates = useMemo(() => {
+    let raw: any[] = [];
     if (summary?.coordinates && summary.coordinates.length > 0) {
-      return summary.coordinates;
+      raw = summary.coordinates;
+    } else if (summary?.encodedPath) {
+      raw = decodePolyline(summary.encodedPath);
     }
-    if (!summary?.encodedPath) return [];
-    return decodePolyline(summary.encodedPath);
+    return raw
+      .map((pt: any): [number, number] => {
+        if (Array.isArray(pt)) {
+          return [Number(pt[0]), Number(pt[1])];
+        }
+        return [Number(pt?.lat), Number(pt?.lng)];
+      })
+      .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
   }, [summary?.coordinates, summary?.encodedPath]);
+
+  // في حال كانت النقاط غير متوفرة في كائن الملخص، نسترجع المسار الفعلي من السيرفر مباشرة
+  const [livePathPoints, setLivePathPoints] = useState<[number, number][]>([]);
+
+  useEffect(() => {
+    if (!isOpen || !summary?.taskId || routeCoordinates.length > 1) {
+      setLivePathPoints([]);
+      return;
+    }
+
+    let isMounted = true;
+    gpsService
+      .getLiveTripPath(summary.taskId)
+      .then((res) => {
+        if (!isMounted || !res.success || !res.data) return;
+        const pts = res.data.path?.points || [];
+        if (pts.length > 1) {
+          setLivePathPoints(pts.map((p: any) => [Number(p.lat), Number(p.lng)]));
+        } else if (res.data.path?.encodedPath) {
+          const decoded = decodePolyline(res.data.path.encodedPath);
+          if (decoded.length > 1) {
+            setLivePathPoints(decoded);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, summary?.taskId, routeCoordinates.length]);
+
+  const effectiveRouteCoordinates =
+    routeCoordinates.length > 1 ? routeCoordinates : livePathPoints;
 
   // حالة محاكي تشغيل الرحلة (Trip Replay Simulator)
   const [isPlaying, setIsPlaying] = useState(false);
@@ -86,12 +130,12 @@ export function TripSummaryModal({
 
   // مؤقت تشغيل المحاكي التفاعلي
   useEffect(() => {
-    if (!isPlaying || routeCoordinates.length <= 1) return;
+    if (!isPlaying || effectiveRouteCoordinates.length <= 1) return;
 
     const intervalMs = Math.max(60, Math.floor(400 / playbackSpeed));
     const timer = setInterval(() => {
       setPlaybackIndex((prev) => {
-        if (prev >= routeCoordinates.length - 1) {
+        if (prev >= effectiveRouteCoordinates.length - 1) {
           setIsPlaying(false);
           return prev;
         }
@@ -100,7 +144,7 @@ export function TripSummaryModal({
     }, intervalMs);
 
     return () => clearInterval(timer);
-  }, [isPlaying, playbackSpeed, routeCoordinates.length]);
+  }, [isPlaying, playbackSpeed, effectiveRouteCoordinates.length]);
 
   if (!summary) return null;
 
@@ -117,9 +161,9 @@ export function TripSummaryModal({
   // حساب بيانات وزاوية المركبة في إطار المحاكاة الحالي
   let playbackVehicle: PlaybackVehicleData | null = null;
   let currentBearing = 0;
-  if (routeCoordinates.length > 0) {
-    const curPos = routeCoordinates[playbackIndex] || routeCoordinates[0];
-    const nextPos = routeCoordinates[Math.min(playbackIndex + 1, routeCoordinates.length - 1)];
+  if (effectiveRouteCoordinates.length > 0) {
+    const curPos = effectiveRouteCoordinates[playbackIndex] || effectiveRouteCoordinates[0];
+    const nextPos = effectiveRouteCoordinates[Math.min(playbackIndex + 1, effectiveRouteCoordinates.length - 1)];
     currentBearing =
       nextPos && curPos ? calculateBearing(curPos[0], curPos[1], nextPos[0], nextPos[1]) : 0;
 
@@ -132,8 +176,8 @@ export function TripSummaryModal({
   }
 
   const progressPercent =
-    routeCoordinates.length > 1
-      ? Math.round((playbackIndex / (routeCoordinates.length - 1)) * 100)
+    effectiveRouteCoordinates.length > 1
+      ? Math.round((playbackIndex / (effectiveRouteCoordinates.length - 1)) * 100)
       : 0;
 
   return (
@@ -248,8 +292,8 @@ export function TripSummaryModal({
               <span>خريطة التتبع الميداني المسجل:</span>
             </span>
             <span className="text-[11px] font-mono">
-              {routeCoordinates.length > 0
-                ? `${routeCoordinates.length} نقطة مسار مفكوكة من النص المضغوط`
+              {effectiveRouteCoordinates.length > 0
+                ? `${effectiveRouteCoordinates.length} نقطة مسار واقعية مسجلة بالـ GPS (100%)`
                 : 'المسار المباشر'}
             </span>
           </div>
@@ -257,14 +301,15 @@ export function TripSummaryModal({
           <LeafletMapCanvas
             pickupPosition={pickupCoord}
             deliveryPosition={deliveryCoord}
-            routeCoordinates={routeCoordinates}
+            routeCoordinates={effectiveRouteCoordinates}
+            routeType="actual"
             playbackVehicle={playbackVehicle}
             className="h-[320px] w-full rounded-2xl border border-[var(--zd-line)] shadow-inner"
             readOnly={true}
           />
 
           {/* ── شريط محاكي تشغيل الرحلة وإعادة العرض (Trip Replay Simulator Controls) ── */}
-          {routeCoordinates.length > 1 && (
+          {effectiveRouteCoordinates.length > 1 && (
             <div className="rounded-2xl border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-3.5 space-y-3 shadow-xs">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
@@ -285,7 +330,7 @@ export function TripSummaryModal({
                     <span>{currentBearing}°</span>
                   </span>
                   <span className="font-mono">
-                    النقطة {playbackIndex + 1} من {routeCoordinates.length} ({progressPercent}%)
+                    النقطة {playbackIndex + 1} من {effectiveRouteCoordinates.length} ({progressPercent}%)
                   </span>
                 </div>
               </div>
@@ -294,7 +339,7 @@ export function TripSummaryModal({
               <input
                 type="range"
                 min={0}
-                max={routeCoordinates.length - 1}
+                max={effectiveRouteCoordinates.length - 1}
                 value={playbackIndex}
                 onChange={(e) => setPlaybackIndex(Number(e.target.value))}
                 className="w-full h-2 bg-[var(--zd-line)] rounded-lg appearance-none cursor-pointer accent-blue-600 transition"
@@ -306,7 +351,7 @@ export function TripSummaryModal({
                   <button
                     type="button"
                     onClick={() => {
-                      if (playbackIndex >= routeCoordinates.length - 1) {
+                      if (playbackIndex >= effectiveRouteCoordinates.length - 1) {
                         setPlaybackIndex(0);
                       }
                       setIsPlaying(!isPlaying);

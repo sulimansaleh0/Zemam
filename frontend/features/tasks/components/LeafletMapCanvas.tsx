@@ -23,7 +23,9 @@ interface LeafletMapCanvasProps {
   zoom?: number;
   pickupPosition?: [number, number] | null;
   deliveryPosition?: [number, number] | null;
-  routeCoordinates?: [number, number][];
+  routeCoordinates?: ([number, number] | { lat: number; lng: number })[];
+  plannedCoordinates?: ([number, number] | { lat: number; lng: number })[];
+  routeType?: 'actual' | 'planned';
   playbackVehicle?: PlaybackVehicleData | null;
   onMapClick?: (lat: number, lng: number) => void;
   onPickupDrag?: (lat: number, lng: number) => void;
@@ -39,6 +41,8 @@ export default function LeafletMapCanvas({
   pickupPosition,
   deliveryPosition,
   routeCoordinates,
+  plannedCoordinates,
+  routeType,
   playbackVehicle,
   onMapClick,
   onPickupDrag,
@@ -55,6 +59,8 @@ export default function LeafletMapCanvas({
   const deliveryGeofenceRef = useRef<L.Circle | null>(null);
   const playbackMarkerRef = useRef<L.Marker | null>(null);
   const routePolylineRef = useRef<L.Polyline | null>(null);
+  const routePolylineCasingRef = useRef<L.Polyline | null>(null);
+  const plannedPolylineRef = useRef<L.Polyline | null>(null);
 
   const onMapClickRef = useRef(onMapClick);
   const onPickupDragRef = useRef(onPickupDrag);
@@ -257,40 +263,120 @@ export default function LeafletMapCanvas({
     }
   }, [deliveryPosition, readOnly, showGeofence]);
 
+function toLatLngPairs(coords?: ([number, number] | { lat: number; lng: number })[]): [number, number][] {
+  if (!coords || !Array.isArray(coords)) return [];
+  return coords
+    .map((c: any): [number, number] => {
+      if (Array.isArray(c)) return [Number(c[0]), Number(c[1])];
+      return [Number(c?.lat), Number(c?.lng)];
+    })
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+}
+
   // 4. رسم مسار الرحلة وضبط إطار الرؤية (Fit Bounds)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const coordsToDraw =
-      routeCoordinates && routeCoordinates.length > 1
-        ? routeCoordinates
-        : pickupPosition && deliveryPosition
-          ? [pickupPosition, deliveryPosition]
-          : null;
+    const normalizedActual = toLatLngPairs(routeCoordinates);
+    const normalizedPlanned = toLatLngPairs(plannedCoordinates);
 
-    if (coordsToDraw && coordsToDraw.length > 1) {
-      if (!routePolylineRef.current) {
-        routePolylineRef.current = L.polyline(coordsToDraw, {
-          color: '#2563eb',
-          weight: 4,
-          opacity: 0.9,
+    const isActualRoute = routeType === 'actual' || (normalizedActual.length > 2 && routeType !== 'planned');
+
+    // أ) رسم المسار التخطيطي/المقدر كخط منقط (Dashed Indigo) إذا توفر مع المسار الفعلي
+    if (normalizedPlanned.length > 1 && isActualRoute) {
+      if (!plannedPolylineRef.current) {
+        plannedPolylineRef.current = L.polyline(normalizedPlanned, {
+          color: '#6366f1',
+          weight: 3.5,
+          opacity: 0.75,
+          dashArray: '8, 8',
           lineJoin: 'round',
           lineCap: 'round',
         }).addTo(map);
       } else {
-        routePolylineRef.current.setLatLngs(coordsToDraw);
+        plannedPolylineRef.current.setLatLngs(normalizedPlanned);
+      }
+    } else if (plannedPolylineRef.current) {
+      plannedPolylineRef.current.remove();
+      plannedPolylineRef.current = null;
+    }
+
+    // ب) تحديد المسار الأساسي للعرض
+    const coordsToDraw =
+      normalizedActual.length > 1
+        ? normalizedActual
+        : normalizedPlanned.length > 1
+          ? normalizedPlanned
+          : pickupPosition && deliveryPosition
+            ? [pickupPosition, deliveryPosition]
+            : null;
+
+    if (coordsToDraw && coordsToDraw.length > 1) {
+      if (isActualRoute && normalizedActual.length > 1) {
+        // غلاف التوهج الزمردي للمسار الفعلي (مطابق 100% لخريطة التتبع المباشر)
+        if (!routePolylineCasingRef.current) {
+          routePolylineCasingRef.current = L.polyline(coordsToDraw, {
+            color: '#10b981',
+            weight: 9,
+            opacity: 0.35,
+            lineJoin: 'round',
+            lineCap: 'round',
+          }).addTo(map);
+        } else {
+          routePolylineCasingRef.current.setLatLngs(coordsToDraw);
+        }
+
+        // خط السير الفعلي الصلب الحي
+        if (!routePolylineRef.current) {
+          routePolylineRef.current = L.polyline(coordsToDraw, {
+            color: '#10b981',
+            weight: 4.5,
+            opacity: 0.95,
+            lineJoin: 'round',
+            lineCap: 'round',
+          }).addTo(map);
+        } else {
+          routePolylineRef.current.setLatLngs(coordsToDraw);
+          routePolylineRef.current.setStyle({ color: '#10b981', weight: 4.5, opacity: 0.95 });
+        }
+      } else {
+        // خط السير المقدر/الافتراضي (أزرق قياسي)
+        if (routePolylineCasingRef.current) {
+          routePolylineCasingRef.current.remove();
+          routePolylineCasingRef.current = null;
+        }
+
+        if (!routePolylineRef.current) {
+          routePolylineRef.current = L.polyline(coordsToDraw, {
+            color: '#2563eb',
+            weight: 4,
+            opacity: 0.9,
+            lineJoin: 'round',
+            lineCap: 'round',
+          }).addTo(map);
+        } else {
+          routePolylineRef.current.setLatLngs(coordsToDraw);
+          routePolylineRef.current.setStyle({ color: '#2563eb', weight: 4, opacity: 0.9 });
+        }
       }
 
       try {
-        const bounds = L.latLngBounds(coordsToDraw);
+        const allBoundary = [...coordsToDraw, ...(normalizedPlanned.length > 1 ? normalizedPlanned : [])];
+        const bounds = L.latLngBounds(allBoundary);
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
       } catch { }
-    } else if (routePolylineRef.current) {
-      routePolylineRef.current.remove();
-      routePolylineRef.current = null;
+    } else {
+      if (routePolylineCasingRef.current) {
+        routePolylineCasingRef.current.remove();
+        routePolylineCasingRef.current = null;
+      }
+      if (routePolylineRef.current) {
+        routePolylineRef.current.remove();
+        routePolylineRef.current = null;
+      }
     }
-  }, [routeCoordinates, pickupPosition, deliveryPosition]);
+  }, [routeCoordinates, plannedCoordinates, routeType, pickupPosition, deliveryPosition]);
 
   // 5. مؤشر محاكاة حركة المركبة (Playback Replay Simulator Marker)
   useEffect(() => {
@@ -298,6 +384,12 @@ export default function LeafletMapCanvas({
     if (!map) return;
 
     if (playbackVehicle && playbackVehicle.position) {
+      const pos: [number, number] = Array.isArray(playbackVehicle.position)
+        ? [Number(playbackVehicle.position[0]), Number(playbackVehicle.position[1])]
+        : [Number((playbackVehicle.position as any)?.lat), Number((playbackVehicle.position as any)?.lng)];
+
+      if (!Number.isFinite(pos[0]) || !Number.isFinite(pos[1])) return;
+
       const icon = createUnifiedVehicleMarker({
         plateNumber: playbackVehicle.plateNumber || 'مركبة',
         speed: playbackVehicle.speed || 0,
@@ -308,25 +400,34 @@ export default function LeafletMapCanvas({
       });
 
       if (!playbackMarkerRef.current) {
-        playbackMarkerRef.current = L.marker(playbackVehicle.position, {
+        playbackMarkerRef.current = L.marker(pos, {
           icon,
           zIndexOffset: 1200,
         }).addTo(map);
       } else {
-        playbackMarkerRef.current.setLatLng(playbackVehicle.position);
+        playbackMarkerRef.current.setLatLng(pos);
         playbackMarkerRef.current.setIcon(icon);
       }
 
-      map.panTo(playbackVehicle.position, { animate: true, duration: 0.3 });
+      map.panTo(pos, { animate: true, duration: 0.3 });
     } else if (playbackMarkerRef.current) {
       playbackMarkerRef.current.remove();
       playbackMarkerRef.current = null;
     }
   }, [playbackVehicle]);
 
+  const isActualTrack =
+    routeType === 'actual' || ((toLatLngPairs(routeCoordinates).length > 2) && routeType !== 'planned');
+
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-[var(--border)] shadow-xs ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
+      {isActualTrack && (
+        <div className="absolute top-2.5 left-2.5 z-[500] flex items-center gap-1.5 rounded-lg bg-[var(--zd-surface)]/90 px-2.5 py-1 text-[11px] font-bold text-emerald-500 shadow-sm border border-emerald-500/25 backdrop-blur-xs select-none">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+          <span>مسار الـ GPS الفعلي 100%</span>
+        </div>
+      )}
     </div>
   );
 }

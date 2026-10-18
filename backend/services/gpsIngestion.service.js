@@ -340,12 +340,13 @@ async function finalizeTripSummary(task) {
                 const elapsedHours = (new Date(p.timestamp).getTime() - new Date(lastValidPoint.timestamp).getTime()) / 3600000;
                 const segmentSpeed = elapsedHours > 0 ? legDist / elapsedHours : 0;
 
-                // Ignore GPS jitter and impossible jumps (over 180 km/h)
-                if (elapsedHours > 0 && segmentSpeed > 180) {
-                    continue; // Skip spike point
+                // تصفية القفزات اللحظية المستحيلة فقط (القفز لأكثر من 50 متراً بسرعة تفوق 180 كم/س أو بتوقيت مستحيل)
+                // أما النقاط المتتابعة الناتجة عن الـ Buffer المجمعة بدقة عالية (أقل من 50 متراً) فهي حركة واقعية 100% ولا تُسقط
+                if (legDist > 0.05 && (elapsedHours <= 0 || segmentSpeed > 180)) {
+                    continue; // Skip impossible spike
                 }
 
-                if (legDist > 0.002 && elapsedHours > 0) {
+                if (legDist > 0.002) {
                     totalDistanceKm += legDist;
                 }
             }
@@ -389,8 +390,10 @@ async function finalizeTripSummary(task) {
         address: task.deliveryLocation?.address || ""
     };
 
-    // Encode compressed polyline
-    const encodedPath = encodePolyline(coordinatePairs);
+    // Encode compressed polyline with fallback to existing encodedPath if points were already processed
+    const encodedPath = coordinatePairs.length > 0
+        ? encodePolyline(coordinatePairs)
+        : (task.tripSummary?.encodedPath || "");
 
     const tripSummary = {
         taskId: task._id.toString(),

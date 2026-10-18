@@ -13,6 +13,7 @@ import {
 import type { TaskWithRelations } from '../types/task.types';
 import { fetchDrivingRoute, type RouteData } from '../utils/mapHelpers';
 import { decodePolyline } from '@/features/gps/utils/gpsHelpers';
+import { gpsService } from '@/features/gps/services/gps.service';
 
 const LeafletMapCanvas = dynamic(() => import('./LeafletMapCanvas'), {
   ssr: false,
@@ -30,6 +31,8 @@ interface TaskDetailMapSectionProps {
 
 export function TaskDetailMapSection({ task }: TaskDetailMapSectionProps) {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
+  const [actualGpsCoords, setActualGpsCoords] = useState<[number, number][]>([]);
+  const [isLoadingGpsPath, setIsLoadingGpsPath] = useState(false);
 
   const pickupLat = task?.pickupLocation?.lat ? parseFloat(task.pickupLocation.lat) : NaN;
   const pickupLng = task?.pickupLocation?.lng ? parseFloat(task.pickupLocation.lng) : NaN;
@@ -40,7 +43,7 @@ export function TaskDetailMapSection({ task }: TaskDetailMapSectionProps) {
 
   const encodedPath = task.tripSummary?.encodedPath;
 
-  // فك تشفير المسار المسجل فعلياً بالـ GPS إن وُجد
+  // 1. فك تشفير المسار المسجل فعلياً بالـ GPS في ملخص المهمة إن وُجد
   const decodedTripPath = useMemo(() => {
     if (encodedPath) {
       return decodePolyline(encodedPath);
@@ -48,9 +51,47 @@ export function TaskDetailMapSection({ task }: TaskDetailMapSectionProps) {
     return undefined;
   }, [encodedPath]);
 
-  // استدعاء تقدير مسار الطرق فقط إذا لم يكن هناك مسار GPS مسجل فعلياً
+  // 2. استرجاع مسار الـ GPS الفعلي عالي الدقة مباشرة من السيرفر لضمان واقعية المسار 100%
   useEffect(() => {
-    if (!hasCoords || decodedTripPath) return;
+    if (!task?._id) return;
+    if (decodedTripPath && decodedTripPath.length > 1) {
+      setActualGpsCoords(decodedTripPath);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingGpsPath(true);
+    gpsService
+      .getLiveTripPath(task._id)
+      .then((res) => {
+        if (!isMounted || !res.success || !res.data) return;
+        const pts = res.data.path?.points || [];
+        if (pts.length > 1) {
+          setActualGpsCoords(pts.map((p: any) => [Number(p.lat), Number(p.lng)]));
+        } else if (res.data.path?.encodedPath) {
+          const decoded = decodePolyline(res.data.path.encodedPath);
+          if (decoded.length > 1) {
+            setActualGpsCoords(decoded);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch live trip path for task details:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingGpsPath(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [task?._id, decodedTripPath]);
+
+  const effectiveActualPath = actualGpsCoords.length > 1 ? actualGpsCoords : decodedTripPath;
+
+  // 3. استدعاء مسار الطرق التقديري كمرجع تخطيطي
+  useEffect(() => {
+    if (!hasCoords) return;
 
     let isMounted = true;
     const controller = new AbortController();
@@ -65,11 +106,23 @@ export function TaskDetailMapSection({ task }: TaskDetailMapSectionProps) {
       isMounted = false;
       controller.abort();
     };
-  }, [pickupLat, pickupLng, deliveryLat, deliveryLng, hasCoords, decodedTripPath]);
+  }, [pickupLat, pickupLng, deliveryLat, deliveryLng, hasCoords]);
 
   return (
     <div className="space-y-3 rounded-xl border border-[var(--zd-line)] bg-[var(--zd-surface)] p-3.5">
-      <span className="text-xs font-bold text-[var(--zd-text)]">المسار ونقاط التحرك</span>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-[var(--zd-text)]">المسار ونقاط التحرك</span>
+        {effectiveActualPath && effectiveActualPath.length > 1 ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            مسار الـ GPS الفعلي 100% ({effectiveActualPath.length} نقطة مسجلة)
+          </span>
+        ) : isLoadingGpsPath ? (
+          <span className="text-[10px] text-[var(--zd-muted)] animate-pulse">
+            جاري استرجاع مسار الـ GPS الميداني...
+          </span>
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
         <div className="flex items-start gap-2 rounded-lg border border-[var(--zd-line)] bg-[var(--zd-surface-2)] p-2">
@@ -95,7 +148,9 @@ export function TaskDetailMapSection({ task }: TaskDetailMapSectionProps) {
           <LeafletMapCanvas
             pickupPosition={[pickupLat, pickupLng]}
             deliveryPosition={[deliveryLat, deliveryLng]}
-            routeCoordinates={decodedTripPath || routeData?.coordinates}
+            routeCoordinates={effectiveActualPath || routeData?.coordinates}
+            plannedCoordinates={routeData?.coordinates}
+            routeType={effectiveActualPath && effectiveActualPath.length > 1 ? 'actual' : 'planned'}
             showGeofence={true}
             className="h-[280px] w-full rounded-2xl"
             readOnly={true}
