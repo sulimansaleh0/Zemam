@@ -102,18 +102,13 @@ export default function DriverMobileTrackingPage() {
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   const offlineQueueCountRef = useRef(0);
 
-  // وضع توفير البيانات الذكي لشبكات الهاتف 2G/3G أو ضعف الواي فاي (Low Data Mode)
+  // وضع توفير البيانات الذكي لشبكات الهاتف 2G/3G أو ضعف الواي فاي (Low Data Mode) - مفعل افتراضياً
   const [isLowDataMode, setIsLowDataMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('zemam_driver_low_data');
       if (saved !== null) return saved === 'true';
-      const conn = (navigator as any).connection;
-      if (conn) {
-        if (conn.saveData) return true;
-        if (conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g' || conn.effectiveType === '3g') return true;
-      }
     }
-    return false;
+    return true; // مفعل افتراضياً لحماية باقة السائق والبطارية
   });
 
   const toggleLowDataMode = () => {
@@ -159,6 +154,7 @@ export default function DriverMobileTrackingPage() {
   const lastEmittedCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
   const lastEmittedHeadingRef = useRef<number | null>(null);
   const isFlushingRef = useRef<boolean>(false);
+  const intermediateBufferRef = useRef<DriverTelemetryPayload[]>([]);
 
   useEffect(() => {
     lowDataModeRef.current = isLowDataMode;
@@ -475,22 +471,38 @@ export default function DriverMobileTrackingPage() {
       setCurrentCoords(coords);
 
       // تحديث مسار الرسم المحلي: أضف النقطة فقط إذا تحركت المركبة مسافة حقيقية (لا تقل عن 5 أمتار)
+      let isNewMovementPoint = false;
       setTraversedPath((prev) => {
         if (prev.length === 0) {
+          isNewMovementPoint = true;
           return [{ lat: lat5, lng: lng5, speed: speedKmH, heading: headingDeg, timestamp: now }];
         }
         const last = prev[prev.length - 1];
         const distFromLast = calculateHaversineDistance(last.lat, last.lng, lat5, lng5) * 1000;
         if (distFromLast >= 5) {
+          isNewMovementPoint = true;
           return [...prev, { lat: lat5, lng: lng5, speed: speedKmH, heading: headingDeg, timestamp: now }];
         }
         return prev;
       });
 
+      const currentPointPayload: DriverTelemetryPayload = {
+        lat: lat5,
+        lng: lng5,
+        speed: speedKmH,
+        heading: headingDeg,
+        accuracy: Math.round(accuracy),
+        timestamp: now,
+      };
+
+      if (isNewMovementPoint) {
+        intermediateBufferRef.current.push(currentPointPayload);
+      }
+
       // خوارزمية البث التكيفية للحد الأدنى من البيانات (2G/3G Dynamic Throttling / Low Data Mode):
       // 1. التوقف التام (سرعة < 3 كم/س ومسافة < 5م): إرسال كل 30 ثانية (أو 60 ثانية في وضع توفير البيانات)
-      // 2. المنعطفات (تغير زاوية الاتجاه >= 15 درجة): إرسال فوري لمنع الخط المستقيم (بحد أدنى 2-2.5 ثانية)
-      // 3. الحركة في خط مستقيم: إرسال كل 4 ثوانٍ (أو 8 ثوانٍ في وضع توفير البيانات لخفض الاستهلاك بنسبة 60%)
+      // 2. المنعطفات (تغير زاوية الاتجاه >= 12 درجة): إرسال فوري لمنع الخط المستقيم (بحد أدنى 1.5-2.5 ثانية)
+      // 3. الحركة في خط مستقيم: إرسال كل 3 ثوانٍ (أو 6 ثوانٍ في وضع توفير البيانات)
       // 4. نبضة دورية كل 30 ثانية (أو 60 ثانية في وضع التوفير)
       // 1. فحص خوارزمية السكون والمسافة (Standing-Still Throttling عبر worthSending):
       // إذا كانت المركبة متوقفة، لا توقظ مودم الاتصال إلا كل 60 ثانية كنَبضة حية (Heartbeat)
@@ -506,21 +518,30 @@ export default function DriverMobileTrackingPage() {
         { lat: lat5, lon: lng5 },
         now,
         {
-          minMeters: lowDataModeRef.current ? 20 : 15,
+          minMeters: lowDataModeRef.current ? 20 : 12,
           heartbeatMs: lowDataModeRef.current ? 60000 : 45000,
         }
       );
 
       const timeElapsed = now - lastEmittedTimeRef.current;
-      const turnMinInterval = lowDataModeRef.current ? 3000 : 2000;
-      const isTurning = headingDelta >= 15 && timeElapsed >= turnMinInterval;
-      const straightInterval = lowDataModeRef.current ? 8000 : 4000;
+      const turnMinInterval = lowDataModeRef.current ? 2500 : 1500;
+      const isTurning = headingDelta >= 12 && timeElapsed >= turnMinInterval;
+      const straightInterval = lowDataModeRef.current ? 6000 : 3000;
       const isThrottleOk = timeElapsed >= straightInterval;
 
       // إرسال النبضة إذا كانت الأولى، أو تحركت المركبة مسافة كافية مع فاصل زمني، أو انعطفت، أو نبضة السكون الدورية
       const shouldEmit = (lastEmittedTimeRef.current === 0) || (isWorth && (isThrottleOk || isTurning));
 
       if (shouldEmit) {
+        // نأخذ جميع النقاط المرحلية التي سار فيها السائق منذ آخر إرسال
+        const allPending = [...intermediateBufferRef.current];
+        intermediateBufferRef.current = [];
+
+        // النقاط الوسيطة هي كافة النقاط السابقة للنقطة الحالية
+        const intermediatePoints = allPending.filter(
+          (p) => !(p.lat === lat5 && p.lng === lng5 && p.timestamp === now)
+        );
+
         const payload: DriverTelemetryPayload = {
           lat: lat5,
           lng: lng5,
@@ -528,6 +549,7 @@ export default function DriverMobileTrackingPage() {
           heading: headingDeg,
           accuracy: Math.round(accuracy),
           timestamp: now,
+          intermediatePoints: intermediatePoints.length > 0 ? intermediatePoints : undefined,
         };
 
         const isCurrentlyConnected = typeof navigator !== 'undefined' && navigator.onLine && socketConnectedRef.current;
@@ -538,19 +560,22 @@ export default function DriverMobileTrackingPage() {
           if (pointRecorded) {
             setTripStats((prev) => ({
               ...prev,
-              sentPointsCount: prev.sentPointsCount + 1,
+              sentPointsCount: prev.sentPointsCount + 1 + intermediatePoints.length,
               startTime: prev.startTime || now,
             }));
           }
         }
 
         if (!pointRecorded) {
-          const queued = await queueTelemetryPoint(payload);
-          if (!queued) {
-            setErrorMessage('تعذر حفظ نقطة GPS محلياً أو إرسالها. تحقق من مساحة التخزين والاتصال.');
-            return;
+          const pointsToQueue = allPending.length > 0 ? allPending : [payload];
+          for (const pt of pointsToQueue) {
+            const queued = await queueTelemetryPoint(pt);
+            if (!queued) {
+              setErrorMessage('تعذر حفظ نقطة GPS محلياً أو إرسالها. تحقق من مساحة التخزين والاتصال.');
+              return;
+            }
           }
-          offlineQueueCountRef.current += 1;
+          offlineQueueCountRef.current += pointsToQueue.length;
           setOfflineQueueCount(offlineQueueCountRef.current);
           if (isCurrentlyConnected && !isFlushingRef.current) {
             flushOfflineQueue();
@@ -709,6 +734,16 @@ export default function DriverMobileTrackingPage() {
     setIsTaskActionLoading(true);
     setErrorMessage(null);
     try {
+      // 0. ترحيل أي نقاط مسار متبقية في الذاكرة المؤقتة إلى طابور التخزين المحلي
+      if (intermediateBufferRef.current.length > 0) {
+        for (const pt of intermediateBufferRef.current) {
+          await queueTelemetryPoint(pt);
+        }
+        offlineQueueCountRef.current += intermediateBufferRef.current.length;
+        setOfflineQueueCount(offlineQueueCountRef.current);
+        intermediateBufferRef.current = [];
+      }
+
       // 1. أولاً: تفريغ أي نقاط GPS متبقية في طابور الهاتف على دفعات والتأكد من وصولها للسيرفر
       if (typeof navigator !== 'undefined' && navigator.onLine) {
         await flushOfflineQueue();

@@ -120,6 +120,7 @@ export function emitDriverLocation(payload: DriverTelemetryPayload): Promise<boo
       heading: payload.heading,
       accuracy: payload.accuracy,
       timestamp: payload.timestamp,
+      intermediatePoints: payload.intermediatePoints,
     }, (error: Error | null, response?: { ok?: boolean }) => {
       resolve(!error && response?.ok === true);
     });
@@ -150,12 +151,16 @@ export function emitDriverLocationBin(payload: DriverTelemetryPayload): Promise<
         lng: payload.lng,
         speed: payload.speed,
         heading: payload.heading,
+        intermediateCount: payload.intermediatePoints?.length || 0,
       },
       '2. بعد التشفير (Binary)': `${binaryPulse.length} بايت (${Array.from(binaryPulse).map((b) => b.toString(16).padStart(2, '0')).join(' ')})`,
     });
 
     return new Promise((resolve) => {
-      socket.timeout(10000).emit('driver:location_bin', { bin: binaryPulse }, (
+      socket.timeout(10000).emit('driver:location_bin', {
+        bin: binaryPulse,
+        intermediatePoints: payload.intermediatePoints,
+      }, (
         error: Error | null,
         response?: { ok?: boolean }
       ) => {

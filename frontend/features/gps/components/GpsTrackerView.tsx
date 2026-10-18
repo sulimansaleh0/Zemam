@@ -12,7 +12,7 @@ import { FleetGpsSidebar } from './FleetGpsSidebar';
 import { VehicleTelemetryDrawer } from './VehicleTelemetryDrawer';
 import { TripSummaryModal } from './TripSummaryModal';
 import { gpsService } from '../services/gps.service';
-import { getGpsSocket } from '../services/gpsSocket';
+import { getGpsSocket, onVehicleLocationChanged } from '../services/gpsSocket';
 import { fetchDrivingRoute } from '@/features/tasks/utils/mapHelpers';
 import type { TripSummary, PlannedLocationPoint } from '../types/gps.types';
 
@@ -142,52 +142,76 @@ export function GpsTrackerView({ fleetHook }: GpsTrackerViewProps = {}) {
     };
   }, [selectedVehicle?.activeTaskId, fetchLivePath]);
 
-  // تحديث مسار المركبة المباشر عند تحركها، وتفادي رسم خطوط مستقيمة عند القفزات المتباعدة
+  // تحديث مسار المركبة المباشر عبر الاشتراك في نبضات الـ Socket الخارجية (تجنب الـ cascading renders)
   useEffect(() => {
-    if (
-      !selectedVehicle?.isInTask ||
-      !selectedVehicle?.currentLocation?.lat ||
-      !selectedVehicle?.currentLocation?.lng
-    ) {
-      return;
-    }
-    const curLat = selectedVehicle.currentLocation.lat;
-    const curLng = selectedVehicle.currentLocation.lng;
-    const curSpeed = selectedVehicle.currentLocation.speed;
-    const curHeading = selectedVehicle.currentLocation.heading;
+    if (!selectedVehicleId) return;
 
-    setSelectedVehiclePath((prev) => {
-      const newPt = {
-        lat: curLat,
-        lng: curLng,
-        speed: curSpeed,
-        heading: curHeading,
-        timestamp: Date.now(),
-      };
-      if (prev.length === 0) return [newPt];
-      const last = prev[prev.length - 1];
+    const unsubscribe = onVehicleLocationChanged((newTelemetry) => {
+      if (
+        !newTelemetry ||
+        newTelemetry.vehicleId !== selectedVehicleId ||
+        !newTelemetry.isInTask ||
+        !newTelemetry.currentLocation?.lat ||
+        !newTelemetry.currentLocation?.lng
+      ) {
+        return;
+      }
 
-      // إذا كانت المسافة بين آخر نقطة مرسومة والموقع الجديد أكثر من 100 متر (دلالة على فجوة انقطاع نت)
-      // نقوم بإعادة جلب المسار الكامل من الخادم فوراً لملء المنحنيات بالنقاط الحقيقية بدلاً من رسم خط مستقيم
-      const isSignificantGap = Math.hypot(curLat - last.lat, curLng - last.lng) > 0.001;
-      if (isSignificantGap && selectedVehicle.activeTaskId) {
-        fetchLivePath(selectedVehicle.activeTaskId);
+      const curLat = newTelemetry.currentLocation.lat;
+      const curLng = newTelemetry.currentLocation.lng;
+      const curSpeed = newTelemetry.currentLocation.speed;
+      const curHeading = newTelemetry.currentLocation.heading;
+      const recentPts = newTelemetry.recentPoints;
+
+      setSelectedVehiclePath((prev) => {
+        // 1. إذا توفرت نقاط مجمعة حديثة من السائق (Recent/Intermediate Points)، نرسمها كلها بالترتيب الدقيق
+        if (Array.isArray(recentPts) && recentPts.length > 0) {
+          const next = [...prev];
+          for (const pt of recentPts) {
+            const last = next[next.length - 1];
+            if (!last || Math.abs(last.lat - pt.lat) > 0.00003 || Math.abs(last.lng - pt.lng) > 0.00003) {
+              next.push({
+                lat: pt.lat,
+                lng: pt.lng,
+                speed: pt.speed,
+                heading: pt.heading,
+                timestamp: pt.timestamp || Date.now(),
+              });
+            }
+          }
+          return next;
+        }
+
+        // 2. التوافق العادي لنقطة مفردة
+        const newPt = {
+          lat: curLat,
+          lng: curLng,
+          speed: curSpeed,
+          heading: curHeading,
+          timestamp: Date.now(),
+        };
+        if (prev.length === 0) return [newPt];
+        const last = prev[prev.length - 1];
+
+        // إذا كانت المسافة بين آخر نقطة مرسومة والموقع الجديد أكثر من 100 متر (دلالة على فجوة انقطاع نت)
+        // نقوم بإعادة جلب المسار الكامل من الخادم فوراً لملء المنحنيات بالنقاط الحقيقية بدلاً من رسم خط مستقيم
+        const isSignificantGap = Math.hypot(curLat - last.lat, curLng - last.lng) > 0.001;
+        if (isSignificantGap && newTelemetry.activeTaskId) {
+          fetchLivePath(newTelemetry.activeTaskId);
+          return prev;
+        }
+
+        if (Math.abs(last.lat - curLat) > 0.00005 || Math.abs(last.lng - curLng) > 0.00005) {
+          return [...prev, newPt];
+        }
         return prev;
-      }
-
-      if (Math.abs(last.lat - curLat) > 0.00005 || Math.abs(last.lng - curLng) > 0.00005) {
-        return [...prev, newPt];
-      }
-      return prev;
+      });
     });
-  }, [
-    selectedVehicle?.currentLocation?.lat,
-    selectedVehicle?.currentLocation?.lng,
-    selectedVehicle?.currentLocation?.speed,
-    selectedVehicle?.currentLocation?.heading,
-    selectedVehicle?.activeTaskId,
-    fetchLivePath,
-  ]);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [selectedVehicleId, fetchLivePath]);
 
   // استعراض ملخص آخر رحلة منتهية للمركبة
   const handleViewRecentTrip = async (vehicleId: string) => {

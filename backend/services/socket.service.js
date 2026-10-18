@@ -111,7 +111,7 @@ function initSocket(server) {
                     return;
                 }
 
-                let { lat, lng, speed, heading, accuracy, timestamp } = payload;
+                let { lat, lng, speed, heading, accuracy, timestamp, intermediatePoints } = payload;
                 
                 // Decode compact binary GPS pulse if present
                 if (payload.bin) {
@@ -136,9 +136,10 @@ function initSocket(server) {
                     console.log(`   - Longitude: ${lng}`);
                     console.log(`   - Speed: ${speed != null ? `${speed} km/h` : '0 km/h'}`);
                     console.log(`   - Heading angle: ${heading != null ? `${heading}°` : '0°'}`);
+                    console.log(`   - Intermediate points: ${Array.isArray(intermediatePoints) ? intermediatePoints.length : 0}`);
                     console.log(`=================================================================\n`);
                 } else {
-                    console.log(`\n[GPS JSON TELEMETRY] Received JSON coordinates: Lat=${lat}, Lng=${lng}, Speed=${speed}`);
+                    console.log(`\n[GPS JSON TELEMETRY] Received JSON coordinates: Lat=${lat}, Lng=${lng}, Speed=${speed}, Intermediates=${Array.isArray(intermediatePoints) ? intermediatePoints.length : 0}`);
                 }
 
                 const companyId = user.companyId;
@@ -154,7 +155,8 @@ function initSocket(server) {
                     speed,
                     heading,
                     accuracy,
-                    timestamp: timestamp || Date.now()
+                    timestamp: timestamp || Date.now(),
+                    intermediatePoints: Array.isArray(intermediatePoints) ? intermediatePoints : []
                 });
                 console.log(`[GPS TELEMETRY] Using vehicle ${result.telemetry.vehicleId} and active task ${result.telemetry.activeTaskId}`);
 

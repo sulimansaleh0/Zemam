@@ -120,7 +120,8 @@ async function processTelemetryUpdate({
     speed = 0,
     heading = 0,
     accuracy = 0,
-    timestamp = Date.now()
+    timestamp = Date.now(),
+    intermediatePoints = []
 }) {
     const numLat = Number(lat);
     const numLng = Number(lng);
@@ -202,7 +203,45 @@ async function processTelemetryUpdate({
     );
 
     // If active task, record in temporary high-resolution log (7d TTL)
+    const recordedPoints = [];
     if (resolvedTaskId) {
+        if (Array.isArray(intermediatePoints) && intermediatePoints.length > 0) {
+            const intermediateDocs = [];
+            for (const pt of intermediatePoints) {
+                const pLat = Number(pt.lat);
+                const pLng = Number(pt.lng);
+                if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+                    const pSpeed = Math.max(0, Number(pt.speed) || 0);
+                    const pHeading = Math.max(0, Math.min(360, Number(pt.heading) || 0));
+                    const pTime = new Date(pt.timestamp || Date.now());
+                    const doc = {
+                        taskId: resolvedTaskId,
+                        vehicleId: authorizedSource.vehicle._id,
+                        driverId,
+                        companyId,
+                        teamId,
+                        lat: pLat,
+                        lng: pLng,
+                        speed: pSpeed,
+                        heading: pHeading,
+                        accuracy: Number(pt.accuracy) || 0,
+                        timestamp: pTime
+                    };
+                    intermediateDocs.push(doc);
+                    recordedPoints.push({
+                        lat: pLat,
+                        lng: pLng,
+                        speed: pSpeed,
+                        heading: pHeading,
+                        timestamp: pTime.getTime()
+                    });
+                }
+            }
+            if (intermediateDocs.length > 0) {
+                await TaskLivePoint.insertMany(intermediateDocs, { ordered: true });
+            }
+        }
+
         await TaskLivePoint.create({
             taskId: resolvedTaskId,
             vehicleId: authorizedSource.vehicle._id,
@@ -215,6 +254,13 @@ async function processTelemetryUpdate({
             heading: numHeading,
             accuracy,
             timestamp: updateTime
+        });
+        recordedPoints.push({
+            lat: numLat,
+            lng: numLng,
+            speed: Math.round(numSpeed * 10) / 10,
+            heading: Math.round(numHeading),
+            timestamp: updateTime.getTime()
         });
     }
 
@@ -244,7 +290,16 @@ async function processTelemetryUpdate({
             isInTask: !!resolvedTaskId,
             activeTaskId: resolvedTaskId ? resolvedTaskId.toString() : undefined,
             activeTaskTitle: authorizedSource.taskDescription,
-            activeTaskDescription: authorizedSource.taskDescription
+            activeTaskDescription: authorizedSource.taskDescription,
+            recentPoints: recordedPoints.length > 0 ? recordedPoints : [
+                {
+                    lat: numLat,
+                    lng: numLng,
+                    speed: Math.round(numSpeed * 10) / 10,
+                    heading: Math.round(numHeading),
+                    timestamp: updateTime.getTime()
+                }
+            ]
         }
     };
 }

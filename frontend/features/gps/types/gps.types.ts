@@ -29,6 +29,13 @@ export interface VehicleLiveTelemetry {
   activeTaskId?: string;
   activeTaskTitle?: string;
   activeTaskDescription?: string;
+  recentPoints?: Array<{
+    lat: number;
+    lng: number;
+    speed?: number;
+    heading?: number;
+    timestamp?: number;
+  }>;
 }
 
 export interface TripSummary {
@@ -72,6 +79,7 @@ export interface DriverTelemetryPayload {
   heading: number;
   accuracy?: number;
   timestamp: number;
+  intermediatePoints?: DriverTelemetryPayload[];
 }
 
 export interface PlannedLocationPoint {
