@@ -108,7 +108,7 @@ exports.acceptTask = async (req, res) => {
 
 exports.finishTask = async (req, res) => {
   try {
-    const result = await taskService.finishTask(req.params.id, req.user);
+    const result = await taskService.finishTask(req.params.id, req.user, req.body || {});
     return success(res, 200, result);
   } catch (err) {
     if (err.statusCode) {

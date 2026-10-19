@@ -317,11 +317,45 @@ function stopTelemetryTracking(vehicleId) {
 /**
  * Aggregates a task's high-frequency raw points into a permanent trip summary.
  */
-async function finalizeTripSummary(task) {
+async function finalizeTripSummary(task, clientTraversedPath) {
     if (!task) return null;
 
-    // Fetch all recorded points for this task, ordered by timestamp
-    const points = await TaskLivePoint.find({ taskId: task._id }).sort({ timestamp: 1 });
+    let points = [];
+
+    // 1. إذا قام هاتف السائق بتقديم مصفوفة المسار الواقعي المسجلة محلياً (traversedPath)
+    if (Array.isArray(clientTraversedPath) && clientTraversedPath.length > 0) {
+        const validClientDocs = clientTraversedPath
+            .filter((p) => p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+            .map((p) => ({
+                taskId: task._id,
+                vehicleId: task.vehicleId?._id || task.vehicleId,
+                driverId: task.driverId?._id || task.driverId,
+                companyId: task.companyId,
+                teamId: task.teamId,
+                lat: Number(p.lat),
+                lng: Number(p.lng),
+                speed: Math.max(0, Number(p.speed) || 0),
+                heading: Math.max(0, Math.min(360, Number(p.heading) || 0)),
+                accuracy: Number(p.accuracy) || 0,
+                timestamp: p.timestamp ? new Date(p.timestamp) : new Date()
+            }));
+
+        if (validClientDocs.length > 0) {
+            try {
+                // مزامنة واستبدال نقاط TaskLivePoint بالمسار الدقيق 100% القادم من هاتف السائق
+                await TaskLivePoint.deleteMany({ taskId: task._id });
+                await TaskLivePoint.insertMany(validClientDocs, { ordered: true });
+            } catch (dbErr) {
+                console.warn("[finalizeTripSummary] Could not sync client traversed points to TaskLivePoint:", dbErr.message);
+            }
+            points = validClientDocs;
+        }
+    }
+
+    // 2. إذا لم تتوفر مصفوفة مرسلة من السائق، نقرأ المسار المسجل في قاعدة البيانات
+    if (!points || points.length === 0) {
+        points = await TaskLivePoint.find({ taskId: task._id }).sort({ timestamp: 1 });
+    }
 
     let totalDistanceKm = 0;
     let maxSpeed = 0;

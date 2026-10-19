@@ -753,8 +753,22 @@ export default function DriverMobileTrackingPage() {
         }
       }
 
-      // 2. ثانياً: إنهاء المهمة رسمياً في السيرفر (الآن السيرفر سيجد كافة النقاط جاهزة أمامه)
-      const result = await driverTaskService.finishTask(activeTask._id);
+      // 2. ثانياً: إنهاء المهمة رسمياً في السيرفر وتمرير المسار الواقعي لهاتف السائق بالكامل لضمان تطابق 100%
+      const finalTraversedPath = [...traversedPath];
+      if (currentCoords && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lng)) {
+        const last = finalTraversedPath[finalTraversedPath.length - 1];
+        if (!last || last.lat !== currentCoords.lat || last.lng !== currentCoords.lng) {
+          finalTraversedPath.push({
+            lat: currentCoords.lat,
+            lng: currentCoords.lng,
+            speed: currentCoords.speed || 0,
+            heading: currentCoords.heading || 0,
+            timestamp: Date.now(),
+          });
+        }
+      }
+
+      const result = await driverTaskService.finishTask(activeTask._id, finalTraversedPath);
       stopBroadcasting();
       setShowFinishModal(false);
       if (result.offline) {

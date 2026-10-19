@@ -566,7 +566,8 @@ class TaskService {
   /**
    * Driver or Manager finishes a task and records its GPS-derived distance and fuel use
    */
-  async finishTask(id, user) {
+  async finishTask(id, user, options = {}) {
+    const { traversedPath } = options || {};
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       const err = new Error("معرف المهمة غير صالح");
       err.statusCode = 400;
@@ -614,8 +615,8 @@ class TaskService {
       await task.save();
     }
 
-    // دائماً تلخيص المسار المكتمل من قاعدة البيانات لضمان شمل جميع النقاط المخزنة والمرحلة مؤخراً
-    const tripSummary = await finalizeTripSummary(task);
+    // دائماً تلخيص المسار المكتمل من قاعدة البيانات أو من مصفوفة هاتف السائق لضمان تطابق 100%
+    const tripSummary = await finalizeTripSummary(task, traversedPath);
     if (!tripSummary) {
       throw new Error("تعذر إغلاق وتلخيص مسار الـ GPS للمهمة");
     }
