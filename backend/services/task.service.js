@@ -698,7 +698,12 @@ class TaskService {
       throw new Error("لم يتم العثور على المركبة لتحديث حالتها بعد إنهاء المهمة");
     }
 
-    // يتم الاحتفاظ بنقاط المسار المسجلة للرجوع إليها في تفاصيل المهمة واسترجاع المسار الواقعي
+    // تفريغ وحذف نقاط الـ GPS الخام المؤقتة من قاعدة البيانات لمنع تضخم الحجم
+    // مع بقاء المسار محفوظاً 100% ومضغوطاً بصيغة encodedPath داخل وثيقة المهمة (Task.tripSummary)
+    if (tripSummary?.encodedPath) {
+      await TaskLivePoint.deleteMany({ taskId: task._id });
+    }
+
     stopTelemetryTracking(task.vehicleId);
 
     notifyTripCompleted(user.companyId, task.teamId, tripSummary);

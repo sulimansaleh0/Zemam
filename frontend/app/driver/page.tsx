@@ -155,6 +155,11 @@ export default function DriverMobileTrackingPage() {
   const lastEmittedHeadingRef = useRef<number | null>(null);
   const isFlushingRef = useRef<boolean>(false);
   const intermediateBufferRef = useRef<DriverTelemetryPayload[]>([]);
+  const activeTaskRef = useRef<any | null>(null);
+
+  useEffect(() => {
+    activeTaskRef.current = activeTask;
+  }, [activeTask]);
 
   useEffect(() => {
     lowDataModeRef.current = isLowDataMode;
@@ -222,11 +227,26 @@ export default function DriverMobileTrackingPage() {
           // استعادة مسار المهمة الحالية لتجنب ظهور خط مستقيم بعد إعادة التحميل
           if (chosen.status === 'inprogress') {
             try {
+              // 1. أولاً استرجاع المسار المحفوظ محلياً في ذاكرة هاتف السائق (أسرع وأدق وأضمن في حال انقطاع الشبكة)
+              let localSavedPath: Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }> = [];
+              if (typeof window !== 'undefined') {
+                try {
+                  const stored = localStorage.getItem('zemam_driver_traversed_path_' + chosen._id);
+                  if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                      localSavedPath = parsed;
+                      setTraversedPath(parsed);
+                    }
+                  }
+                } catch {}
+              }
+
               const [pathRes, queued] = await Promise.all([
                 gpsService.getLiveTripPath(chosen._id),
                 getQueuedTelemetry(),
               ]);
-              const existingPoints: Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }> = [];
+              const existingPoints: Array<{ lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }> = [...localSavedPath];
               if (pathRes.success && pathRes.data?.path?.points) {
                 pathRes.data.path.points.forEach((p) => {
                   existingPoints.push({
@@ -253,7 +273,23 @@ export default function DriverMobileTrackingPage() {
                 });
               }
               if (existingPoints.length > 0) {
-                setTraversedPath(existingPoints);
+                // إزالة التكرار وفرز النقاط زمنياً
+                const uniquePointsMap = new Map<string, { lat: number; lng: number; speed?: number; heading?: number; timestamp?: number }>();
+                existingPoints.forEach((pt) => {
+                  const key = `${pt.lat.toFixed(5)}_${pt.lng.toFixed(5)}_${pt.timestamp || 0}`;
+                  if (!uniquePointsMap.has(key)) {
+                    uniquePointsMap.set(key, pt);
+                  }
+                });
+                const sortedDeduped = Array.from(uniquePointsMap.values()).sort(
+                  (a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0)
+                );
+                setTraversedPath(sortedDeduped);
+                if (typeof window !== 'undefined') {
+                  try {
+                    localStorage.setItem('zemam_driver_traversed_path_' + chosen._id, JSON.stringify(sortedDeduped));
+                  } catch {}
+                }
               }
             } catch (err) { }
           }
@@ -473,17 +509,28 @@ export default function DriverMobileTrackingPage() {
       // تحديث مسار الرسم المحلي: أضف النقطة فقط إذا تحركت المركبة مسافة حقيقية (لا تقل عن 5 أمتار)
       let isNewMovementPoint = false;
       setTraversedPath((prev) => {
+        let updated: typeof prev;
         if (prev.length === 0) {
           isNewMovementPoint = true;
-          return [{ lat: lat5, lng: lng5, speed: speedKmH, heading: headingDeg, timestamp: now }];
+          updated = [{ lat: lat5, lng: lng5, speed: speedKmH, heading: headingDeg, timestamp: now }];
+        } else {
+          const last = prev[prev.length - 1];
+          const distFromLast = calculateHaversineDistance(last.lat, last.lng, lat5, lng5) * 1000;
+          if (distFromLast >= 5) {
+            isNewMovementPoint = true;
+            updated = [...prev, { lat: lat5, lng: lng5, speed: speedKmH, heading: headingDeg, timestamp: now }];
+          } else {
+            return prev;
+          }
         }
-        const last = prev[prev.length - 1];
-        const distFromLast = calculateHaversineDistance(last.lat, last.lng, lat5, lng5) * 1000;
-        if (distFromLast >= 5) {
-          isNewMovementPoint = true;
-          return [...prev, { lat: lat5, lng: lng5, speed: speedKmH, heading: headingDeg, timestamp: now }];
+
+        const currentTaskId = activeTaskRef.current?._id;
+        if (currentTaskId && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('zemam_driver_traversed_path_' + currentTaskId, JSON.stringify(updated));
+          } catch {}
         }
-        return prev;
+        return updated;
       });
 
       const currentPointPayload: DriverTelemetryPayload = {
@@ -775,6 +822,11 @@ export default function DriverMobileTrackingPage() {
         setSuccessNotice('📴 تم تسجيل إنهاء المهمة محلياً (بدون إنترنت). سيتم تسليمها للسيرفر فور توفر الشبكة.');
       } else {
         setSuccessNotice('🎉 تم تسليم المهمة بنجاح وتوليد ملخص الرحلة!');
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('zemam_driver_traversed_path_' + activeTask._id);
+          } catch {}
+        }
       }
       setActiveTask((prev: any) => ({ ...prev, status: 'finished' }));
       if (navigator.onLine) {

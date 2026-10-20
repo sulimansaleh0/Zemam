@@ -64,6 +64,7 @@ export const driverTaskService = {
           method: 'PATCH',
           credentials: 'include',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          keepalive: true,
         });
         if (res.ok) {
           return { success: true, offline: false };
@@ -109,6 +110,7 @@ export const driverTaskService = {
           credentials: 'include',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload),
+          keepalive: true,
         });
         if (res.ok) {
           return { success: true, offline: false };
@@ -295,12 +297,23 @@ export const driverTaskService = {
           credentials: 'include',
           headers: getAuthHeaders(headers),
           body,
+          keepalive: true,
         });
 
         // 200/201: النجاح، 400/404/409: عمليات منتهية الصلاحية أو مكررة يتم إزالتها لتجنب انسداد الطابور
         if (res.ok || res.status === 400 || res.status === 404 || res.status === 409) {
           await removeOfflineAction(action.id);
-          if (res.ok) succeeded++;
+          if (res.ok) {
+            succeeded++;
+            if (action.type === 'FINISH_TASK' && typeof window !== 'undefined') {
+              const taskIdMatch = action.url.match(/\/api\/task\/([^/]+)\/finish/);
+              if (taskIdMatch && taskIdMatch[1]) {
+                try {
+                  localStorage.removeItem('zemam_driver_traversed_path_' + taskIdMatch[1]);
+                } catch {}
+              }
+            }
+          }
         }
       } catch (err) {
         console.warn(`[driverTaskService] Failed to replay action ${action.id}:`, err);

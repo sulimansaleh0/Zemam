@@ -1,5 +1,6 @@
-const CACHE_NAME = 'zemam-driver-pwa-v3';
+const CACHE_NAME = 'zemam-driver-pwa-v4';
 const STATIC_ASSETS = [
+  '/driver',
   '/offline.html',
   '/manifest.webmanifest',
   '/icons/icon-192x192.png',
@@ -7,7 +8,7 @@ const STATIC_ASSETS = [
   '/images/landing/zimam-official-emblem.png',
 ];
 
-// Install: Cache critical assets
+// Install: Pre-cache critical assets including Driver App Shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -40,16 +41,36 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignore non-http requests and chrome-extension
+  // Ignore non-http requests and chrome extensions
   if (!url.protocol.startsWith('http')) return;
 
-  // Next.js chunks, HMR, and build files must ALWAYS bypass Service Worker in development
-  if (url.pathname.startsWith('/_next/')) return;
+  // Next.js hot module reloading (HMR) bypass in development
+  if (url.pathname.includes('webpack-hmr')) return;
 
   // Socket.io polling or websocket requests bypass service worker
   if (url.pathname.includes('/socket.io/')) return;
 
-  // API Requests: Network-first, fallback to cache for GET
+  // 1. Next.js Static Assets (hashed JS chunks, CSS, fonts) -> Cache-First
+  // This allows the full React/Next.js application UI to load even when 100% offline
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const clone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return networkResponse;
+          })
+          .catch(() => cached || Response.error());
+      })
+    );
+    return;
+  }
+
+  // 2. API Requests: Network-first, fallback to cache for GET
   if (url.pathname.startsWith('/api/')) {
     if (request.method !== 'GET') {
       return;
@@ -70,7 +91,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static images and icons: Cache-first
+  // 3. Static images and icons: Cache-first
   if (
     url.pathname.startsWith('/icons/') ||
     url.pathname.match(/\.(png|jpg|jpeg|svg|webp|woff2?)$/)
@@ -93,22 +114,44 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML Page Navigation: Network-first, fallback to /offline.html
+  // 4. HTML Page Navigation: Network-First with App Shell Cache Fallback
+  // If offline, serve cached /driver shell instead of generic offline.html!
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return response;
         })
-        .catch(() => {
+        .catch(async () => {
+          // A. Try exact URL match in cache
+          const cachedExact = await caches.match(request);
+          if (cachedExact) return cachedExact;
+
+          // B. Fallback to /driver app shell
+          const cachedDriver = await caches.match('/driver');
+          if (cachedDriver) return cachedDriver;
+
+          // C. If completely unavailable, show offline.html
           return caches.match('/offline.html');
         })
     );
     return;
   }
 
-  // Default fallback: Try network
+  // 5. Default fallback: Try network, then cache
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(request))
   );
 });
